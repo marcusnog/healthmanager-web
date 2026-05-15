@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:21st-search-engine.fly.dev)",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/search -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\": \\\\\"dashboard stats cards health medical clinic\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/list -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"/\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/search -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\": \\\\\"card stats metric\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/list -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources\\\\\"}\")",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(f\\) for f in data['files'][:50]]\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/list -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/read -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react/src/theme-config.ts\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/read -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react/src/theme.ts\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/read -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react/styles/index.css\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/read -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react/src/components/input-bar.tsx\\\\\"}\")",
+      "Bash(curl -s -X POST https://21st-search-engine.fly.dev/read -H \"Content-Type: application/json\" -d \"{\\\\\"path\\\\\": \\\\\"sources/react/src/utils/cn.ts\\\\\"}\")",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

@@ -16,6 +16,26 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Quality checks
+
+```bash
+npm run lint
+npm run test
+npm run test:e2e
+npm run test:e2e:real
+npm run build
+```
+
+The frontend test suite uses `Vitest + Testing Library` with mocked OpenAPI services so we can validate login, dashboard rendering, and fallback states without depending on the backend runtime.
+
+The E2E suite uses `Playwright` with mocked network responses for the generated API endpoints. Before the first local run, install the browser once:
+
+```bash
+npx playwright install chromium
+```
+
+For a real browser-to-backend integration pass, `npm run test:e2e:real` starts the Next app plus the sibling `.NET` API project in memory, using the seeded local clinic admin (`admin@clinicaaurora.com` / `ChangeMe123!`).
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
