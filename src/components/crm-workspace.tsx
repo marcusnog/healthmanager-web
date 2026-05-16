@@ -352,42 +352,51 @@ export function CrmWorkspace() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const authenticated = !!session;
+
   const summaryQuery = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(), fallbackSummary),
     placeholderData: fallbackSummary,
+    enabled: authenticated,
   });
   const patientsListQuery = useQuery({
     queryKey: ["patients-list", patientSearch, patientPage],
     queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined), fallbackPatientsPage),
     placeholderData: fallbackPatientsPage,
+    enabled: authenticated,
   });
   const patientsCatalogQuery = useQuery({
     queryKey: ["patients-catalog"],
     queryFn: () => guardedQuery(async () => { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; }, fallbackPatients),
     placeholderData: fallbackPatients,
+    enabled: authenticated,
   });
   const doctorsQuery = useQuery({
     queryKey: ["doctors"],
     queryFn: () => guardedQuery(() => DefaultService.doctorsList(), fallbackDoctors),
     placeholderData: fallbackDoctors,
+    enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
     queryKey: ["appointments", appointmentDate, appointmentPage, appointmentDoctorId],
     queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
     placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
+    enabled: authenticated,
   });
   const receivablesQuery = useQuery({
     queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo],
     queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), fallbackReceivablesPage),
     placeholderData: fallbackReceivablesPage,
+    enabled: authenticated,
   });
 
   useEffect(() => {
     const handler = () => {
       clearAuthSession();
       setSession(null);
-      queryClient.clear();
+      void queryClient.cancelQueries();
+      queryClient.removeQueries();
     };
     window.addEventListener("auth:unauthorized", handler);
     return () => window.removeEventListener("auth:unauthorized", handler);
