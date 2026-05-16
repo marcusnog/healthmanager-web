@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
+import { clearAuthSession, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
 import { LoginPanel } from "@/modules/auth/login-panel";
 import { SummaryCards } from "@/modules/dashboard/summary-cards";
 import { DoctorRoster } from "@/modules/doctors/doctor-roster";
@@ -372,6 +372,16 @@ export function CrmWorkspace() {
     queryFn: async () => { try { return await DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo); } catch { return fallbackReceivablesPage; } },
     placeholderData: fallbackReceivablesPage,
   });
+
+  useEffect(() => {
+    const handler = () => {
+      clearAuthSession();
+      setSession(null);
+      queryClient.clear();
+    };
+    window.addEventListener("auth:unauthorized", handler);
+    return () => window.removeEventListener("auth:unauthorized", handler);
+  }, [queryClient]);
 
   async function handleLogin(nextSession: SessionState) {
     setSession(nextSession);
