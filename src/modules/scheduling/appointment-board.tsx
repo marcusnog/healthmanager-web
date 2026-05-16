@@ -235,9 +235,9 @@ export function AppointmentBoard({
       ) : null}
 
       <div className="toolbar mt-5">
-        <div className="toolbar-inline justify-between">
+        <div className="toolbar-stack">
           <div className="toolbar-inline flex-wrap gap-3">
-            <Field className="min-w-[200px]" label="Data da agenda">
+            <Field className="min-w-0 flex-1" label="Data da agenda">
               <input
                 className="input-field"
                 onChange={(event) => onAppointmentDateChange(event.target.value)}
@@ -245,7 +245,7 @@ export function AppointmentBoard({
                 value={appointmentDate}
               />
             </Field>
-            <Field className="min-w-[180px]" label="Medico">
+            <Field className="min-w-0 flex-1" label="Medico">
               <select
                 className="input-field"
                 onChange={(event) => onDoctorChange(event.target.value || undefined)}
@@ -261,7 +261,7 @@ export function AppointmentBoard({
               </select>
             </Field>
           </div>
-          <div className="toolbar-inline">
+          <div className="toolbar-inline flex-wrap">
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, -1))}

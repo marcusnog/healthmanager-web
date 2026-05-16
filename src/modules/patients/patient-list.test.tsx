@@ -264,8 +264,8 @@ describe("PatientList", () => {
     fireEvent.change(screen.getByPlaceholderText("Buscar por nome, CPF ou telefone"), {
       target: { value: "Ana" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Pagina anterior" }));
-    fireEvent.click(screen.getByRole("button", { name: "Proxima pagina" }));
+    fireEvent.click(screen.getByRole("button", { name: "Anterior" }));
+    fireEvent.click(screen.getByRole("button", { name: "Proxima" }));
 
     expect(baseProps.onSearchChange).toHaveBeenCalledWith("Ana");
     expect(baseProps.onPageChange).toHaveBeenCalledWith(1);

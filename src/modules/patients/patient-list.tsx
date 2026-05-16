@@ -159,7 +159,7 @@ export function PatientList({
       ) : null}
 
       <div className="toolbar mt-5">
-        <div className="toolbar-inline justify-between">
+        <div className="toolbar-stack">
           <label className="min-w-0 flex-1">
             <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
             <input
@@ -169,17 +169,17 @@ export function PatientList({
               value={search}
             />
           </label>
-          <div className="toolbar-inline">
+          <div className="toolbar-inline flex-wrap">
             <button
               className="btn btn-ghost btn-sm"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
               type="button"
             >
-              Pagina anterior
+              Anterior
             </button>
             <span className="text-sm font-medium text-[var(--muted)]">
-              Pagina {page} de {totalPages}
+              {page} / {totalPages}
             </span>
             <button
               className="btn btn-ghost btn-sm"
@@ -187,7 +187,7 @@ export function PatientList({
               onClick={() => onPageChange(page + 1)}
               type="button"
             >
-              Proxima pagina
+              Proxima
             </button>
           </div>
         </div>

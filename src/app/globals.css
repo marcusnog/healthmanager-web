@@ -223,8 +223,15 @@ a {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 480px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 }
 
 .metric-card {
@@ -277,6 +284,21 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
+}
+
+.toolbar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .toolbar-stack {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
 }
 
 .stack-list {
@@ -934,5 +956,6 @@ textarea.input-field {
 @media (min-width: 1280px) {
   .card-grid {
     grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
   }
 }

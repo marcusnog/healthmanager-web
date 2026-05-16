@@ -513,11 +513,11 @@ export function CrmWorkspace() {
           <div className="space-y-4">
             <DashboardInsight summary={summary} doctorCount={(doctorsQuery.data ?? fallbackDoctors).length} />
             <SummaryCards data={summary} />
-            <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+            <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
               <PatientList {...patientListProps} />
               <AppointmentBoard {...appointmentBoardProps} />
             </div>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               <FinancialOverview {...financialOverviewProps} />
               <DoctorRoster doctors={doctorsQuery.data ?? fallbackDoctors} />
             </div>

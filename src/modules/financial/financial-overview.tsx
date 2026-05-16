@@ -146,7 +146,7 @@ export function FinancialOverview({
       </div>
 
       <div className="toolbar mt-5 flex flex-col gap-3">
-        <div className="toolbar-inline">
+        <div className="toolbar-inline flex-wrap">
           {STATUS_FILTERS.map(({ key, label }) => (
             <button
               key={label}
@@ -162,19 +162,19 @@ export function FinancialOverview({
           ))}
         </div>
         <div className="toolbar-inline flex-wrap gap-3">
-          <label>
+          <label className="min-w-0 flex-1">
             <span className="mb-2 block text-sm font-semibold">Vencimento de</span>
             <input
-              className="input-field min-w-[160px]"
+              className="input-field"
               type="date"
               value={dateFrom ?? ""}
               onChange={(e) => onDateFromChange(e.target.value || undefined)}
             />
           </label>
-          <label>
+          <label className="min-w-0 flex-1">
             <span className="mb-2 block text-sm font-semibold">Vencimento ate</span>
             <input
-              className="input-field min-w-[160px]"
+              className="input-field"
               type="date"
               value={dateTo ?? ""}
               onChange={(e) => onDateToChange(e.target.value || undefined)}

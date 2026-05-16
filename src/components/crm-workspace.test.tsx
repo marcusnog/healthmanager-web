@@ -247,7 +247,7 @@ describe("CrmWorkspace", () => {
     );
 
     await screen.findByText("Ana Martins");
-    fireEvent.click(screen.getByRole("button", { name: "Proxima pagina" }));
+    fireEvent.click(screen.getByRole("button", { name: "Proxima" }));
 
     expect(await screen.findByText("Carlos Pagina 2")).toBeVisible();
     expect(patientsList).toHaveBeenCalledWith(2, 3, undefined);
