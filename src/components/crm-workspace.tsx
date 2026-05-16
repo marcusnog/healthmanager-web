@@ -12,6 +12,7 @@ import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService } from "@/services/api";
+import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
   PagedPatientResponse,
@@ -250,6 +251,15 @@ function filterAppointmentsForDate(appointments: AppointmentResponse[], date: st
   return appointments.filter((a) => a.startAt?.slice(0, 10) === date);
 }
 
+async function guardedQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) throw e;
+    return fallback;
+  }
+}
+
 /* ─── Dashboard insight strip ───────────────────────────────────── */
 
 function DashboardInsight({ summary, doctorCount }: { summary: DashboardSummaryResponse; doctorCount: number }) {
@@ -301,7 +311,7 @@ function DashboardInsight({ summary, doctorCount }: { summary: DashboardSummaryR
 export function CrmWorkspace() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<SessionState | null>(
-    () => (shouldStartBlocked() ? null : readStoredSessionState() ?? fallbackSession),
+    () => (shouldStartBlocked() ? null : readStoredSessionState()),
   );
   const [activeSection, setActiveSection] = useState<Section>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -344,32 +354,32 @@ export function CrmWorkspace() {
 
   const summaryQuery = useQuery({
     queryKey: ["dashboard-summary"],
-    queryFn: async () => { try { return await DefaultService.dashboardSummary(); } catch { return fallbackSummary; } },
+    queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(), fallbackSummary),
     placeholderData: fallbackSummary,
   });
   const patientsListQuery = useQuery({
     queryKey: ["patients-list", patientSearch, patientPage],
-    queryFn: async () => { try { return await DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined); } catch { return fallbackPatientsPage; } },
+    queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined), fallbackPatientsPage),
     placeholderData: fallbackPatientsPage,
   });
   const patientsCatalogQuery = useQuery({
     queryKey: ["patients-catalog"],
-    queryFn: async () => { try { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; } catch { return fallbackPatients; } },
+    queryFn: () => guardedQuery(async () => { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; }, fallbackPatients),
     placeholderData: fallbackPatients,
   });
   const doctorsQuery = useQuery({
     queryKey: ["doctors"],
-    queryFn: async () => { try { return await DefaultService.doctorsList(); } catch { return fallbackDoctors; } },
+    queryFn: () => guardedQuery(() => DefaultService.doctorsList(), fallbackDoctors),
     placeholderData: fallbackDoctors,
   });
   const appointmentsQuery = useQuery({
     queryKey: ["appointments", appointmentDate, appointmentPage, appointmentDoctorId],
-    queryFn: async () => { try { return await DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId); } catch { return { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }; } },
+    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
     placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
   });
   const receivablesQuery = useQuery({
     queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo],
-    queryFn: async () => { try { return await DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo); } catch { return fallbackReceivablesPage; } },
+    queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), fallbackReceivablesPage),
     placeholderData: fallbackReceivablesPage,
   });
 

@@ -24,7 +24,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
-            retry: 1,
+            retry: (failureCount, error) =>
+              !(error instanceof ApiError && error.status === 401) && failureCount < 1,
             refetchOnWindowFocus: false,
           },
         },
