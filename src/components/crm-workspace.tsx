@@ -200,11 +200,6 @@ const NAV: {
 
 /* ─── Fallback data ──────────────────────────────────────────────── */
 
-const fallbackSession: SessionState = {
-  name: "Camila Rocha",
-  role: "Admin",
-  clinicName: "Clinica Aurora",
-};
 
 function shouldStartBlocked() {
   if (typeof window === "undefined") {
@@ -684,7 +679,7 @@ export function CrmWorkspace() {
         </header>
 
         {/* Scrollable content */}
-        <main className="flex-1 min-h-0 p-2 pb-8 md:p-3">
+        <main className="flex-1 min-h-0 p-3 pb-8 md:p-4">
           {renderSection()}
         </main>
       </div>
