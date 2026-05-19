@@ -484,14 +484,16 @@ export function CrmWorkspace() {
         {/* Topbar — mobile hamburger + section label */}
         <header className="topbar">
           <div className="topbar-copy">
-            <button
-              className="btn btn-ghost btn-sm lg:hidden"
-              onClick={() => setSidebarOpen((v) => !v)}
-              type="button"
-              aria-label="Menu"
-            >
-              {sidebarOpen ? <CrossIcon /> : <MenuIcon />}
-            </button>
+            {isMobile ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSidebarOpen((v) => !v)}
+                type="button"
+                aria-label="Menu"
+              >
+                {sidebarOpen ? <CrossIcon /> : <MenuIcon />}
+              </button>
+            ) : null}
             <div className="topbar-title-group">
               <p className="text-sm font-semibold text-[var(--ink)]">{meta.title}</p>
               <p className="text-xs text-[var(--muted)]">{meta.subtitle}</p>
