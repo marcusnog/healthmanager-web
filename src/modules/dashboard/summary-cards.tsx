@@ -38,10 +38,10 @@ export function SummaryCards({ data }: { readonly data: DashboardSummaryResponse
           <div
             style={{
               width: 3,
-              height: "1.25rem",
+              height: "0.9rem",
               borderRadius: 2,
               background: card.accent,
-              marginBottom: "0.65rem",
+              marginBottom: "0.45rem",
             }}
           />
           <p className="label">{card.label}</p>

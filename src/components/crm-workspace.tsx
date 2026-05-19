@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { clearAuthSession, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
 import { LoginPanel } from "@/modules/auth/login-panel";
 import { SummaryCards } from "@/modules/dashboard/summary-cards";
+import { DashboardRightRail } from "@/modules/dashboard/dashboard-right-rail";
 import { DoctorRoster } from "@/modules/doctors/doctor-roster";
 import { PatientList } from "@/modules/patients/patient-list";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
@@ -383,39 +384,17 @@ export function CrmWorkspace() {
     switch (activeSection) {
       case "dashboard":
         return (
-          <div className="space-y-4">
-            <div className="page-header">
-              <div>
-                <h1 className="text-lg font-semibold text-[var(--ink)]">Dashboard</h1>
-                <p className="mt-0.5 text-sm text-[var(--muted)]">
-                  {today} · {summary.appointmentsToday ?? 0} consulta{(summary.appointmentsToday ?? 0) !== 1 ? "s" : ""} prevista{(summary.appointmentsToday ?? 0) !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className="page-header-actions">
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setActiveSection("pacientes")}
-                  type="button"
-                >
-                  Novo paciente
-                </button>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setActiveSection("agenda")}
-                  type="button"
-                >
-                  Nova consulta
-                </button>
-              </div>
-            </div>
+          <div className="dashboard-layout">
             <SummaryCards data={summary} />
             <div className="dashboard-grid-main">
               <AppointmentBoard {...appointmentBoardProps} />
-              <div className="dashboard-right-col">
-                <PatientList {...patientListProps} />
-                <FinancialOverview {...financialOverviewProps} />
-                <DoctorRoster doctors={doctorsQuery.data ?? fallbackDoctors} />
-              </div>
+              <DashboardRightRail
+                patients={patientsListQuery.data?.items ?? fallbackPatients}
+                receivables={receivablesQuery.data?.items ?? fallbackReceivables}
+                onNewAppointment={() => setActiveSection("agenda")}
+                onNewPatient={() => setActiveSection("pacientes")}
+                onViewFinancial={() => setActiveSection("financeiro")}
+              />
             </div>
           </div>
         );
@@ -501,7 +480,7 @@ export function CrmWorkspace() {
       {/* Main area */}
       <div className="main-shell">
         {/* Topbar — mobile hamburger + section label */}
-        <header className="topbar panel-sm">
+        <header className="topbar">
           <div className="flex items-center gap-3">
             <button
               className="btn btn-ghost btn-sm lg:hidden"
@@ -516,10 +495,26 @@ export function CrmWorkspace() {
               <p className="text-xs text-[var(--muted)] hidden sm:block">{meta.subtitle}</p>
             </div>
           </div>
-          <div className="hidden items-center gap-2 md:flex text-xs text-[var(--muted)]">
-            <span>{session.clinicName}</span>
-            <span style={{ color: "var(--border-strong)" }}>·</span>
-            <span className="capitalize">{today}</span>
+          <div className="topbar-right">
+            <span className="topbar-date">{today}</span>
+            {activeSection === "dashboard" && (
+              <>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setActiveSection("pacientes")}
+                  type="button"
+                >
+                  Novo paciente
+                </button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setActiveSection("agenda")}
+                  type="button"
+                >
+                  Nova consulta
+                </button>
+              </>
+            )}
           </div>
         </header>
 
