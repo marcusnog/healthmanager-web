@@ -212,7 +212,7 @@ a {
   background:
     linear-gradient(180deg, rgba(14, 107, 102, 0.12), rgba(255, 255, 255, 0.84)),
     rgba(255, 255, 255, 0.74);
-  padding: 1.1rem 1.15rem;
+  padding: 1.25rem 1.4rem;
   box-shadow: var(--shadow-sm);
 }
 
@@ -238,7 +238,7 @@ a {
   position: relative;
   overflow: hidden;
   min-height: 138px;
-  padding: 1.1rem;
+  padding: 1.25rem 1.35rem;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(20, 54, 59, 0.08);
   box-shadow: var(--shadow-sm);
@@ -310,7 +310,7 @@ a {
   border-radius: var(--radius-md);
   border: 1px solid rgba(20, 54, 59, 0.08);
   background: rgba(255, 252, 248, 0.92);
-  padding: 0.875rem;
+  padding: 1rem 1.1rem;
   box-shadow: 0 16px 32px rgba(16, 35, 39, 0.06);
   transition: var(--transition-lift);
 }
@@ -420,7 +420,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   min-height: 3.6rem;
   flex-shrink: 0;
   border-radius: var(--radius-xl);
@@ -979,7 +979,7 @@ textarea.input-field {
 }
 
 .insight-chip {
-  padding: 0.8rem 1rem;
+  padding: 0.9rem 1.25rem;
   background: linear-gradient(
     135deg,
     rgba(255, 252, 248, 0.97) 0%,
