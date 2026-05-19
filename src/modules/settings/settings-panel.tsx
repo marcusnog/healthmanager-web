@@ -27,7 +27,7 @@ const SETTINGS = [
 
 export function SettingsPanel() {
   return (
-    <section className="panel rounded-[2rem] p-6">
+    <section className="panel rounded-lg p-6">
       <div className="section-heading">
         <div>
           <p className="label">Configuracoes</p>

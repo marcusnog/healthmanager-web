@@ -16,7 +16,7 @@ describe("SummaryCards", () => {
       />,
     );
 
-    expect(screen.getByText("Consultas do dia")).toBeVisible();
+    expect(screen.getByText("Consultas hoje")).toBeVisible();
     expect(screen.getByText("18")).toBeVisible();
     expect(screen.getByText("R$ 32.780,00")).toBeVisible();
     expect(screen.getByText("72%")).toBeVisible();

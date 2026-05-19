@@ -123,29 +123,20 @@ export function FinancialOverview({
     });
 
   return (
-    <section className="panel rounded-[2rem] p-4 md:p-5 lg:p-6">
+    <section className="panel rounded-lg p-4 md:p-5">
       <div className="section-heading">
         <div>
-          <p className="label">Financeiro</p>
-          <h3 className="mt-2 text-2xl font-semibold">Contas a receber</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Acompanhe o caixa diario com clareza visual, recebimento parcial e
-            status de cada recebivel sem sair da tela operacional.
+          <h3 className="text-base font-semibold text-[var(--ink)]">Contas a receber</h3>
+          <p className="text-sm text-[var(--muted)]">
+            {total} registro{total === 1 ? "" : "s"} · filtro: {status ?? "Todos"}
           </p>
         </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">Resumo</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {total} registro{total !== 1 ? "s" : ""} listado{total !== 1 ? "s" : ""} com filtro{" "}
-            {status ?? "Todos"}.
-          </p>
-          {feedback ? (
-            <p className="mt-4 text-sm text-[var(--muted)]">{feedback}</p>
-          ) : null}
-        </div>
+        {feedback ? (
+          <p className="text-sm text-[var(--muted)]">{feedback}</p>
+        ) : null}
       </div>
 
-      <div className="toolbar mt-5 flex flex-col gap-3">
+      <div className="toolbar flex flex-col gap-3">
         <div className="toolbar-inline flex-wrap">
           {STATUS_FILTERS.map(({ key, label }) => (
             <button
@@ -215,20 +206,37 @@ export function FinancialOverview({
                 key={receivable.id ?? receivable.appointmentId ?? receivable.dueDate}
                 className="data-card"
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <StatusBadge variant={statusVariant} />
-                    <div className="meta-row mt-3">
-                      <span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusBadge variant={statusVariant} />
+                      <span className="text-xs text-[var(--muted)]">
                         Venc.{" "}
                         {new Date(
                           receivable.dueDate ?? new Date().toISOString(),
                         ).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
+                    <div className="mt-3 flex items-baseline gap-4 flex-wrap">
+                      <span className="text-xs text-[var(--muted)]">
+                        Original <span className="ml-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(original)}</span>
+                      </span>
+                      <span className="text-xs text-[var(--muted)]">
+                        Recebido <span className="ml-1 text-sm font-semibold text-[var(--success)]">{formatCurrency(received)}</span>
+                      </span>
+                      <span className="text-xs text-[var(--muted)]">
+                        Em aberto <span className="ml-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(receivable.outstandingAmount ?? 0)}</span>
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="progress-track flex-1">
+                        <div className="progress-fill" style={{ width: `${percentage}%` }} />
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--muted)] tabular-nums shrink-0">{percentage.toFixed(0)}%</span>
+                    </div>
                   </div>
                   <button
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-ghost btn-sm shrink-0"
                     onClick={() => {
                       setFeedback(null);
                       setActiveReceivableId((value) =>
@@ -239,34 +247,6 @@ export function FinancialOverview({
                   >
                     {isActive ? "Fechar" : "Registrar pagamento"}
                   </button>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  <Metric label="Original" value={formatCurrency(original)} />
-                  <Metric
-                    highlight
-                    label="Recebido"
-                    value={formatCurrency(received)}
-                  />
-                  <Metric
-                    label="Em aberto"
-                    value={formatCurrency(receivable.outstandingAmount ?? 0)}
-                  />
-                </div>
-
-                <div className="mt-4 rounded-[1.25rem] border border-[var(--line)] bg-white/60 px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="label">Progresso de recebimento</p>
-                    <span className="text-sm font-semibold">
-                      {percentage.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="progress-track mt-3">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
                 </div>
 
                 {isActive && receivable.id ? (
@@ -351,30 +331,6 @@ export function FinancialOverview({
         </div>
       ) : null}
     </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="rounded-[1.25rem] bg-[var(--surface-neutral)] px-4 py-4">
-      <div className="label">{label}</div>
-      <div
-        className={cn(
-          "mt-2 text-lg font-semibold",
-          highlight ? "text-[var(--success)]" : "text-[var(--ink)]",
-        )}
-      >
-        {value}
-      </div>
-    </div>
   );
 }
 

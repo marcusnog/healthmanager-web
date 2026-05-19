@@ -88,7 +88,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar consulta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
 
     await waitFor(() =>
       expect(appointmentsConfirm).toHaveBeenCalledWith("appointment-1"),
@@ -133,7 +133,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar consulta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
     await waitFor(() =>
       expect(appointmentsCancel).toHaveBeenCalledWith("appointment-1"),

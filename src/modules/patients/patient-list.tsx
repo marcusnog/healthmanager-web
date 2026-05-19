@@ -121,39 +121,28 @@ export function PatientList({
   });
 
   return (
-    <section className="panel rounded-[2rem] p-4 md:p-5 lg:p-6">
+    <section className="panel rounded-lg p-4 md:p-5">
       <div className="section-heading">
         <div>
-          <p className="label">Pacientes</p>
-          <h3 className="mt-2 text-2xl font-semibold">
-            Cadastro, busca rapida e historico inicial
-          </h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Organize recepcao, convenio, observacoes clinicas e documentos sem
-            tirar o foco da equipe da operacao do dia.
+          <h3 className="text-base font-semibold text-[var(--ink)]">Pacientes</h3>
+          <p className="text-sm text-[var(--muted)]">
+            {total} paciente{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">Contexto</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {total} paciente{total !== 1 ? "s" : ""} listado{total !== 1 ? "s" : ""} nesta
-            visao.
-          </p>
-          <button
-            className="btn btn-primary btn-sm mt-4"
-            onClick={() => {
-              setFeedback(null);
-              setIsFormOpen((current) => !current);
-            }}
-            type="button"
-          >
-            {isFormOpen ? "Fechar cadastro" : "Novo paciente"}
-          </button>
-        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => {
+            setFeedback(null);
+            setIsFormOpen((current) => !current);
+          }}
+          type="button"
+        >
+          {isFormOpen ? "Cancelar" : "Novo paciente"}
+        </button>
       </div>
 
       {feedback ? (
-        <div className="mt-5 rounded-[1.25rem] border border-[var(--line)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+        <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
           {feedback}
         </div>
       ) : null}

@@ -131,7 +131,7 @@ export function LoginPanel({ session, onLogin, onLogout }: Props) {
         />
       </div>
 
-      <div className="mt-5 rounded-[1.25rem] border border-[var(--line)] bg-[var(--brand-wash)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+      <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
         O painel usa autenticacao real quando a API estiver disponivel e cai em
         fallback local apenas para acelerar o ambiente de desenvolvimento.
       </div>

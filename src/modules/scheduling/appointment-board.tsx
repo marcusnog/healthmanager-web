@@ -9,7 +9,6 @@ import {
   StatusBadge,
   resolveAppointmentStatus,
 } from "@/components/ui/status-badge";
-import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
 import type {
   AppointmentResponse,
@@ -200,36 +199,28 @@ export function AppointmentBoard({
   });
 
   return (
-    <section className="panel rounded-[2rem] p-4 md:p-5 lg:p-6">
+    <section className="panel rounded-lg p-4 md:p-5">
       <div className="section-heading">
         <div>
-          <p className="label">Agenda inteligente</p>
-          <h3 className="mt-2 text-2xl font-semibold">Consultas do dia</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Navegue por data, agende encaixes e confirme retornos sem perder a
-            leitura visual do ritmo da clinica.
+          <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
+          <p className="text-sm text-[var(--muted)]">
+            {total} consulta{total === 1 ? "" : "s"} para {appointmentDate}
           </p>
         </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">Leitura do dia</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {total} consulta{total !== 1 ? "s" : ""} para a data selecionada.
-          </p>
-          <button
-            className="btn btn-primary btn-sm mt-4"
-            onClick={() => {
-              setFeedback(null);
-              setIsFormOpen((value) => !value);
-            }}
-            type="button"
-          >
-            {isFormOpen ? "Fechar agendamento" : "Agendar consulta"}
-          </button>
-        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => {
+            setFeedback(null);
+            setIsFormOpen((value) => !value);
+          }}
+          type="button"
+        >
+          {isFormOpen ? "Cancelar" : "Agendar consulta"}
+        </button>
       </div>
 
       {feedback ? (
-        <div className="mt-5 rounded-[1.25rem] border border-[var(--line)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+        <div className="mb-3 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-3 py-2 text-sm text-[var(--muted)]">
           {feedback}
         </div>
       ) : null}
@@ -251,7 +242,7 @@ export function AppointmentBoard({
                 onChange={(event) => onDoctorChange(event.target.value || undefined)}
                 value={appointmentDoctorId ?? ""}
               >
-                <option value="">Todos os medicos</option>
+                <option value="">Todos</option>
                 {doctors.map((doctor) => (
                   <option key={doctor.id ?? doctor.crm} value={doctor.id}>
                     {doctor.name}
@@ -341,11 +332,7 @@ export function AppointmentBoard({
           <Field className="md:col-span-2" error={errors.notes?.message} label="Observacoes">
             <textarea className="input-field min-h-24" {...register("notes")} />
           </Field>
-          <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <span className="text-sm text-[var(--muted)]">
-              O agendamento ja cria o fluxo de agenda, financeiro e eventos
-              assincronos do MVP.
-            </span>
+          <div className="md:col-span-2 flex justify-end">
             <button
               className="btn btn-primary"
               disabled={createAppointment.isPending}
@@ -372,42 +359,29 @@ export function AppointmentBoard({
                 className={cn("data-card appt-card", statusBorderClass(appointment.status))}
                 key={appointment.id ?? appointment.startAt ?? appointment.notes}
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex items-start gap-3">
-                    <Avatar name={patient?.name ?? "Paciente"} size="md" />
-                    <div>
-                      <h4 className="text-lg font-semibold">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex items-baseline gap-3">
+                    <span className="tabular-nums text-base font-semibold text-[var(--ink)] shrink-0">
+                      {formatTime(appointment.startAt ?? new Date().toISOString())}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-sm text-[var(--ink)]">
                         {patient?.name ?? "Paciente"}
-                      </h4>
-                      <div className="meta-row mt-2">
-                        <span>{doctor?.name ?? "Medico"}</span>
-                        <span>{doctor?.specialty ?? "Especialidade nao informada"}</span>
-                        <span>{appointment.type ?? "Consulta"}</span>
+                      </span>
+                      <div className="meta-row mt-0.5">
+                        {doctor?.name ? <span>{doctor.name}</span> : null}
+                        {appointment.type ? <span>{appointment.type}</span> : null}
+                        <span>{formatCurrency(appointment.amount ?? 0)}</span>
                       </div>
+                      {appointment.notes ? (
+                        <p className="mt-1 text-xs text-[var(--muted)] leading-5">{appointment.notes}</p>
+                      ) : null}
                     </div>
                   </div>
                   <StatusBadge variant={statusVariant} />
                 </div>
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
-                  <div className="rounded-[1.25rem] bg-[var(--brand-wash)] px-4 py-3">
-                    <p className="label">Horario</p>
-                    <p className="mt-2 text-3xl font-semibold tabular-nums">
-                      {formatTime(appointment.startAt ?? new Date().toISOString())}
-                    </p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
-                      {formatCurrency(appointment.amount ?? 0)}
-                    </p>
-                  </div>
-                  <div className="rounded-[1.25rem] border border-[var(--line)] bg-white/60 px-4 py-3">
-                    <p className="label">Observacoes</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      {appointment.notes ?? "Sem observacoes adicionais para esta consulta."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="toolbar-inline mt-4">
+                <div className="toolbar-inline mt-3">
                   {appointment.status !== "Confirmed" ? (
                     <button
                       className="btn btn-brand-outline btn-sm"
@@ -418,7 +392,7 @@ export function AppointmentBoard({
                       }}
                       type="button"
                     >
-                      {isProcessing ? <span className="spinner" /> : "Confirmar consulta"}
+                      {isProcessing ? <span className="spinner" /> : "Confirmar"}
                     </button>
                   ) : null}
                   {appointment.status !== "Cancelled" ? (
@@ -431,7 +405,7 @@ export function AppointmentBoard({
                       }}
                       type="button"
                     >
-                      {isProcessing ? <span className="spinner" /> : "Cancelar consulta"}
+                      {isProcessing ? <span className="spinner" /> : "Cancelar"}
                     </button>
                   ) : null}
                 </div>
@@ -484,13 +458,12 @@ function AppointmentSkeleton() {
       {[1, 2, 3].map((index) => (
         <div key={index} className="data-card">
           <div className="flex items-center gap-3">
-            <div className="skeleton h-10 w-10 rounded-full" />
+            <div className="skeleton h-4 w-12 rounded" />
             <div className="space-y-2">
-              <div className="skeleton h-4 w-36 rounded-full" />
-              <div className="skeleton h-3 w-28 rounded-full" />
+              <div className="skeleton h-4 w-36 rounded" />
+              <div className="skeleton h-3 w-28 rounded" />
             </div>
           </div>
-          <div className="skeleton mt-4 h-20 w-full rounded-[1.25rem]" />
         </div>
       ))}
     </div>

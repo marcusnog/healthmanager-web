@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
-import { Avatar } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const createDoctorSchema = z.object({
@@ -69,37 +68,28 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
   });
 
   return (
-    <section className="panel rounded-[2rem] p-4 md:p-5 lg:p-6">
+    <section className="panel rounded-lg p-4 md:p-5">
       <div className="section-heading">
         <div>
-          <p className="label">Equipe medica</p>
-          <h3 className="mt-2 text-2xl font-semibold">Medicos do tenant</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Cadastre especialidades, CRM e disponibilidade para manter a agenda
-            consistente com a operacao real da clinica.
+          <h3 className="text-base font-semibold text-[var(--ink)]">Medicos</h3>
+          <p className="text-sm text-[var(--muted)]">
+            {doctors.length} medico{doctors.length === 1 ? "" : "s"} cadastrado{doctors.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">Leitura rapida</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {doctors.length} medico{doctors.length !== 1 ? "s" : ""} nesta lista
-            operacional.
-          </p>
-          <button
-            className="btn btn-primary btn-sm mt-4"
-            onClick={() => {
-              setFeedback(null);
-              setIsCreateOpen((value) => !value);
-            }}
-            type="button"
-          >
-            {isCreateOpen ? "Fechar cadastro" : "Novo medico"}
-          </button>
-        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => {
+            setFeedback(null);
+            setIsCreateOpen((value) => !value);
+          }}
+          type="button"
+        >
+          {isCreateOpen ? "Cancelar" : "Novo medico"}
+        </button>
       </div>
 
       {feedback ? (
-        <div className="mt-5 rounded-[1.25rem] border border-[var(--line)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+        <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
           {feedback}
         </div>
       ) : null}
@@ -156,22 +146,17 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
             className="data-card"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <Avatar name={doctor.name ?? "Medico"} size="lg" />
-                <div className="min-w-0">
-                  <h4 className="text-xl font-semibold">
-                    {doctor.name ?? "Medico"}
-                  </h4>
-                  <div className="meta-row mt-2">
-                    <span>
-                      {doctor.specialty ?? "Especialidade nao informada"}
-                    </span>
-                    <span>{doctor.crm ?? "CRM nao informado"}</span>
-                  </div>
-                  <div className="meta-row mt-2">
-                    <span>{doctor.email ?? "Sem email"}</span>
-                    <span>{doctor.phone ?? "Sem telefone"}</span>
-                  </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-semibold text-[var(--ink)]">
+                  {doctor.name ?? "Medico"}
+                </h4>
+                <div className="meta-row mt-1">
+                  {doctor.specialty ? <span>{doctor.specialty}</span> : null}
+                  {doctor.crm ? <span>{doctor.crm}</span> : null}
+                </div>
+                <div className="meta-row mt-1">
+                  {doctor.email ? <span>{doctor.email}</span> : null}
+                  {doctor.phone ? <span>{doctor.phone}</span> : null}
                 </div>
               </div>
               <div className="toolbar-inline">
@@ -277,7 +262,7 @@ function DoctorEditPanel({
       <Field error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />
       </Field>
-      <label className="flex items-center gap-3 rounded-[1.25rem] border border-[var(--line)] bg-white/70 px-4 py-4 text-sm font-semibold md:col-span-2">
+      <label className="flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-sm font-semibold md:col-span-2">
         <input
           className="h-4 w-4 accent-[var(--brand)]"
           type="checkbox"
