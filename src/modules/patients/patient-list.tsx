@@ -259,9 +259,15 @@ export function PatientList({
                     <span>{patient.email ?? "Sem email"}</span>
                   </div>
                 </div>
-                <div className="grid gap-2 text-sm text-[var(--muted)] lg:max-w-sm lg:text-right">
-                  <span>{patient.healthInsurance ?? "Sem convenio"}</span>
-                  <span>{patient.notes ?? "Sem observacoes clinicas"}</span>
+                <div className="flex flex-col items-start gap-2 lg:items-end lg:max-w-sm">
+                  {patient.healthInsurance ? (
+                    <span className="meta-chip">{patient.healthInsurance}</span>
+                  ) : (
+                    <span className="text-sm text-[var(--muted)]">Sem convenio</span>
+                  )}
+                  {patient.notes ? (
+                    <span className="text-sm text-[var(--muted)] lg:text-right">{patient.notes}</span>
+                  ) : null}
                 </div>
               </div>
 
