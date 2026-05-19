@@ -21,10 +21,10 @@ const CARDS = (data: DashboardSummaryResponse) => [
     accent: "var(--accent)",
   },
   {
-    label: "Taxa de confirmacao",
-    value: formatPercent(data.confirmationRate ?? 0),
-    sub: `No-show estimado: ${formatPercent(data.noShowRate ?? 0)}`,
-    accent: "var(--ink)",
+    label: "No-show estimado",
+    value: formatPercent(data.noShowRate ?? 0),
+    sub: "estimativa com base no historico",
+    accent: "var(--danger)",
   },
 ];
 

@@ -50,10 +50,10 @@
   --status-inactive-color: #64748b;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
   --radius-full: 9999px;
 
   /* Type scale */
@@ -471,13 +471,7 @@ a {
 }
 
 .nav-item-label {
-  display: grid;
-}
-
-.nav-item-caption {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.42);
-  margin-top: 0.05rem;
+  display: block;
 }
 
 /* ─── Inputs ─────────────────────────────────────────────────────── */
@@ -864,19 +858,15 @@ textarea.input-field {
   gap: 0.75rem;
 }
 
-.dashboard-grid-halves {
+.dashboard-right-col {
   display: grid;
   gap: 0.75rem;
 }
 
 @media (min-width: 1024px) {
   .dashboard-grid-main {
-    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-columns: 1.5fr 1fr;
     gap: 0.875rem;
-  }
-
-  .dashboard-grid-halves {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.875rem;
+    align-items: start;
   }
 }

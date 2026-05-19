@@ -105,13 +105,13 @@ function CrossIcon() {
 
 /* ─── Nav config ─────────────────────────────────────────────────── */
 
-const NAV: { section: Section; icon: React.ReactNode; label: string; caption: string }[] = [
-  { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard",   caption: "Visao geral" },
-  { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda",      caption: "Consultas do dia" },
-  { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes",   caption: "Cadastro e documentos" },
-  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro",  caption: "Recebiveis e caixa" },
-  { section: "medicos",       icon: <MedicosIcon />,    label: "Medicos",     caption: "Equipe medica" },
-  { section: "configuracoes", icon: <ConfigIcon />,     label: "Config",      caption: "Configuracoes" },
+const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
+  { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
+  { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
+  { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
+  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
+  { section: "medicos",       icon: <MedicosIcon />,    label: "Medicos" },
+  { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
@@ -411,11 +411,11 @@ export function CrmWorkspace() {
             <SummaryCards data={summary} />
             <div className="dashboard-grid-main">
               <AppointmentBoard {...appointmentBoardProps} />
-              <PatientList {...patientListProps} />
-            </div>
-            <div className="dashboard-grid-halves">
-              <FinancialOverview {...financialOverviewProps} />
-              <DoctorRoster doctors={doctorsQuery.data ?? fallbackDoctors} />
+              <div className="dashboard-right-col">
+                <PatientList {...patientListProps} />
+                <FinancialOverview {...financialOverviewProps} />
+                <DoctorRoster doctors={doctorsQuery.data ?? fallbackDoctors} />
+              </div>
             </div>
           </div>
         );
@@ -460,13 +460,12 @@ export function CrmWorkspace() {
           <div className="sidebar-brand-badge">HM</div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{session.clinicName}</p>
-            <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.42)", marginTop: "0.05rem" }}>CRM Medico</p>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 scrollbar-hide">
-          {NAV.map(({ section, icon, label, caption }) => (
+          {NAV.map(({ section, icon, label }) => (
             <button
               key={section}
               className={`nav-item ${activeSection === section ? "active" : ""}`}
@@ -474,10 +473,7 @@ export function CrmWorkspace() {
               type="button"
             >
               {icon}
-              <span className="nav-item-label">
-                <span>{label}</span>
-                <span className="nav-item-caption">{caption}</span>
-              </span>
+              <span className="nav-item-label">{label}</span>
             </button>
           ))}
         </nav>
