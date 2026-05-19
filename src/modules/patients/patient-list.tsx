@@ -327,7 +327,10 @@ export function PatientList({
           ))
         ) : (
           <div className="empty-state">
-            <span className="text-2xl">P</span>
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
             <p className="text-sm font-semibold">
               Nenhum paciente encontrado para os filtros atuais.
             </p>
@@ -602,7 +605,7 @@ function PatientDocumentsPanel({
           </code>
           <div className="flex gap-2">
             <button
-              className="btn btn-secondary text-sm"
+              className="btn btn-ghost btn-sm"
               disabled={!currentToken}
               onClick={() => void copyToken()}
               type="button"
@@ -610,7 +613,7 @@ function PatientDocumentsPanel({
               {copied ? "Copiado!" : "Copiar"}
             </button>
             <button
-              className="btn btn-secondary text-sm"
+              className="btn btn-ghost btn-sm"
               disabled={regenerateToken.isPending}
               onClick={() => regenerateToken.mutate()}
               type="button"
@@ -651,7 +654,12 @@ function PatientDocumentsPanel({
       </form>
 
       <div className="stack-list mt-5">
-        {documentsQuery.data?.length ? (
+        {documentsQuery.isLoading ? (
+          <div className="empty-state">
+            <span className="spinner" style={{ width: "2rem", height: "2rem" }} />
+            <p className="text-sm font-semibold">Carregando documentos...</p>
+          </div>
+        ) : documentsQuery.data?.length ? (
           documentsQuery.data.map((document) => (
             <DocumentCard
               document={document}
@@ -670,11 +678,12 @@ function PatientDocumentsPanel({
           ))
         ) : (
           <div className="empty-state">
-            <span className="text-2xl">D</span>
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
             <p className="text-sm font-semibold">
-              {documentsQuery.isLoading
-                ? "Carregando documentos..."
-                : "Nenhum documento registrado para este paciente ainda."}
+              Nenhum documento registrado para este paciente ainda.
             </p>
           </div>
         )}

@@ -959,3 +959,36 @@ textarea.input-field {
     gap: 1rem;
   }
 }
+
+/* Dashboard insight strip — grid com 1px gap como separador visual */
+.insight-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(20, 54, 59, 0.08);
+  background: rgba(20, 54, 59, 0.07);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.insight-chip {
+  padding: 0.8rem 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 252, 248, 0.97) 0%,
+    rgba(240, 232, 218, 0.72) 100%
+  );
+}
+
+@media (min-width: 480px) {
+  .insight-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .insight-strip {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}

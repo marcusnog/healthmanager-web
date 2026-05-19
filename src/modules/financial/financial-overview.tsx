@@ -77,7 +77,7 @@ export function FinancialOverview({
     defaultValues: {
       amount: 50,
       paymentMethod: "Pix",
-      paidAt: "2026-05-07T13:30",
+      paidAt: new Date().toISOString().slice(0, 16),
       notes: "",
     },
   });
@@ -103,7 +103,7 @@ export function FinancialOverview({
       reset({
         amount: 50,
         paymentMethod: "Pix",
-        paidAt: "2026-05-07T13:30",
+        paidAt: new Date().toISOString().slice(0, 16),
         notes: "",
       });
       await Promise.all([
@@ -195,8 +195,11 @@ export function FinancialOverview({
       <div className="stack-list mt-5">
         {receivables.length === 0 ? (
           <div className="empty-state">
-            <span className="text-2xl">R</span>
-            <p className="text-sm font-semibold">Nenhuma conta encontrada</p>
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <path d="M2 10h20M6 15h4" />
+            </svg>
+            <p className="text-sm font-semibold">Nenhuma conta encontrada para os filtros selecionados.</p>
           </div>
         ) : (
           receivables.map((receivable) => {
@@ -214,10 +217,7 @@ export function FinancialOverview({
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <StatusBadge
-                      label={receivable.status ?? "Pending"}
-                      variant={statusVariant}
-                    />
+                    <StatusBadge variant={statusVariant} />
                     <div className="meta-row mt-3">
                       <span>
                         Venc.{" "}

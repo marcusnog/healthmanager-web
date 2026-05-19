@@ -141,6 +141,15 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
       ) : null}
 
       <div className="stack-list mt-5">
+        {doctors.length === 0 ? (
+          <div className="empty-state">
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <p className="text-sm font-semibold">Nenhum medico cadastrado ainda.</p>
+          </div>
+        ) : null}
         {doctors.map((doctor) => (
           <article
             key={doctor.id ?? doctor.crm ?? doctor.name}

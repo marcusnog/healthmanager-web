@@ -377,7 +377,7 @@ export function AppointmentBoard({
                     <Avatar name={patient?.name ?? "Paciente"} size="md" />
                     <div>
                       <h4 className="text-lg font-semibold">
-                        Paciente: {patient?.name ?? "Paciente"}
+                        {patient?.name ?? "Paciente"}
                       </h4>
                       <div className="meta-row mt-2">
                         <span>{doctor?.name ?? "Medico"}</span>
@@ -386,10 +386,7 @@ export function AppointmentBoard({
                       </div>
                     </div>
                   </div>
-                  <StatusBadge
-                    label={appointment.status ?? "Scheduled"}
-                    variant={statusVariant}
-                  />
+                  <StatusBadge variant={statusVariant} />
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
@@ -443,7 +440,10 @@ export function AppointmentBoard({
           })
         ) : (
           <div className="empty-state">
-            <span className="text-2xl">A</span>
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
             <p className="text-sm font-semibold">
               Nenhuma consulta encontrada para a data selecionada.
             </p>

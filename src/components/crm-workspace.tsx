@@ -276,26 +276,9 @@ function DashboardInsight({ summary, doctorCount }: { summary: DashboardSummaryR
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid rgba(20,54,59,0.08)",
-        background: "linear-gradient(135deg, rgba(255,252,248,0.97) 0%, rgba(240,232,218,0.72) 100%)",
-        boxShadow: "var(--shadow-sm)",
-        overflow: "hidden",
-      }}
-    >
-      {chips.map((chip, i) => (
-        <div
-          key={chip.label}
-          style={{
-            flex: "1 1 110px",
-            padding: "0.8rem 1rem",
-            borderRight: i < chips.length - 1 ? "1px solid var(--line)" : "none",
-          }}
-        >
+    <div className="insight-strip">
+      {chips.map((chip) => (
+        <div key={chip.label} className="insight-chip">
           <p className="label" style={{ fontSize: "0.6rem" }}>{chip.label}</p>
           <p style={{ marginTop: "0.3rem", fontSize: "0.875rem", fontWeight: 700, color: "var(--ink)" }}>
             {chip.value}
@@ -611,16 +594,18 @@ export function CrmWorkspace() {
             <div className="sidebar-stat">
               <p style={{ fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.52)" }}>Hoje</p>
               <p className="mt-1 text-xl font-bold text-white">
-                {summary.appointmentsToday ?? 0} at.
+                {summary.appointmentsToday ?? 0}
+                <span style={{ fontSize: "0.65rem", fontWeight: 500, opacity: 0.6, marginLeft: "0.25rem" }}>ag.</span>
               </p>
               <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)", marginTop: "0.1rem" }}>consultas</p>
             </div>
             <div className="sidebar-stat">
-              <p style={{ fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.52)" }}>Confirm.</p>
+              <p style={{ fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.52)" }}>Confirmadas</p>
               <p className="mt-1 text-xl font-bold text-white">
-                {summary.confirmedToday ?? 0} conf.
+                {summary.confirmedToday ?? 0}
+                <span style={{ fontSize: "0.65rem", fontWeight: 500, opacity: 0.6, marginLeft: "0.25rem" }}>conf.</span>
               </p>
-              <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)", marginTop: "0.1rem" }}>pacientes</p>
+              <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)", marginTop: "0.1rem" }}>confirmadas</p>
             </div>
           </div>
         </div>
