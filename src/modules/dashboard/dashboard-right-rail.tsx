@@ -26,28 +26,25 @@ export function DashboardRightRail({
   return (
     <div className="dashboard-right-col">
       <div className="rail-card">
-        <p className="label" style={{ marginBottom: "0.6rem" }}>Acoes rapidas</p>
-        <div style={{ display: "grid", gap: "0.35rem" }}>
+        <p className="label rail-section-title">Acoes rapidas</p>
+        <div className="rail-actions">
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm rail-action-button"
             onClick={onNewAppointment}
-            style={{ justifyContent: "flex-start", width: "100%" }}
             type="button"
           >
             Agendar consulta
           </button>
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm rail-action-button"
             onClick={onNewPatient}
-            style={{ justifyContent: "flex-start", width: "100%" }}
             type="button"
           >
             Novo paciente
           </button>
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm rail-action-button"
             onClick={onViewFinancial}
-            style={{ justifyContent: "flex-start", width: "100%" }}
             type="button"
           >
             Ver financeiro
@@ -56,15 +53,15 @@ export function DashboardRightRail({
       </div>
 
       <div className="rail-card">
-        <p className="label" style={{ marginBottom: "0.6rem" }}>Pacientes recentes</p>
+        <p className="label rail-section-title">Pacientes recentes</p>
         {patients.length === 0 ? (
           <p className="rail-empty">Nenhum paciente cadastrado.</p>
         ) : (
-          <div style={{ display: "grid", gap: "0.55rem" }}>
+          <div className="rail-list">
             {patients.slice(0, 4).map((patient) => (
               <div key={patient.id} className="rail-patient-row">
                 <Avatar name={patient.name ?? ""} size="sm" />
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="min-w-0 flex-1">
                   <p className="rail-patient-name">{patient.name}</p>
                   <p className="rail-patient-meta">
                     {patient.healthInsurance ?? "Particular"}
@@ -77,7 +74,7 @@ export function DashboardRightRail({
       </div>
 
       <div className="rail-card">
-        <p className="label" style={{ marginBottom: "0.6rem" }}>Pendencias</p>
+        <p className="label rail-section-title">Pendencias</p>
         {pendingItems.length === 0 ? (
           <p className="rail-empty">Nenhuma pendencia critica.</p>
         ) : (
@@ -88,9 +85,8 @@ export function DashboardRightRail({
             </p>
             <p className="rail-pending-amount">{formatCurrency(pendingTotal)} a receber</p>
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm rail-footer-action"
               onClick={onViewFinancial}
-              style={{ marginTop: "0.6rem", width: "100%", justifyContent: "flex-start" }}
               type="button"
             >
               Ver recebiveis

@@ -121,11 +121,11 @@ export function PatientList({
   });
 
   return (
-    <section className="panel rounded-lg p-4 md:p-5">
+    <section className="panel rounded-lg p-5 md:p-6">
       <div className="section-heading">
         <div>
           <h3 className="text-base font-semibold text-[var(--ink)]">Pacientes</h3>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {total} paciente{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
           </p>
         </div>
@@ -147,7 +147,7 @@ export function PatientList({
         </div>
       ) : null}
 
-      <div className="toolbar mt-5">
+      <div className="toolbar mt-4">
         <div className="toolbar-stack">
           <label className="min-w-0 flex-1">
             <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
@@ -184,7 +184,7 @@ export function PatientList({
 
       {isFormOpen ? (
         <form
-          className="section-card mt-5 grid gap-4 p-5 md:grid-cols-2"
+          className="section-card mt-5 grid gap-5 p-5 md:grid-cols-2 md:p-6"
           onSubmit={onSubmit}
         >
           <Field error={errors.name?.message} label="Nome">

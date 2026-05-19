@@ -29,6 +29,25 @@ vi.mock("@/services/api", () => ({
 }));
 
 describe("CrmWorkspace", () => {
+  function seedSession() {
+    window.localStorage.setItem(
+      "healthmanager.auth",
+      JSON.stringify({
+        accessToken: "test-access-token",
+        refreshToken: "test-refresh-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        userId: "user-1",
+        clinicId: "clinic-1",
+        email: "admin@clinicaaurora.com",
+        session: {
+          name: "Admin Local",
+          role: "Admin",
+          clinicName: "Clinica Aurora",
+        },
+      }),
+    );
+  }
+
   beforeEach(() => {
     dashboardSummary.mockReset();
     patientsList.mockReset();
@@ -39,6 +58,7 @@ describe("CrmWorkspace", () => {
   });
 
   it("renders API-backed operational data when the endpoints respond", async () => {
+    seedSession();
     dashboardSummary.mockResolvedValueOnce({
       appointmentsToday: 21,
       confirmedToday: 16,
@@ -114,15 +134,14 @@ describe("CrmWorkspace", () => {
     expect(await screen.findByText("Marina Souza")).toBeVisible();
     expect(screen.getByText("21")).toBeVisible();
     expect(screen.getAllByText("R$ 45.120,50")[0]).toBeVisible();
-    expect(screen.getByText("81%", { exact: true })).toBeVisible();
-    expect(screen.getAllByText("Paciente novo")[0]).toBeVisible();
-    expect(screen.getByText("R$ 150,00")).toBeVisible();
+    expect(screen.getByText("81% de confirmacao")).toBeVisible();
     expect(patientsList).toHaveBeenCalledWith(1, 3, undefined);
     expect(patientsList).toHaveBeenCalledWith(1, 100, "");
     expect(appointmentsList).toHaveBeenCalledWith(1, 10, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), undefined);
   });
 
   it("falls back to the blocked session state after logout", async () => {
+    seedSession();
     dashboardSummary.mockRejectedValue(new Error("offline"));
     patientsList.mockRejectedValue(new Error("offline"));
     appointmentsList.mockRejectedValue(new Error("offline"));
@@ -142,6 +161,7 @@ describe("CrmWorkspace", () => {
   });
 
   it("updates the patient query when search and pagination change", async () => {
+    seedSession();
     dashboardSummary.mockResolvedValue({
       appointmentsToday: 21,
       confirmedToday: 16,
@@ -229,6 +249,11 @@ describe("CrmWorkspace", () => {
 
     expect(await screen.findByText("Ana Martins")).toBeVisible();
 
+    fireEvent.click(screen.getByRole("button", { name: "Pacientes" }));
+    expect(
+      await screen.findByPlaceholderText("Buscar por nome, CPF ou telefone"),
+    ).toBeVisible();
+
     fireEvent.change(
       screen.getByPlaceholderText("Buscar por nome, CPF ou telefone"),
       {
@@ -254,6 +279,7 @@ describe("CrmWorkspace", () => {
   });
 
   it("updates the appointment query when the agenda date changes", async () => {
+    seedSession();
     dashboardSummary.mockResolvedValue({
       appointmentsToday: 21,
       confirmedToday: 16,

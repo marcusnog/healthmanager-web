@@ -68,11 +68,11 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
   });
 
   return (
-    <section className="panel rounded-lg p-4 md:p-5">
+    <section className="panel rounded-lg p-5 md:p-6">
       <div className="section-heading">
         <div>
           <h3 className="text-base font-semibold text-[var(--ink)]">Medicos</h3>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {doctors.length} medico{doctors.length === 1 ? "" : "s"} cadastrado{doctors.length === 1 ? "" : "s"}
           </p>
         </div>
@@ -96,7 +96,7 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
 
       {isCreateOpen ? (
         <form
-          className="section-card mt-5 grid gap-4 p-5 md:grid-cols-2"
+          className="section-card mt-5 grid gap-5 p-5 md:grid-cols-2 md:p-6"
           onSubmit={onCreate}
         >
           <Field error={errors.name?.message} label="Nome">

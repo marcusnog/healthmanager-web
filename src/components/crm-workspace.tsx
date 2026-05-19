@@ -479,9 +479,11 @@ export function CrmWorkspace() {
 
       {/* Main area */}
       <div className="main-shell">
+        <main className="flex-1 bg-slate-50">
+          <div className="mx-auto w-full max-w-[1440px] px-8 py-6">
         {/* Topbar — mobile hamburger + section label */}
         <header className="topbar">
-          <div className="flex items-center gap-3">
+          <div className="topbar-copy">
             <button
               className="btn btn-ghost btn-sm lg:hidden"
               onClick={() => setSidebarOpen((v) => !v)}
@@ -490,15 +492,15 @@ export function CrmWorkspace() {
             >
               {sidebarOpen ? <CrossIcon /> : <MenuIcon />}
             </button>
-            <div>
+            <div className="topbar-title-group">
               <p className="text-sm font-semibold text-[var(--ink)]">{meta.title}</p>
-              <p className="text-xs text-[var(--muted)] hidden sm:block">{meta.subtitle}</p>
+              <p className="text-xs text-[var(--muted)]">{meta.subtitle}</p>
             </div>
           </div>
           <div className="topbar-right">
             <span className="topbar-date">{today}</span>
             {activeSection === "dashboard" && (
-              <>
+              <div className="topbar-actions">
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => setActiveSection("pacientes")}
@@ -513,14 +515,13 @@ export function CrmWorkspace() {
                 >
                   Nova consulta
                 </button>
-              </>
+              </div>
             )}
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 min-h-0 p-4 md:p-5 pb-10">
           {renderSection()}
+          </div>
         </main>
       </div>
     </div>

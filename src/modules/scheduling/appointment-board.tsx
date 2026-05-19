@@ -199,11 +199,11 @@ export function AppointmentBoard({
   });
 
   return (
-    <section className="panel p-4 md:p-5">
+    <section className="panel p-5 md:p-6">
       <div className="section-heading">
         <div>
           <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {total} consulta{total === 1 ? "" : "s"} para {appointmentDate}
           </p>
         </div>
@@ -220,12 +220,12 @@ export function AppointmentBoard({
       </div>
 
       {feedback ? (
-        <div className="mb-3 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-3 py-2 text-sm text-[var(--muted)]">
+        <div className="mb-4 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
           {feedback}
         </div>
       ) : null}
 
-      <div className="toolbar mt-5">
+      <div className="toolbar mt-4">
         <div className="toolbar-stack">
           <div className="toolbar-inline flex-wrap gap-3">
             <Field className="min-w-0 flex-1" label="Data da agenda">
@@ -252,7 +252,7 @@ export function AppointmentBoard({
               </select>
             </Field>
           </div>
-          <div className="toolbar-inline flex-wrap">
+          <div className="toolbar-inline flex-wrap gap-3">
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, -1))}
@@ -281,7 +281,7 @@ export function AppointmentBoard({
 
       {isFormOpen ? (
         <form
-          className="section-card mt-5 grid gap-4 p-5 md:grid-cols-2"
+          className="section-card mt-5 grid gap-5 p-5 md:grid-cols-2 md:p-6"
           onSubmit={onSubmit}
         >
           <Field error={errors.patientId?.message} label="Paciente">
