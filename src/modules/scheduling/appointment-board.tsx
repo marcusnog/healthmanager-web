@@ -200,7 +200,7 @@ export function AppointmentBoard({
   });
 
   return (
-    <section className="panel rounded-[2rem] p-6">
+    <section className="panel rounded-[2rem] p-4 md:p-5 lg:p-6">
       <div className="section-heading">
         <div>
           <p className="label">Agenda inteligente</p>
