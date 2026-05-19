@@ -949,7 +949,13 @@ textarea.input-field {
 
   .main-shell {
     height: calc(100dvh - 1.8rem);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  .main-shell::-webkit-scrollbar {
+    display: none;
   }
 }
 
