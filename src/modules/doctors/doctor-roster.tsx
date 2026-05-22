@@ -6,6 +6,7 @@ import { z } from "zod";
 import { DefaultService } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Modal } from "@/components/ui/modal";
 
 const createDoctorSchema = z.object({
   name: z.string().min(3, "Informe o nome do medico."),
@@ -28,7 +29,7 @@ type UpdateDoctorValues = z.infer<typeof updateDoctorSchema>;
 
 export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
+  const [editingDoctor, setEditingDoctor] = useState<DoctorResponse | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -68,141 +69,146 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
   });
 
   return (
-    <section className="panel rounded-lg p-5 md:p-6">
-      <div className="section-heading">
-        <div>
-          <h3 className="text-base font-semibold text-[var(--ink)]">Medicos</h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {doctors.length} medico{doctors.length === 1 ? "" : "s"} cadastrado{doctors.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => {
-            setFeedback(null);
-            setIsCreateOpen((value) => !value);
-          }}
-          type="button"
-        >
-          {isCreateOpen ? "Cancelar" : "Novo medico"}
-        </button>
-      </div>
-
-      {feedback ? (
-        <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
-          {feedback}
-        </div>
-      ) : null}
-
+    <>
       {isCreateOpen ? (
-        <form
-          className="section-card mt-5 grid gap-5 p-5 md:grid-cols-2 md:p-6"
-          onSubmit={onCreate}
-        >
-          <Field error={errors.name?.message} label="Nome">
-            <input className="input-field" {...register("name")} />
-          </Field>
-          <Field error={errors.specialty?.message} label="Especialidade">
-            <input className="input-field" {...register("specialty")} />
-          </Field>
-          <Field error={errors.crm?.message} label="CRM">
-            <input className="input-field" {...register("crm")} />
-          </Field>
-          <Field error={errors.phone?.message} label="Telefone">
-            <input className="input-field" {...register("phone")} />
-          </Field>
-          <Field className="md:col-span-2" error={errors.email?.message} label="Email">
-            <input className="input-field" {...register("email")} />
-          </Field>
-          <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <span className="text-sm text-[var(--muted)]">
-              O cadastro do medico alimenta agenda, especialidade e regras de
-              disponibilidade do tenant.
-            </span>
-            <button
-              className="btn btn-primary"
-              disabled={createDoctor.isPending}
-              type="submit"
-            >
-              {createDoctor.isPending ? "Salvando..." : "Salvar medico"}
-            </button>
-          </div>
-        </form>
+        <Modal title="Novo medico" onClose={() => setIsCreateOpen(false)}>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={onCreate}>
+            <Field error={errors.name?.message} label="Nome">
+              <input className="input-field" {...register("name")} />
+            </Field>
+            <Field error={errors.specialty?.message} label="Especialidade">
+              <input className="input-field" {...register("specialty")} />
+            </Field>
+            <Field error={errors.crm?.message} label="CRM">
+              <input className="input-field" {...register("crm")} />
+            </Field>
+            <Field error={errors.phone?.message} label="Telefone">
+              <input className="input-field" {...register("phone")} />
+            </Field>
+            <Field className="md:col-span-2" error={errors.email?.message} label="Email">
+              <input className="input-field" {...register("email")} />
+            </Field>
+            <div className="md:col-span-2 flex justify-end gap-3">
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsCreateOpen(false)}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={createDoctor.isPending}
+                type="submit"
+              >
+                {createDoctor.isPending ? "Salvando..." : "Salvar medico"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       ) : null}
 
-      <div className="stack-list mt-5">
-        {doctors.length === 0 ? (
-          <div className="empty-state">
-            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <p className="text-sm font-semibold">Nenhum medico cadastrado ainda.</p>
+      {editingDoctor ? (
+        <Modal title="Editar medico" onClose={() => setEditingDoctor(null)}>
+          <DoctorEditForm
+            doctor={editingDoctor}
+            onSaved={async (message) => {
+              setFeedback(message);
+              setEditingDoctor(null);
+              await queryClient.invalidateQueries({ queryKey: ["doctors"] });
+            }}
+            onCancel={() => setEditingDoctor(null)}
+          />
+        </Modal>
+      ) : null}
+
+      <section className="panel rounded-lg p-5 md:p-6">
+        <div className="section-heading">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--ink)]">Medicos</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {doctors.length} medico{doctors.length === 1 ? "" : "s"} cadastrado{doctors.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setFeedback(null);
+              setIsCreateOpen(true);
+            }}
+            type="button"
+          >
+            Novo medico
+          </button>
+        </div>
+
+        {feedback ? (
+          <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+            {feedback}
           </div>
         ) : null}
-        {doctors.map((doctor) => (
-          <article
-            key={doctor.id ?? doctor.crm ?? doctor.name}
-            className="data-card"
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <h4 className="text-sm font-semibold text-[var(--ink)]">
-                  {doctor.name ?? "Medico"}
-                </h4>
-                <div className="meta-row mt-1">
-                  {doctor.specialty ? <span>{doctor.specialty}</span> : null}
-                  {doctor.crm ? <span>{doctor.crm}</span> : null}
-                </div>
-                <div className="meta-row mt-1">
-                  {doctor.email ? <span>{doctor.email}</span> : null}
-                  {doctor.phone ? <span>{doctor.phone}</span> : null}
-                </div>
-              </div>
-              <div className="toolbar-inline">
-                <StatusBadge
-                  label={doctor.isActive ? "Ativo" : "Inativo"}
-                  variant={doctor.isActive ? "active" : "inactive"}
-                />
-                {doctor.id ? (
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() =>
-                      setEditingDoctorId((value) =>
-                        value === doctor.id ? null : (doctor.id ?? null),
-                      )
-                    }
-                    type="button"
-                  >
-                    {editingDoctorId === doctor.id ? "Fechar" : "Editar medico"}
-                  </button>
-                ) : null}
-              </div>
-            </div>
 
-            {editingDoctorId === doctor.id && doctor.id ? (
-              <DoctorEditPanel
-                doctor={doctor}
-                onSaved={async (message) => {
-                  setFeedback(message);
-                  setEditingDoctorId(null);
-                  await queryClient.invalidateQueries({ queryKey: ["doctors"] });
-                }}
-              />
-            ) : null}
-          </article>
-        ))}
-      </div>
-    </section>
+        <div className="stack-list mt-5">
+          {doctors.length === 0 ? (
+            <div className="empty-state">
+              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <p className="text-sm font-semibold">Nenhum medico cadastrado ainda.</p>
+            </div>
+          ) : null}
+          {doctors.map((doctor) => (
+            <article
+              key={doctor.id ?? doctor.crm ?? doctor.name}
+              className="data-card"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-semibold text-[var(--ink)]">
+                    {doctor.name ?? "Medico"}
+                  </h4>
+                  <div className="meta-row mt-1">
+                    {doctor.specialty ? <span>{doctor.specialty}</span> : null}
+                    {doctor.crm ? <span>{doctor.crm}</span> : null}
+                  </div>
+                  <div className="meta-row mt-1">
+                    {doctor.email ? <span>{doctor.email}</span> : null}
+                    {doctor.phone ? <span>{doctor.phone}</span> : null}
+                  </div>
+                </div>
+                <div className="toolbar-inline">
+                  <StatusBadge
+                    label={doctor.isActive ? "Ativo" : "Inativo"}
+                    variant={doctor.isActive ? "active" : "inactive"}
+                  />
+                  {doctor.id ? (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setEditingDoctor(doctor)}
+                      type="button"
+                    >
+                      Editar medico
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
-function DoctorEditPanel({
+function DoctorEditForm({
   doctor,
   onSaved,
+  onCancel,
 }: {
   doctor: DoctorResponse;
   onSaved: (message: string) => Promise<void>;
+  onCancel: () => void;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
@@ -246,10 +252,7 @@ function DoctorEditPanel({
   });
 
   return (
-    <form
-      className="section-card mt-4 grid gap-4 p-5 md:grid-cols-2"
-      onSubmit={onSubmit}
-    >
+    <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
       <Field error={errors.name?.message} label="Nome">
         <input className="input-field" {...register("name")} />
       </Field>
@@ -270,11 +273,17 @@ function DoctorEditPanel({
         />
         Medico disponivel para a agenda
       </label>
-      <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <span className="text-sm text-[var(--muted)]">
-          {feedback ??
-            "A disponibilidade do medico impacta diretamente os fluxos de agenda e confirmacao."}
-        </span>
+      {feedback ? (
+        <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
+      ) : null}
+      <div className="md:col-span-2 flex justify-end gap-3">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={onCancel}
+          type="button"
+        >
+          Cancelar
+        </button>
         <button
           className="btn btn-primary"
           disabled={updateDoctor.isPending}

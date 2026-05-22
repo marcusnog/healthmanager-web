@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, downloadPatientDocument } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
+import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
 const schema = z.object({
@@ -66,8 +67,8 @@ export function PatientList({
   onPageChange: (page: number) => void;
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [activePatientId, setActivePatientId] = useState<string | null>(null);
-  const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
+  const [editingPatient, setEditingPatient] = useState<PatientResponse | null>(null);
+  const [activePatient, setActivePatient] = useState<PatientResponse | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
@@ -121,227 +122,224 @@ export function PatientList({
   });
 
   return (
-    <section className="panel rounded-lg p-5 md:p-6">
-      <div className="section-heading">
-        <div>
-          <h3 className="text-base font-semibold text-[var(--ink)]">Pacientes</h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {total} paciente{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
-          </p>
-        </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => {
-            setFeedback(null);
-            setIsFormOpen((current) => !current);
-          }}
-          type="button"
-        >
-          {isFormOpen ? "Cancelar" : "Novo paciente"}
-        </button>
-      </div>
-
-      {feedback ? (
-        <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
-          {feedback}
-        </div>
-      ) : null}
-
-      <div className="toolbar mt-4">
-        <div className="toolbar-stack">
-          <label className="min-w-0 flex-1">
-            <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
-            <input
-              className="input-field"
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Buscar por nome, CPF ou telefone"
-              value={search}
-            />
-          </label>
-          <div className="toolbar-inline flex-wrap">
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-              type="button"
-            >
-              Anterior
-            </button>
-            <span className="text-sm font-medium text-[var(--muted)]">
-              {page} / {totalPages}
-            </span>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-              type="button"
-            >
-              Proxima
-            </button>
-          </div>
-        </div>
-      </div>
-
+    <>
       {isFormOpen ? (
-        <form
-          className="section-card mt-5 grid gap-5 p-5 md:grid-cols-2 md:p-6"
-          onSubmit={onSubmit}
-        >
-          <Field error={errors.name?.message} label="Nome">
-            <input className="input-field" {...register("name")} />
-          </Field>
-          <Field error={errors.cpf?.message} label="CPF">
-            <input className="input-field" {...register("cpf")} />
-          </Field>
-          <Field error={errors.phone?.message} label="Telefone">
-            <input className="input-field" {...register("phone")} />
-          </Field>
-          <Field error={errors.birthDate?.message} label="Data de nascimento">
-            <input className="input-field" type="date" {...register("birthDate")} />
-          </Field>
-          <Field error={errors.email?.message} label="Email">
-            <input className="input-field" {...register("email")} />
-          </Field>
-          <Field error={errors.healthInsurance?.message} label="Convenio">
-            <input className="input-field" {...register("healthInsurance")} />
-          </Field>
-          <Field
-            className="md:col-span-2"
-            error={errors.notes?.message}
-            label="Observacoes"
-          >
-            <textarea className="input-field min-h-28" {...register("notes")} />
-          </Field>
-          <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <span className="text-sm text-[var(--muted)]">
-              Cadastro ligado ao backend e pronto para alimentar agenda e
-              documentos do paciente.
-            </span>
-            <button
-              className="btn btn-primary"
-              disabled={createPatient.isPending}
-              type="submit"
+        <Modal title="Novo paciente" onClose={() => setIsFormOpen(false)}>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+            <Field error={errors.name?.message} label="Nome">
+              <input className="input-field" {...register("name")} />
+            </Field>
+            <Field error={errors.cpf?.message} label="CPF">
+              <input className="input-field" {...register("cpf")} />
+            </Field>
+            <Field error={errors.phone?.message} label="Telefone">
+              <input className="input-field" {...register("phone")} />
+            </Field>
+            <Field error={errors.birthDate?.message} label="Data de nascimento">
+              <input className="input-field" type="date" {...register("birthDate")} />
+            </Field>
+            <Field error={errors.email?.message} label="Email">
+              <input className="input-field" {...register("email")} />
+            </Field>
+            <Field error={errors.healthInsurance?.message} label="Convenio">
+              <input className="input-field" {...register("healthInsurance")} />
+            </Field>
+            <Field
+              className="md:col-span-2"
+              error={errors.notes?.message}
+              label="Observacoes"
             >
-              {createPatient.isPending ? "Salvando..." : "Salvar paciente"}
-            </button>
-          </div>
-        </form>
+              <textarea className="input-field min-h-24" {...register("notes")} />
+            </Field>
+            <div className="md:col-span-2 flex justify-end gap-3">
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsFormOpen(false)}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={createPatient.isPending}
+                type="submit"
+              >
+                {createPatient.isPending ? "Salvando..." : "Salvar paciente"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       ) : null}
 
-      <div className="stack-list mt-5">
-        {isLoading ? (
-          <PatientSkeleton />
-        ) : patients.length ? (
-          patients.map((patient) => (
-            <article
-              className="data-card"
-              key={patient.id ?? patient.cpf ?? patient.name}
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <h4 className="text-xl font-semibold">
-                    {patient.name ?? "Paciente"}
-                  </h4>
-                  <div className="meta-row mt-2">
-                    <span>CPF {patient.cpf ?? "Nao informado"}</span>
-                    <span>{patient.phone ?? "Sem telefone"}</span>
-                    <span>{patient.email ?? "Sem email"}</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-start gap-2 lg:items-end lg:max-w-sm">
-                  {patient.healthInsurance ? (
-                    <span className="meta-chip">{patient.healthInsurance}</span>
-                  ) : (
-                    <span className="text-sm text-[var(--muted)]">Sem convenio</span>
-                  )}
-                  {patient.notes ? (
-                    <span className="text-sm text-[var(--muted)] lg:text-right">{patient.notes}</span>
-                  ) : null}
-                </div>
-              </div>
+      {editingPatient ? (
+        <Modal title="Editar paciente" onClose={() => setEditingPatient(null)}>
+          <PatientEditForm
+            patient={editingPatient}
+            onSaved={async (message) => {
+              setFeedback(message);
+              setEditingPatient(null);
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["patients-list"] }),
+                queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
+              ]);
+            }}
+            onCancel={() => setEditingPatient(null)}
+          />
+        </Modal>
+      ) : null}
 
-              {patient.id ? (
-                <div className="mt-4">
-                  <div className="toolbar-inline">
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() =>
-                        setEditingPatientId((current) =>
-                          current === patient.id ? null : (patient.id ?? null),
-                        )
-                      }
-                      type="button"
-                    >
-                      {editingPatientId === patient.id
-                        ? "Fechar edicao"
-                        : "Editar cadastro"}
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() =>
-                        setActivePatientId((current) =>
-                          current === patient.id ? null : (patient.id ?? null),
-                        )
-                      }
-                      type="button"
-                    >
-                      {activePatientId === patient.id
-                        ? "Fechar documentos"
-                        : "Documentos"}
-                    </button>
-                  </div>
+      {activePatient ? (
+        <Modal
+          title={`Documentos — ${activePatient.name ?? "Paciente"}`}
+          onClose={() => setActivePatient(null)}
+          size="lg"
+        >
+          <PatientDocumentsPanel
+            patientAccessToken={activePatient.patientAccessToken ?? ""}
+            patientId={activePatient.id ?? ""}
+            patientName={activePatient.name ?? "Paciente"}
+          />
+        </Modal>
+      ) : null}
 
-                  {editingPatientId === patient.id ? (
-                    <PatientEditPanel
-                      onSaved={async (message) => {
-                        setFeedback(message);
-                        setEditingPatientId(null);
-                        await Promise.all([
-                          queryClient.invalidateQueries({
-                            queryKey: ["patients-list"],
-                          }),
-                          queryClient.invalidateQueries({
-                            queryKey: ["patients-catalog"],
-                          }),
-                        ]);
-                      }}
-                      patient={patient}
-                    />
-                  ) : null}
-
-                  {activePatientId === patient.id ? (
-                    <PatientDocumentsPanel
-                      patientAccessToken={patient.patientAccessToken ?? ""}
-                      patientId={patient.id}
-                      patientName={patient.name ?? "Paciente"}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-            </article>
-          ))
-        ) : (
-          <div className="empty-state">
-            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-            </svg>
-            <p className="text-sm font-semibold">
-              Nenhum paciente encontrado para os filtros atuais.
+      <section className="panel rounded-lg p-5 md:p-6">
+        <div className="section-heading">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--ink)]">Pacientes</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {total} paciente{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
             </p>
           </div>
-        )}
-      </div>
-    </section>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setFeedback(null);
+              setIsFormOpen(true);
+            }}
+            type="button"
+          >
+            Novo paciente
+          </button>
+        </div>
+
+        {feedback ? (
+          <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+            {feedback}
+          </div>
+        ) : null}
+
+        <div className="toolbar mt-4">
+          <div className="toolbar-stack">
+            <label className="min-w-0 flex-1">
+              <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
+              <input
+                className="input-field"
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Buscar por nome, CPF ou telefone"
+                value={search}
+              />
+            </label>
+            <div className="toolbar-inline flex-wrap">
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={page <= 1}
+                onClick={() => onPageChange(page - 1)}
+                type="button"
+              >
+                Anterior
+              </button>
+              <span className="text-sm font-medium text-[var(--muted)]">
+                {page} / {totalPages}
+              </span>
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => onPageChange(page + 1)}
+                type="button"
+              >
+                Proxima
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="stack-list mt-5">
+          {isLoading ? (
+            <PatientSkeleton />
+          ) : patients.length ? (
+            patients.map((patient) => (
+              <article
+                className="data-card"
+                key={patient.id ?? patient.cpf ?? patient.name}
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <h4 className="text-xl font-semibold">
+                      {patient.name ?? "Paciente"}
+                    </h4>
+                    <div className="meta-row mt-2">
+                      <span>CPF {patient.cpf ?? "Nao informado"}</span>
+                      <span>{patient.phone ?? "Sem telefone"}</span>
+                      <span>{patient.email ?? "Sem email"}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-2 lg:items-end lg:max-w-sm">
+                    {patient.healthInsurance ? (
+                      <span className="meta-chip">{patient.healthInsurance}</span>
+                    ) : (
+                      <span className="text-sm text-[var(--muted)]">Sem convenio</span>
+                    )}
+                    {patient.notes ? (
+                      <span className="text-sm text-[var(--muted)] lg:text-right">{patient.notes}</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {patient.id ? (
+                  <div className="mt-4 toolbar-inline">
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setEditingPatient(patient)}
+                      type="button"
+                    >
+                      Editar cadastro
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setActivePatient(patient)}
+                      type="button"
+                    >
+                      Documentos
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <div className="empty-state">
+              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+              <p className="text-sm font-semibold">
+                Nenhum paciente encontrado para os filtros atuais.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
   );
 }
 
-function PatientEditPanel({
+function PatientEditForm({
   patient,
   onSaved,
+  onCancel,
 }: {
   patient: PatientResponse;
   onSaved: (message: string) => Promise<void>;
+  onCancel: () => void;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
@@ -385,10 +383,7 @@ function PatientEditPanel({
   });
 
   return (
-    <form
-      className="section-card mt-4 grid gap-4 p-5 md:grid-cols-2"
-      onSubmit={onSubmit}
-    >
+    <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
       <Field error={errors.name?.message} label="Nome">
         <input className="input-field" {...register("name")} />
       </Field>
@@ -406,13 +401,19 @@ function PatientEditPanel({
         error={errors.notes?.message}
         label="Observacoes"
       >
-        <textarea className="input-field min-h-28" {...register("notes")} />
+        <textarea className="input-field min-h-24" {...register("notes")} />
       </Field>
-      <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <span className="text-sm text-[var(--muted)]">
-          {feedback ??
-            "Atualize os dados operacionais sem perder o contexto clinico do cadastro."}
-        </span>
+      {feedback ? (
+        <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
+      ) : null}
+      <div className="md:col-span-2 flex justify-end gap-3">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={onCancel}
+          type="button"
+        >
+          Cancelar
+        </button>
         <button
           className="btn btn-primary"
           disabled={updatePatient.isPending}
@@ -566,36 +567,22 @@ function PatientDocumentsPanel({
   }
 
   return (
-    <div className="section-card mt-4 p-5">
-      <div className="section-heading">
-        <div>
-          <p className="label">Documentos do paciente</p>
-          <h5 className="mt-2 text-xl font-semibold">{patientName}</h5>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Upload real via backend com download autenticado na sessao atual.
-          </p>
+    <div className="grid gap-4">
+      {feedback ? (
+        <div className="rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
+          {feedback}
         </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">Storage</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            PDF, JPG e PNG com trilha de metadata e soft delete.
-          </p>
-        </div>
-      </div>
+      ) : null}
 
-      {/* Portal access token */}
       <div
         className={cn(
-          "section-card mt-5 p-5 transition-all duration-500",
+          "rounded-md border border-[var(--border)] bg-[var(--bg)] p-4 transition-all duration-500",
           tokenHighlight && "ring-2 ring-[var(--brand)] ring-offset-2",
         )}
       >
-        <p className="label">Portal do Paciente</p>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Compartilhe o token abaixo com o paciente para que ele acesse o portal.
-        </p>
+        <p className="label">Token do portal do paciente</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <code className="flex-1 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2 font-mono text-xs break-all">
+          <code className="flex-1 rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-xs break-all">
             {currentToken || "—"}
           </code>
           <div className="flex gap-2">
@@ -617,15 +604,11 @@ function PatientDocumentsPanel({
             </button>
           </div>
         </div>
-        {tokenHighlight && (
-          <p className="mt-2 text-xs font-medium text-[var(--brand)]">
-            Documento enviado — lembre de compartilhar este token com o paciente.
-          </p>
-        )}
       </div>
 
-      <form className="section-card mt-5 grid gap-4 p-5" onSubmit={onSubmit}>
-        <Field error={errors.file?.message} label="Arquivo">
+      <form className="grid gap-4 rounded-md border border-[var(--border)] bg-[var(--bg)] p-4" onSubmit={onSubmit}>
+        <p className="label">Enviar documento</p>
+        <Field error={errors.file?.message} label="Arquivo (PDF, JPG, PNG)">
           <input
             accept=".pdf,.jpg,.jpeg,.png"
             className="input-field"
@@ -633,11 +616,7 @@ function PatientDocumentsPanel({
             type="file"
           />
         </Field>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <span className="text-sm text-[var(--muted)]">
-            {feedback ??
-              "PDF, JPG e PNG ate 10 MB por arquivo com upload real via backend."}
-          </span>
+        <div className="flex justify-end">
           <button
             className="btn btn-primary"
             disabled={addDocument.isPending}
@@ -648,7 +627,7 @@ function PatientDocumentsPanel({
         </div>
       </form>
 
-      <div className="stack-list mt-5">
+      <div className="stack-list">
         {documentsQuery.isLoading ? (
           <div className="empty-state">
             <span className="spinner" style={{ width: "2rem", height: "2rem" }} />
@@ -704,23 +683,22 @@ function DocumentCard({
     <article className="data-card">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h6 className="text-lg font-semibold">
+          <h6 className="text-sm font-semibold">
             {document.fileName ?? "Documento"}
           </h6>
-          <div className="meta-row mt-2">
+          <div className="meta-row mt-1">
             <span>{document.contentType ?? "application/octet-stream"}</span>
             <span>{formatFileSize(document.sizeInBytes ?? 0)}</span>
           </div>
         </div>
         <div className="toolbar-inline">
-          <span className="pill text-xs">Storage metadata</span>
           <button
             className="btn btn-ghost btn-sm"
             disabled={isDownloading || isDeleting}
             onClick={onDownload}
             type="button"
           >
-            {isDownloading ? "Baixando..." : "Baixar arquivo"}
+            {isDownloading ? "Baixando..." : "Baixar"}
           </button>
           <button
             className="btn btn-danger btn-sm"
@@ -728,13 +706,10 @@ function DocumentCard({
             onClick={onDelete}
             type="button"
           >
-            {isDeleting ? "Removendo..." : "Excluir documento"}
+            {isDeleting ? "Removendo..." : "Excluir"}
           </button>
         </div>
       </div>
-      <p className="mt-4 break-all text-sm text-[var(--muted)]">
-        {document.storagePath ?? "Sem caminho de storage"}
-      </p>
     </article>
   );
 }
