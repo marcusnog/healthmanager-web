@@ -254,7 +254,6 @@ a {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--surface);
-  min-height: 8.75rem;
 }
 
 .metric-value {
@@ -433,15 +432,15 @@ a {
 
 .topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  padding: 0;
-  min-height: 4rem;
+  padding: 0 0 1.25rem 0;
+  min-height: 3.25rem;
   margin-bottom: 1.5rem;
   background: transparent;
-  border-bottom: none;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   border-radius: 0;
   box-shadow: none;
@@ -956,6 +955,41 @@ textarea.input-field {
 
 .rail-footer-action {
   margin-top: 1rem;
+}
+
+.quick-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  font-weight: 450;
+  transition: background var(--transition-base), color var(--transition-base);
+  text-align: left;
+}
+
+.quick-action-item:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.quick-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--muted);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 
 .rail-patient-row {

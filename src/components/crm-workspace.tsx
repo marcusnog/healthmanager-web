@@ -495,7 +495,7 @@ export function CrmWorkspace() {
               </button>
             ) : null}
             <div className="topbar-title-group">
-              <p className="text-sm font-semibold text-[var(--ink)]">{meta.title}</p>
+              <p className="text-base font-semibold text-[var(--ink)]" style={{ letterSpacing: "-0.01em" }}>{meta.title}</p>
               <p className="text-xs text-[var(--muted)]">{meta.subtitle}</p>
             </div>
           </div>
