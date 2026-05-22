@@ -480,7 +480,7 @@ export function CrmWorkspace() {
       {/* Main area */}
       <div className="main-shell">
         <main className="flex-1 bg-slate-50">
-          <div className="mx-auto w-full max-w-[1440px] px-10 py-7">
+          <div className="mx-auto w-full max-w-[1440px] px-10 pt-8 pb-10">
         {/* Topbar — mobile hamburger + section label */}
         <header className="topbar">
           <div className="topbar-copy">
@@ -495,8 +495,8 @@ export function CrmWorkspace() {
               </button>
             ) : null}
             <div className="topbar-title-group">
-              <p className="text-base font-semibold text-[var(--ink)]" style={{ letterSpacing: "-0.01em" }}>{meta.title}</p>
-              <p className="text-xs text-[var(--muted)]">{meta.subtitle}</p>
+              <p className="text-lg font-semibold text-[var(--ink)]" style={{ letterSpacing: "-0.02em" }}>{meta.title}</p>
+              <p className="text-sm text-[var(--muted)]">{meta.subtitle}</p>
             </div>
           </div>
           <div className="topbar-right">
