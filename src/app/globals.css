@@ -841,7 +841,7 @@ textarea.input-field {
 
 @media (max-width: 1024px) {
   .sidebar-panel {
-    width: 260px;
+    width: 220px;
     max-width: calc(100vw - 1.5rem);
     max-height: 100dvh;
     border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
@@ -868,7 +868,7 @@ textarea.input-field {
   }
 
   .sidebar-panel {
-    width: 240px;
+    width: 200px;
     height: 100dvh;
     flex-shrink: 0;
     overflow-y: auto;
