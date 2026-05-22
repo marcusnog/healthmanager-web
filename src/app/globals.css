@@ -455,7 +455,7 @@ a {
 
 .topbar-title-group {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.3rem;
   min-width: 0;
 }
 
@@ -889,7 +889,7 @@ textarea.input-field {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
-    border-left: 1px solid var(--border);
+    border-left: 2px solid var(--border);
   }
 
   .main-shell::-webkit-scrollbar {
