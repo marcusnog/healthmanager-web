@@ -1,0 +1,29 @@
+{
+  "projectId": "317670208424758645",
+  "title": "HealthManager Bold Tech",
+  "designSystemAssetId": "b3d7f827f9b64ce599f26080e9259808",
+  "screens": [
+    {
+      "id": "8c53458064c64f29b6b547d10288ce02",
+      "title": "HealthManager Dashboard Refined",
+      "sourceScreen": "projects/317670208424758645/screens/8c53458064c64f29b6b547d10288ce02",
+      "route": "/",
+      "version": 2,
+      "localScreenshot": ".stitch/designs/home-v2.jpg"
+    },
+    {
+      "id": "ff7705c8d57146bcaa83ce94d6a58346",
+      "title": "Portal do Paciente - Home",
+      "sourceScreen": "projects/317670208424758645/screens/ff7705c8d57146bcaa83ce94d6a58346",
+      "route": "/portal",
+      "version": 2,
+      "localScreenshot": ".stitch/designs/portal-v2.jpg"
+    },
+    {
+      "id": "8488386436455699455",
+      "title": "HealthManager Design System",
+      "sourceScreen": "projects/317670208424758645/screens/8488386436455699455",
+      "type": "DESIGN_SYSTEM"
+    }
+  ]
+}

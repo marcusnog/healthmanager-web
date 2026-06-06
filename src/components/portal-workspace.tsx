@@ -327,7 +327,7 @@ function PortalDashboard({
         <div
           style={{
             background:
-              "linear-gradient(135deg, rgba(14,107,102,0.92), rgba(11,79,75,0.96))",
+              "linear-gradient(135deg, rgba(99,102,241,0.92), rgba(67,56,202,0.96))",
             padding: "1.25rem 1.5rem",
             display: "flex",
             alignItems: "center",
@@ -737,7 +737,7 @@ function DocumentSection({
                   width: "2.25rem",
                   height: "2.25rem",
                   borderRadius: "0.75rem",
-                  background: "rgba(14,107,102,0.1)",
+                  background: "var(--brand-wash)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
