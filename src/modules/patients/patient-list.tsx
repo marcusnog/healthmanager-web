@@ -630,7 +630,7 @@ function PatientDocumentsPanel({
       <div className="stack-list">
         {documentsQuery.isLoading ? (
           <div className="empty-state">
-            <span className="spinner" style={{ width: "2rem", height: "2rem" }} />
+            <span className="spinner w-8 h-8" />
             <p className="text-sm font-semibold">Carregando documentos...</p>
           </div>
         ) : documentsQuery.data?.length ? (

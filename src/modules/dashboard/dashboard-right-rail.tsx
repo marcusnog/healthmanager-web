@@ -67,8 +67,8 @@ export function DashboardRightRail({
   return (
     <div className="dashboard-right-col">
       <div className="rail-card">
-        <p className="label rail-section-title">Acoes rapidas</p>
-        <div style={{ display: "grid", gap: "0.25rem" }}>
+        <p className="label rail-section-title">Ações rápidas</p>
+        <div className="grid gap-1">
           {quickActions.map((action) => (
             <button
               key={action.label}
@@ -77,8 +77,8 @@ export function DashboardRightRail({
               type="button"
             >
               <span className="quick-action-icon">{action.icon}</span>
-              <span style={{ flex: 1, textAlign: "left" }}>{action.label}</span>
-              <span style={{ color: "var(--muted-light)" }}>
+              <span className="nav-item-label">{action.label}</span>
+              <span className="text-muted-light">
                 <ChevronRightIcon />
               </span>
             </button>
@@ -109,22 +109,18 @@ export function DashboardRightRail({
 
       {pendingItems.length > 0 && (
         <div className="rail-card">
-          <p className="label rail-section-title">Pendencias</p>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <p className="rail-pending-count">
-                {pendingItems.length}{" "}
-                {pendingItems.length === 1 ? "recebivel pendente" : "recebiveis pendentes"}
-              </p>
-              <p className="rail-pending-amount">{formatCurrency(pendingTotal)} a receber</p>
-            </div>
-          </div>
+          <p className="label rail-section-title">Pendências</p>
+          <p className="rail-pending-count">
+            {pendingItems.length}{" "}
+            {pendingItems.length === 1 ? "recebível pendente" : "recebíveis pendentes"}
+          </p>
+          <p className="rail-pending-amount">{formatCurrency(pendingTotal)} a receber</p>
           <button
             className="btn btn-ghost btn-sm rail-footer-action"
             onClick={onViewFinancial}
             type="button"
           >
-            Ver recebiveis
+            Ver recebíveis
           </button>
         </div>
       )}

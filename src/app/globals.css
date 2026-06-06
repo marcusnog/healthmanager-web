@@ -1,3 +1,23 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-surface: var(--surface);
+  --color-bg: var(--bg);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+}
+
 :root {
   /* Palette */
   --bg: #f8fafc;
@@ -519,6 +539,214 @@ a {
 
 .nav-item-label {
   display: block;
+  flex: 1;
+}
+
+.nav-item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #818cf8;
+  flex-shrink: 0;
+}
+
+/* ─── Sidebar component classes ─────────────────────────────────── */
+
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-brand-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-brand-sub {
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-workspace-section {
+  padding: 0.625rem 0.75rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-workspace-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.sidebar-workspace-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.sidebar-workspace-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.sidebar-workspace-sub {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-workspace-chevron {
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.sidebar-workspace-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background: #10b981;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sidebar-user-section {
+  padding: 0.75rem;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-user-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.sidebar-user-role {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ─── Form utilities ─────────────────────────────────────────────── */
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-col-span-2 {
+    grid-column: span 2;
+  }
+}
+
+.field-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.375rem;
+}
+
+.field-hint {
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.field-error {
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--danger);
+}
+
+/* ─── Login story pills ──────────────────────────────────────────── */
+
+.login-pill-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.65rem;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.login-pill-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.65rem;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* ─── Inputs ─────────────────────────────────────────────────────── */
@@ -780,6 +1008,62 @@ textarea.input-field {
 
 .appt-cancelled {
   border-left-color: var(--danger);
+}
+
+/* ─── Topbar typography ──────────────────────────────────────────── */
+
+.topbar-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.topbar-subtitle {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ─── Dark surface label variant ─────────────────────────────────── */
+
+.label-inverse {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+/* ─── Login stat cards ───────────────────────────────────────────── */
+
+.login-stat-card {
+  border-radius: var(--radius-md);
+  padding: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.login-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+.login-stat-value {
+  margin-top: 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+}
+
+.login-stat-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* ─── Login screen ───────────────────────────────────────────────── */

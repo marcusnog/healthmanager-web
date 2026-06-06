@@ -46,7 +46,7 @@ const CARDS = (data: DashboardSummaryResponse) => [
   {
     label: "Confirmadas",
     value: String(data.confirmedToday ?? 0),
-    sub: `${formatPercent(data.confirmationRate ?? 0)} de confirmacao`,
+    sub: `${formatPercent(data.confirmationRate ?? 0)} de confirmação`,
     color: "var(--success)",
     colorBg: "var(--surface-success)",
     icon: <CheckIcon />,
@@ -54,7 +54,7 @@ const CARDS = (data: DashboardSummaryResponse) => [
   {
     label: "Receita mensal",
     value: formatCurrency(data.monthlyRevenue ?? 0),
-    sub: "acumulado no mes",
+    sub: "acumulado no mês",
     color: "var(--accent)",
     colorBg: "var(--accent-soft)",
     icon: <TrendUpIcon />,
@@ -62,7 +62,7 @@ const CARDS = (data: DashboardSummaryResponse) => [
   {
     label: "No-show estimado",
     value: formatPercent(data.noShowRate ?? 0),
-    sub: "com base no historico",
+    sub: "com base no histórico",
     color: "var(--danger)",
     colorBg: "var(--surface-danger)",
     icon: <AlertIcon />,
@@ -76,20 +76,11 @@ export function SummaryCards({ data }: { readonly data: DashboardSummaryResponse
     <div className="card-grid">
       {cards.map((card) => (
         <div key={card.label} className="metric-card">
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.875rem" }}>
+          <div className="flex items-start justify-between mb-3.5">
             <p className="label">{card.label}</p>
             <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "1.65rem",
-                height: "1.65rem",
-                borderRadius: "var(--radius-md)",
-                background: card.colorBg,
-                color: card.color,
-                flexShrink: 0,
-              }}
+              className="inline-flex items-center justify-center w-7 h-7 rounded-md shrink-0"
+              style={{ background: card.colorBg, color: card.color }}
             >
               {card.icon}
             </span>

@@ -111,17 +111,17 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
   { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
-  { section: "medicos",       icon: <MedicosIcon />,    label: "Medicos" },
+  { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
   { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
-  dashboard:     { title: "Dashboard",      subtitle: "Resumo da operacao de hoje" },
-  agenda:        { title: "Agenda",         subtitle: "Consultas, confirmacoes e cancelamentos" },
+  dashboard:     { title: "Dashboard",      subtitle: "Resumo da operação de hoje" },
+  agenda:        { title: "Agenda",         subtitle: "Consultas, confirmações e cancelamentos" },
   pacientes:     { title: "Pacientes",      subtitle: "Cadastro, busca e documentos" },
   financeiro:    { title: "Financeiro",     subtitle: "Contas a receber e pagamentos" },
-  medicos:       { title: "Medicos",        subtitle: "Equipe medica e disponibilidade" },
-  configuracoes: { title: "Configuracoes",  subtitle: "Configuracoes operacionais" },
+  medicos:       { title: "Médicos",        subtitle: "Equipe médica e disponibilidade" },
+  configuracoes: { title: "Configurações",  subtitle: "Configurações operacionais" },
 };
 
 /* ─── Fallback data ──────────────────────────────────────────────── */
@@ -327,32 +327,28 @@ export function CrmWorkspace() {
       <div className="login-shell">
         <section className="login-story">
           <div className="eyebrow-row">
-            <span className="pill" style={{ background: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.9)" }}>
-              HealthManager
-            </span>
-            <span className="pill" style={{ background: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
-              Brasil-first SaaS
-            </span>
+            <span className="login-pill-brand">HealthManager</span>
+            <span className="login-pill-secondary">Brasil-first SaaS</span>
           </div>
           <div className="mt-8 max-w-xl">
-            <p className="label" style={{ color: "rgba(255,255,255,0.55)" }}>CRM medico</p>
+            <p className="label-inverse">CRM médico</p>
             <h1 className="hero-title">
-              Agenda, pacientes e financeiro em um so painel.
+              Agenda, pacientes e financeiro em um só painel.
             </h1>
             <p className="hero-description">
-              Multi-tenant, auditoria, documentos, agenda, financeiro operacional e integracoes prontas.
+              Multi-tenant, auditoria, documentos, agenda, financeiro operacional e integrações prontas.
             </p>
           </div>
           <div className="mt-8 grid gap-3 md:grid-cols-3">
             {[
-              { label: "Agenda", value: "30 min", sub: "slot padrao com bloqueio de conflito" },
-              { label: "Financeiro", value: "Parcial", sub: "recebiveis e pagamentos desacoplados" },
-              { label: "Mensageria", value: "Outbox", sub: "worker para notificacoes" },
+              { label: "Agenda", value: "30 min", sub: "slot padrão com bloqueio de conflito" },
+              { label: "Financeiro", value: "Parcial", sub: "recebíveis e pagamentos desacoplados" },
+              { label: "Mensageria", value: "Outbox", sub: "worker para notificações" },
             ].map((s) => (
-              <div key={s.label} style={{ borderRadius: 8, padding: "0.875rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.14)" }}>
-                <div style={{ fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>{s.label}</div>
-                <div style={{ marginTop: "0.35rem", fontSize: "1.15rem", fontWeight: 700, color: "white" }}>{s.value}</div>
-                <div style={{ marginTop: "0.2rem", fontSize: "0.8rem", color: "rgba(255,255,255,0.55)" }}>{s.sub}</div>
+              <div key={s.label} className="login-stat-card">
+                <p className="login-stat-label">{s.label}</p>
+                <p className="login-stat-value">{s.value}</p>
+                <p className="login-stat-sub">{s.sub}</p>
               </div>
             ))}
           </div>
@@ -362,10 +358,10 @@ export function CrmWorkspace() {
           <div className="login-grid">
             <div>
               <p className="label">Acesso ao CRM</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                Sessao bloqueada
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
+                Bem-vindo de volta
               </h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
+              <p className="mt-2 text-sm text-muted">
                 Entre com suas credenciais para acessar o painel.
               </p>
             </div>
@@ -458,21 +454,20 @@ export function CrmWorkspace() {
         </nav>
 
         {/* User */}
-        <div className="sidebar-user">
-          <div className="flex items-center gap-2">
+        <div className="sidebar-user-section">
+          <div className="sidebar-user-row">
             <Avatar name={session.name} size="sm" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{session.name}</p>
-              <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.42)" }}>{session.role}</p>
+              <p className="sidebar-user-name">{session.name}</p>
+              <p className="sidebar-user-role">{session.role}</p>
             </div>
           </div>
           <button
-            className="btn btn-ghost btn-sm mt-2 w-full"
-            style={{ color: "rgba(255,255,255,0.65)", borderColor: "rgba(255,255,255,0.15)", fontSize: "0.78rem" }}
+            className="sidebar-logout-btn"
             onClick={handleLogout}
             type="button"
           >
-            Encerrar sessao
+            Encerrar sessão
           </button>
         </div>
       </aside>
@@ -495,8 +490,8 @@ export function CrmWorkspace() {
               </button>
             ) : null}
             <div className="topbar-title-group">
-              <p className="text-xl font-semibold text-[var(--ink)]" style={{ letterSpacing: "-0.02em", lineHeight: 1.2 }}>{meta.title}</p>
-              <p className="text-sm text-[var(--muted)]" style={{ lineHeight: 1.4 }}>{meta.subtitle}</p>
+              <p className="topbar-title">{meta.title}</p>
+              <p className="topbar-subtitle">{meta.subtitle}</p>
             </div>
           </div>
           <div className="topbar-right">
