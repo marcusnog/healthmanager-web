@@ -1,81 +1,85 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Calendar, CheckCircle2, TrendingUp, AlertTriangle } from "lucide-react";
 import type { DashboardSummaryResponse } from "@/generated";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 
-function CalendarIcon() {
-  return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
-}
-function TrendUpIcon() {
-  return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  );
-}
-function AlertIcon() {
-  return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
+/* ─── Animation variants ─────────────────────────────────────────── */
+
+const container = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 14 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.32, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  },
+};
+
+/* ─── Card definitions ───────────────────────────────────────────── */
 
 const CARDS = (data: DashboardSummaryResponse) => [
   {
-    label: "Consultas hoje",
+    label: "Consultas Hoje",
     value: String(data.appointmentsToday ?? 0),
     sub: `${data.cancelledToday ?? 0} cancelada${(data.cancelledToday ?? 0) === 1 ? "" : "s"}`,
-    color: "var(--brand)",
-    colorBg: "var(--surface-brand)",
-    icon: <CalendarIcon />,
+    accentColor: "#4F46E5",
+    iconBg: "rgba(79,70,229,0.08)",
+    Icon: Calendar,
   },
   {
     label: "Confirmadas",
     value: String(data.confirmedToday ?? 0),
-    sub: `${formatPercent(data.confirmationRate ?? 0)} de confirmacao`,
-    color: "var(--success)",
-    colorBg: "var(--surface-success)",
-    icon: <CheckIcon />,
+    sub: `${formatPercent(data.confirmationRate ?? 0)} de confirmação`,
+    accentColor: "#10B981",
+    iconBg: "rgba(16,185,129,0.08)",
+    Icon: CheckCircle2,
   },
   {
-    label: "Receita mensal",
+    label: "Receita Mensal",
     value: formatCurrency(data.monthlyRevenue ?? 0),
-    sub: "acumulado no mes",
-    color: "var(--accent)",
-    colorBg: "var(--accent-soft)",
-    icon: <TrendUpIcon />,
+    sub: "acumulado no mês",
+    accentColor: "#0EA5E9",
+    iconBg: "rgba(14,165,233,0.08)",
+    Icon: TrendingUp,
   },
   {
-    label: "No-show estimado",
+    label: "No-show Estimado",
     value: formatPercent(data.noShowRate ?? 0),
-    sub: "com base no historico",
-    color: "var(--danger)",
-    colorBg: "var(--surface-danger)",
-    icon: <AlertIcon />,
+    sub: "com base no histórico",
+    accentColor: "#F59E0B",
+    iconBg: "rgba(245,158,11,0.08)",
+    Icon: AlertTriangle,
   },
 ];
+
+/* ─── Component ──────────────────────────────────────────────────── */
 
 export function SummaryCards({ data }: { readonly data: DashboardSummaryResponse }) {
   const cards = CARDS(data);
 
   return (
-    <div className="card-grid">
+    <motion.div
+      className="card-grid"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
       {cards.map((card) => (
-        <div key={card.label} className="metric-card">
+        <motion.div
+          key={card.label}
+          variants={cardVariant}
+          className="metric-card"
+          style={{ borderLeft: `3px solid ${card.accentColor}` }}
+          whileHover={{ y: -2, boxShadow: "0 8px 28px rgba(0,0,0,0.09)", transition: { duration: 0.15 } }}
+        >
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.875rem" }}>
             <p className="label">{card.label}</p>
             <span
@@ -83,21 +87,21 @@ export function SummaryCards({ data }: { readonly data: DashboardSummaryResponse
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "1.65rem",
-                height: "1.65rem",
+                width: "1.75rem",
+                height: "1.75rem",
                 borderRadius: "var(--radius-md)",
-                background: card.colorBg,
-                color: card.color,
+                background: card.iconBg,
+                color: card.accentColor,
                 flexShrink: 0,
               }}
             >
-              {card.icon}
+              <card.Icon size={14} />
             </span>
           </div>
           <p className="metric-value">{card.value}</p>
           <p className="metric-subtitle">{card.sub}</p>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }

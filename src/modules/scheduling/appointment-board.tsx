@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
@@ -356,40 +357,68 @@ export function AppointmentBoard({
           {isLoading ? (
             <AppointmentSkeleton />
           ) : appointments.length ? (
-            appointments.map((appointment) => {
+            appointments.map((appointment, index) => {
               const patient = patientMap[appointment.patientId ?? ""];
               const doctor = doctorMap[appointment.doctorId ?? ""];
               const statusVariant = resolveAppointmentStatus(appointment.status);
               const isProcessing = processingAppointmentId === appointment.id;
 
               return (
-                <article
+                <motion.article
                   className={cn("data-card appt-card", statusBorderClass(appointment.status))}
                   key={appointment.id ?? appointment.startAt ?? appointment.notes}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-baseline gap-3">
-                      <span className="tabular-nums text-base font-semibold text-[var(--ink)] shrink-0">
+                  <div className="flex items-start gap-3">
+                    {/* Time chip */}
+                    <div
+                      style={{
+                        flexShrink: 0,
+                        background: "var(--bg)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius-md)",
+                        padding: "0.3rem 0.55rem",
+                        minWidth: "3.75rem",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        className="tabular-nums font-semibold block"
+                        style={{ fontSize: "0.875rem", color: "var(--ink)", lineHeight: 1.3 }}
+                      >
                         {formatTime(appointment.startAt ?? new Date().toISOString())}
                       </span>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-sm text-[var(--ink)]">
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm" style={{ color: "var(--ink)" }}>
                           {patient?.name ?? "Paciente"}
                         </span>
-                        <div className="meta-row mt-0.5">
-                          {doctor?.name ? <span>{doctor.name}</span> : null}
-                          {appointment.type ? <span>{appointment.type}</span> : null}
-                          <span>{formatCurrency(appointment.amount ?? 0)}</span>
-                        </div>
-                        {appointment.notes ? (
-                          <p className="mt-1 text-xs text-[var(--muted)] leading-5">{appointment.notes}</p>
-                        ) : null}
+                        <StatusBadge variant={statusVariant} />
                       </div>
+                      <div className="meta-row mt-0.5">
+                        {doctor?.name ? <span>{doctor.name}</span> : null}
+                        {appointment.type ? <span>{appointment.type}</span> : null}
+                        <span style={{ color: "var(--success)", fontWeight: 500 }}>
+                          {formatCurrency(appointment.amount ?? 0)}
+                        </span>
+                      </div>
+                      {appointment.notes ? (
+                        <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
+                          {appointment.notes}
+                        </p>
+                      ) : null}
                     </div>
-                    <StatusBadge variant={statusVariant} />
                   </div>
 
-                  <div className="toolbar-inline mt-3">
+                  <div
+                    className="toolbar-inline mt-3 pt-3"
+                    style={{ borderTop: "1px solid var(--border)" }}
+                  >
                     {appointment.status !== "Confirmed" ? (
                       <button
                         className="btn btn-brand-outline btn-sm"
@@ -417,7 +446,7 @@ export function AppointmentBoard({
                       </button>
                     ) : null}
                   </div>
-                </article>
+                </motion.article>
               );
             })
           ) : (
@@ -427,7 +456,7 @@ export function AppointmentBoard({
                 <path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
               <p className="text-sm font-semibold">
-                Nenhuma consulta encontrada para a data selecionada.
+                Nenhuma consulta para a data selecionada.
               </p>
             </div>
           )}
@@ -441,10 +470,10 @@ export function AppointmentBoard({
               onClick={() => onPageChange(page - 1)}
               type="button"
             >
-              Pagina anterior
+              Página anterior
             </button>
             <span className="text-sm font-medium text-[var(--muted)]">
-              Pagina {page} de {totalPages}
+              Página {page} de {totalPages}
             </span>
             <button
               className="btn btn-ghost btn-sm"
@@ -452,7 +481,7 @@ export function AppointmentBoard({
               onClick={() => onPageChange(page + 1)}
               type="button"
             >
-              Proxima pagina
+              Próxima página
             </button>
           </div>
         ) : null}
