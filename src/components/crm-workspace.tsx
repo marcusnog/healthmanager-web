@@ -480,7 +480,7 @@ export function CrmWorkspace() {
       {/* Main area */}
       <div className="main-shell">
         <main className="flex-1 bg-slate-50">
-          <div className="mx-auto w-full max-w-[1440px] px-10 pb-10">
+          <div className="mx-auto w-full max-w-[1440px] px-6 pb-8">
         {/* Topbar — mobile hamburger + section label */}
         <header className="topbar">
           <div className="topbar-copy">
