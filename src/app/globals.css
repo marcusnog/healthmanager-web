@@ -366,7 +366,7 @@ a {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background: #f3f4f6;
+  background: #0f172a;
   border: none;
   box-shadow: none;
   border-radius: 0;
@@ -379,12 +379,12 @@ a {
   align-items: center;
   gap: 0.65rem;
   padding: 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
 .sidebar-brand .label {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .sidebar-brand-badge {
@@ -415,7 +415,7 @@ a {
 
 .sidebar-user {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
@@ -499,7 +499,7 @@ a {
   text-align: left;
   padding: 0.55rem 0.75rem;
   border-radius: var(--radius-md);
-  color: #374151;
+  color: rgba(255, 255, 255, 0.62);
   background: transparent;
   font-size: var(--text-sm);
   font-weight: 450;
@@ -507,13 +507,13 @@ a {
 }
 
 .nav-item:hover {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .nav-item.active {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.22);
+  color: #a5b4fc;
   font-weight: 600;
 }
 
@@ -796,7 +796,7 @@ textarea.input-field {
   overflow: hidden;
   border-radius: var(--radius-xl);
   padding: 2rem;
-  background: linear-gradient(145deg, #6366f1, #4338ca);
+  background: #0f172a;
   color: white;
   box-shadow: var(--shadow);
 }
@@ -844,7 +844,7 @@ textarea.input-field {
     max-width: calc(100vw - 1.5rem);
     max-height: 100dvh;
     border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -889,7 +889,7 @@ textarea.input-field {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
-    border-left: 2px solid var(--border);
+    border-left: 1px solid var(--border);
   }
 
   .main-shell::-webkit-scrollbar {
