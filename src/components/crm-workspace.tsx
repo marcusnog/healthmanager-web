@@ -326,24 +326,24 @@ export function CrmWorkspace() {
     return (
       <div className="login-shell">
         <section className="login-story">
-          <div className="eyebrow-row">
-            <span className="login-pill-brand">HealthManager</span>
-            <span className="login-pill-secondary">Brasil-first SaaS</span>
+          <div className="login-story-brand">
+            <div className="login-story-badge">HM</div>
+            <span className="login-story-brand-name">Health Manager</span>
           </div>
-          <div className="mt-8 max-w-xl">
+          <div className="login-story-hero">
             <p className="label-inverse">CRM médico</p>
             <h1 className="hero-title">
-              Agenda, pacientes e financeiro em um só painel.
+              Gerencie sua clínica com clareza e controle.
             </h1>
             <p className="hero-description">
-              Multi-tenant, auditoria, documentos, agenda, financeiro operacional e integrações prontas.
+              Agenda inteligente, prontuários, financeiro e comunicação — tudo integrado para clínicas que querem crescer sem perder a qualidade do atendimento.
             </p>
           </div>
-          <div className="mt-8 grid gap-3 md:grid-cols-3">
+          <div className="login-features">
             {[
-              { label: "Agenda", value: "30 min", sub: "slot padrão com bloqueio de conflito" },
-              { label: "Financeiro", value: "Parcial", sub: "recebíveis e pagamentos desacoplados" },
-              { label: "Mensageria", value: "Outbox", sub: "worker para notificações" },
+              { icon: "📅", label: "Agenda", value: "Sem conflitos", sub: "Bloqueio automático de horários sobrepostos" },
+              { icon: "💰", label: "Financeiro", value: "Recebíveis", sub: "Pagamentos parciais e controle de pendências" },
+              { icon: "📁", label: "Documentos", value: "Seguros", sub: "Upload, download e acesso controlado por papel" },
             ].map((s) => (
               <div key={s.label} className="login-stat-card">
                 <p className="login-stat-label">{s.label}</p>
@@ -352,18 +352,19 @@ export function CrmWorkspace() {
               </div>
             ))}
           </div>
+          <p className="login-story-footer">
+            Multi-tenant · Multi-perfil · Brasil-first
+          </p>
         </section>
 
         <div className="login-card">
-          <div className="login-grid">
-            <div>
-              <p className="label">Acesso ao CRM</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                Bem-vindo de volta
-              </h2>
-              <p className="mt-2 text-sm text-muted">
-                Entre com suas credenciais para acessar o painel.
-              </p>
+          <div className="login-card-inner">
+            <div className="login-card-header">
+              <div className="login-card-logo">HM</div>
+              <div>
+                <h2 className="login-card-title">Bem-vindo de volta</h2>
+                <p className="login-card-subtitle">Acesse o painel da sua clínica</p>
+              </div>
             </div>
             <LoginPanel session={null} onLogin={handleLogin} onLogout={handleLogout} />
           </div>
