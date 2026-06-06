@@ -1,31 +1,41 @@
-import { CalendarPlus, UserPlus, Wallet, ChevronRight, AlertCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { formatCurrency } from "@/lib/formatters";
 import type { PatientResponse, ReceivableResponse } from "@/generated";
 
-const QUICK_ACTIONS = [
-  {
-    label: "Agendar consulta",
-    Icon: CalendarPlus,
-    color: "#4F46E5",
-    colorBg: "rgba(79,70,229,0.08)",
-    key: "agenda" as const,
-  },
-  {
-    label: "Novo paciente",
-    Icon: UserPlus,
-    color: "#10B981",
-    colorBg: "rgba(16,185,129,0.08)",
-    key: "paciente" as const,
-  },
-  {
-    label: "Ver financeiro",
-    Icon: Wallet,
-    color: "#0EA5E9",
-    colorBg: "rgba(14,165,233,0.08)",
-    key: "financeiro" as const,
-  },
-];
+function CalendarPlusIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4" />
+    </svg>
+  );
+}
+function UserPlusIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <line x1="20" y1="8" x2="20" y2="14" />
+      <line x1="17" y1="11" x2="23" y2="11" />
+    </svg>
+  );
+}
+function WalletIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+      <circle cx="16" cy="15" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+function ChevronRightIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
 
 export function DashboardRightRail({
   patients,
@@ -48,42 +58,34 @@ export function DashboardRightRail({
     0,
   );
 
-  const actionHandlers = {
-    agenda: onNewAppointment,
-    paciente: onNewPatient,
-    financeiro: onViewFinancial,
-  };
+  const quickActions = [
+    { label: "Agendar consulta", icon: <CalendarPlusIcon />, onClick: onNewAppointment },
+    { label: "Novo paciente", icon: <UserPlusIcon />, onClick: onNewPatient },
+    { label: "Ver financeiro", icon: <WalletIcon />, onClick: onViewFinancial },
+  ];
 
   return (
     <div className="dashboard-right-col">
-
-      {/* Quick Actions */}
       <div className="rail-card">
-        <p className="label rail-section-title">Ações rápidas</p>
-        <div style={{ display: "grid", gap: "0.375rem" }}>
-          {QUICK_ACTIONS.map(({ label, Icon, color, colorBg, key }) => (
+        <p className="label rail-section-title">Acoes rapidas</p>
+        <div style={{ display: "grid", gap: "0.25rem" }}>
+          {quickActions.map((action) => (
             <button
-              key={key}
+              key={action.label}
               className="quick-action-item"
-              onClick={actionHandlers[key]}
+              onClick={action.onClick}
               type="button"
             >
-              <span
-                className="quick-action-icon"
-                style={{ background: colorBg, color, border: "none" }}
-              >
-                <Icon size={13} />
+              <span className="quick-action-icon">{action.icon}</span>
+              <span style={{ flex: 1, textAlign: "left" }}>{action.label}</span>
+              <span style={{ color: "var(--muted-light)" }}>
+                <ChevronRightIcon />
               </span>
-              <span style={{ flex: 1, textAlign: "left", fontSize: "var(--text-sm)", color: "var(--ink)", fontWeight: 450 }}>
-                {label}
-              </span>
-              <ChevronRight size={12} style={{ color: "var(--muted-light)" }} />
             </button>
           ))}
         </div>
       </div>
 
-      {/* Recent Patients */}
       <div className="rail-card">
         <p className="label rail-section-title">Pacientes recentes</p>
         {patients.length === 0 ? (
@@ -96,19 +98,7 @@ export function DashboardRightRail({
                 <div className="min-w-0 flex-1">
                   <p className="rail-patient-name">{patient.name}</p>
                   <p className="rail-patient-meta">
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "1px 6px",
-                        borderRadius: "var(--radius-sm)",
-                        background: "var(--brand-wash)",
-                        color: "var(--brand-strong)",
-                        fontSize: "0.68rem",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {patient.healthInsurance ?? "Particular"}
-                    </span>
+                    {patient.healthInsurance ?? "Particular"}
                   </p>
                 </div>
               </div>
@@ -117,25 +107,14 @@ export function DashboardRightRail({
         )}
       </div>
 
-      {/* Pending receivables */}
       {pendingItems.length > 0 && (
-        <div
-          className="rail-card"
-          style={{
-            borderColor: "rgba(245,158,11,0.28)",
-            background: "rgba(245,158,11,0.035)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
-            <AlertCircle
-              size={14}
-              style={{ color: "#D97706", marginTop: "1px", flexShrink: 0 }}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="label" style={{ color: "#B45309" }}>Pendências</p>
-              <p className="rail-pending-count" style={{ marginTop: "0.3rem" }}>
+        <div className="rail-card">
+          <p className="label rail-section-title">Pendencias</p>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.5rem" }}>
+            <div>
+              <p className="rail-pending-count">
                 {pendingItems.length}{" "}
-                {pendingItems.length === 1 ? "recebível pendente" : "recebíveis pendentes"}
+                {pendingItems.length === 1 ? "recebivel pendente" : "recebiveis pendentes"}
               </p>
               <p className="rail-pending-amount">{formatCurrency(pendingTotal)} a receber</p>
             </div>
@@ -145,7 +124,7 @@ export function DashboardRightRail({
             onClick={onViewFinancial}
             type="button"
           >
-            Ver recebíveis
+            Ver recebiveis
           </button>
         </div>
       )}

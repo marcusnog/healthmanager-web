@@ -2,20 +2,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  CreditCard,
-  Stethoscope,
-  Settings,
-  ChevronDown,
-  Menu,
-  X,
-  LogOut,
-  Plus,
-} from "lucide-react";
 import { clearAuthSession, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
 import { LoginPanel } from "@/modules/auth/login-panel";
 import { SummaryCards } from "@/modules/dashboard/summary-cards";
@@ -50,24 +36,92 @@ type Section =
   | "medicos"
   | "configuracoes";
 
+/* ─── Icons ─────────────────────────────────────────────────────── */
+
+function DashboardIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+function AgendaIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+function PacientesIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+function FinanceiroIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
+function MedicosIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+function ConfigIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+function MenuIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M3 12h18M3 6h18M3 18h18" />
+    </svg>
+  );
+}
+function CrossIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 /* ─── Nav config ─────────────────────────────────────────────────── */
 
 const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
-  { section: "dashboard",     icon: <LayoutDashboard size={15} />, label: "Dashboard" },
-  { section: "agenda",        icon: <Calendar size={15} />,        label: "Agenda" },
-  { section: "pacientes",     icon: <Users size={15} />,           label: "Pacientes" },
-  { section: "financeiro",    icon: <CreditCard size={15} />,      label: "Financeiro" },
-  { section: "medicos",       icon: <Stethoscope size={15} />,     label: "Médicos" },
-  { section: "configuracoes", icon: <Settings size={15} />,        label: "Config" },
+  { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
+  { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
+  { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
+  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
+  { section: "medicos",       icon: <MedicosIcon />,    label: "Medicos" },
+  { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
-  dashboard:     { title: "Dashboard",      subtitle: "Resumo da operação de hoje" },
-  agenda:        { title: "Agenda",         subtitle: "Consultas, confirmações e cancelamentos" },
+  dashboard:     { title: "Dashboard",      subtitle: "Resumo da operacao de hoje" },
+  agenda:        { title: "Agenda",         subtitle: "Consultas, confirmacoes e cancelamentos" },
   pacientes:     { title: "Pacientes",      subtitle: "Cadastro, busca e documentos" },
   financeiro:    { title: "Financeiro",     subtitle: "Contas a receber e pagamentos" },
-  medicos:       { title: "Médicos",        subtitle: "Equipe médica e disponibilidade" },
-  configuracoes: { title: "Configurações",  subtitle: "Configurações operacionais" },
+  medicos:       { title: "Medicos",        subtitle: "Equipe medica e disponibilidade" },
+  configuracoes: { title: "Configuracoes",  subtitle: "Configuracoes operacionais" },
 };
 
 /* ─── Fallback data ──────────────────────────────────────────────── */
@@ -121,171 +175,6 @@ async function guardedQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
     if (e instanceof ApiError && e.status === 401) throw e;
     return fallback;
   }
-}
-
-/* ─── Sidebar content (shared desktop + mobile) ──────────────────── */
-
-function SidebarContent({
-  session,
-  activeSection,
-  onSectionChange,
-  onLogout,
-}: {
-  session: SessionState;
-  activeSection: Section;
-  onSectionChange: (s: Section) => void;
-  onLogout: () => void;
-}) {
-  return (
-    <>
-      {/* Product brand */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-4 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "var(--brand)" }}
-        >
-          <span className="text-white font-bold text-xs tracking-tight">HM</span>
-        </div>
-        <div className="min-w-0">
-          <p
-            className="text-white font-semibold text-sm truncate leading-tight"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            Health Manager
-          </p>
-          <p
-            className="truncate"
-            style={{ fontSize: "0.625rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}
-          >
-            CRM Médico
-          </p>
-        </div>
-      </div>
-
-      {/* Workspace switcher */}
-      <div
-        className="px-3 py-2.5 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <button
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.09)",
-          }}
-          type="button"
-        >
-          <div
-            className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{ background: "#10B981" }}
-          >
-            <span className="text-white font-bold" style={{ fontSize: "0.6rem" }}>CA</span>
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p
-              className="truncate leading-tight font-medium"
-              style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.88)" }}
-            >
-              Clínica Aurora
-            </p>
-            <p
-              className="truncate"
-              style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.35)" }}
-            >
-              Workspace ativo
-            </p>
-          </div>
-          <ChevronDown size={11} style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
-        </button>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-0.5 scrollbar-hide">
-        {NAV.map(({ section, icon, label }) => {
-          const isActive = activeSection === section;
-          return (
-            <button
-              key={section}
-              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
-              style={{
-                background: isActive ? "rgba(99,102,241,0.2)" : "transparent",
-                color: isActive ? "#a5b4fc" : "rgba(255,255,255,0.55)",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.88)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
-                }
-              }}
-              onClick={() => onSectionChange(section)}
-              type="button"
-            >
-              <span style={{ color: isActive ? "#a5b4fc" : "rgba(255,255,255,0.38)", flexShrink: 0 }}>
-                {icon}
-              </span>
-              <span className="nav-item-label flex-1 text-left">{label}</span>
-              {isActive && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ background: "#818cf8" }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* User profile */}
-      <div
-        className="px-3 py-3 flex-shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1.5">
-          <Avatar name={session.name} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p
-              className="truncate leading-tight font-medium"
-              style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.9)" }}
-            >
-              {session.name}
-            </p>
-            <p
-              className="truncate"
-              style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.35)" }}
-            >
-              {session.role}
-            </p>
-          </div>
-        </div>
-        <button
-          className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-          style={{ color: "rgba(255,255,255,0.38)", fontSize: "0.75rem" }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)";
-            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.65)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.38)";
-          }}
-          onClick={onLogout}
-          type="button"
-        >
-          <LogOut size={12} />
-          <span>Encerrar sessão</span>
-        </button>
-      </div>
-    </>
-  );
 }
 
 /* ─── Component ──────────────────────────────────────────────────── */
@@ -438,32 +327,32 @@ export function CrmWorkspace() {
       <div className="login-shell">
         <section className="login-story">
           <div className="eyebrow-row">
-            <span className="pill" style={{ background: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.9)" }}>
-              Health Manager
+            <span className="pill" style={{ background: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.9)" }}>
+              HealthManager
             </span>
-            <span className="pill" style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}>
+            <span className="pill" style={{ background: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               Brasil-first SaaS
             </span>
           </div>
           <div className="mt-8 max-w-xl">
-            <p className="label" style={{ color: "rgba(255,255,255,0.45)" }}>CRM médico</p>
+            <p className="label" style={{ color: "rgba(255,255,255,0.55)" }}>CRM medico</p>
             <h1 className="hero-title">
-              Agenda, pacientes e financeiro em um só painel.
+              Agenda, pacientes e financeiro em um so painel.
             </h1>
             <p className="hero-description">
-              Multi-tenant, auditoria, documentos, agenda, financeiro operacional e integrações prontas.
+              Multi-tenant, auditoria, documentos, agenda, financeiro operacional e integracoes prontas.
             </p>
           </div>
           <div className="mt-8 grid gap-3 md:grid-cols-3">
             {[
-              { label: "Agenda", value: "30 min", sub: "slot padrão com bloqueio de conflito" },
-              { label: "Financeiro", value: "Parcial", sub: "recebíveis e pagamentos desacoplados" },
-              { label: "Mensageria", value: "Outbox", sub: "worker para notificações" },
+              { label: "Agenda", value: "30 min", sub: "slot padrao com bloqueio de conflito" },
+              { label: "Financeiro", value: "Parcial", sub: "recebiveis e pagamentos desacoplados" },
+              { label: "Mensageria", value: "Outbox", sub: "worker para notificacoes" },
             ].map((s) => (
-              <div key={s.label} style={{ borderRadius: 8, padding: "0.875rem", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>{s.label}</div>
-                <div style={{ marginTop: "0.35rem", fontSize: "1.15rem", fontWeight: 700, color: "white", fontFamily: "var(--font-heading), var(--font-display), system-ui" }}>{s.value}</div>
-                <div style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "rgba(255,255,255,0.5)" }}>{s.sub}</div>
+              <div key={s.label} style={{ borderRadius: 8, padding: "0.875rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.14)" }}>
+                <div style={{ fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>{s.label}</div>
+                <div style={{ marginTop: "0.35rem", fontSize: "1.15rem", fontWeight: 700, color: "white" }}>{s.value}</div>
+                <div style={{ marginTop: "0.2rem", fontSize: "0.8rem", color: "rgba(255,255,255,0.55)" }}>{s.sub}</div>
               </div>
             ))}
           </div>
@@ -473,8 +362,8 @@ export function CrmWorkspace() {
           <div className="login-grid">
             <div>
               <p className="label">Acesso ao CRM</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-heading), var(--font-display), system-ui" }}>
-                Bem-vindo de volta
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                Sessao bloqueada
               </h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Entre com suas credenciais para acessar o painel.
@@ -490,11 +379,6 @@ export function CrmWorkspace() {
   /* ─── Section content ───────────────────────────────────────── */
 
   const meta = SECTION_TITLE[activeSection];
-
-  function handleSectionChange(section: Section) {
-    setActiveSection(section);
-    setSidebarOpen(false);
-  }
 
   function renderSection() {
     switch (activeSection) {
@@ -532,100 +416,113 @@ export function CrmWorkspace() {
   return (
     <div className="app-shell">
       {/* Mobile overlay */}
-      <AnimatePresence>
-        {sidebarOpen && isMobile && (
-          <motion.div
-            className="fixed inset-0 z-20 bg-black/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {sidebarOpen && isMobile && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
-        className="sidebar-panel z-30"
+        className="sidebar-panel z-30 transition-transform duration-200"
         style={isMobile ? {
           position: "fixed",
           top: 0,
           bottom: 0,
           left: 0,
           transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 200ms cubic-bezier(0.4,0,0.2,1)",
         } : undefined}
       >
-        <SidebarContent
-          session={session}
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-          onLogout={handleLogout}
-        />
+        {/* Brand */}
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-badge">HM</div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{session.clinicName}</p>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 scrollbar-hide">
+          {NAV.map(({ section, icon, label }) => (
+            <button
+              key={section}
+              className={`nav-item ${activeSection === section ? "active" : ""}`}
+              onClick={() => { setActiveSection(section); setSidebarOpen(false); }}
+              type="button"
+            >
+              {icon}
+              <span className="nav-item-label">{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* User */}
+        <div className="sidebar-user">
+          <div className="flex items-center gap-2">
+            <Avatar name={session.name} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">{session.name}</p>
+              <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.42)" }}>{session.role}</p>
+            </div>
+          </div>
+          <button
+            className="btn btn-ghost btn-sm mt-2 w-full"
+            style={{ color: "rgba(255,255,255,0.65)", borderColor: "rgba(255,255,255,0.15)", fontSize: "0.78rem" }}
+            onClick={handleLogout}
+            type="button"
+          >
+            Encerrar sessao
+          </button>
+        </div>
       </aside>
 
       {/* Main area */}
       <div className="main-shell">
-        <main className="flex-1" style={{ background: "var(--bg)" }}>
-          <div className="mx-auto w-full max-w-[1440px] px-8 pb-10">
-
-            {/* Topbar */}
-            <header className="topbar">
-              <div className="topbar-copy">
-                {isMobile ? (
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setSidebarOpen((v) => !v)}
-                    type="button"
-                    aria-label="Menu"
-                  >
-                    {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-                  </button>
-                ) : null}
-                <div className="topbar-title-group">
-                  <p
-                    className="text-xl font-semibold"
-                    style={{
-                      color: "var(--ink)",
-                      letterSpacing: "-0.025em",
-                      lineHeight: 1.2,
-                      fontFamily: "var(--font-heading), var(--font-display), system-ui",
-                    }}
-                  >
-                    {meta.title}
-                  </p>
-                  <p className="text-sm" style={{ color: "var(--muted)", lineHeight: 1.4 }}>
-                    {meta.subtitle}
-                  </p>
-                </div>
+        <main className="flex-1 bg-slate-50">
+          <div className="mx-auto w-full max-w-[1440px] px-10 pb-10">
+        {/* Topbar — mobile hamburger + section label */}
+        <header className="topbar">
+          <div className="topbar-copy">
+            {isMobile ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSidebarOpen((v) => !v)}
+                type="button"
+                aria-label="Menu"
+              >
+                {sidebarOpen ? <CrossIcon /> : <MenuIcon />}
+              </button>
+            ) : null}
+            <div className="topbar-title-group">
+              <p className="text-xl font-semibold text-[var(--ink)]" style={{ letterSpacing: "-0.02em", lineHeight: 1.2 }}>{meta.title}</p>
+              <p className="text-sm text-[var(--muted)]" style={{ lineHeight: 1.4 }}>{meta.subtitle}</p>
+            </div>
+          </div>
+          <div className="topbar-right">
+            <span className="topbar-date">{today}</span>
+            {activeSection === "dashboard" && (
+              <div className="topbar-actions">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setActiveSection("pacientes")}
+                  type="button"
+                >
+                  Novo paciente
+                </button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setActiveSection("agenda")}
+                  type="button"
+                >
+                  Nova consulta
+                </button>
               </div>
-              <div className="topbar-right">
-                <span className="topbar-date">{today}</span>
-                {activeSection === "dashboard" && (
-                  <div className="topbar-actions">
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setActiveSection("pacientes")}
-                      type="button"
-                    >
-                      Novo paciente
-                    </button>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setActiveSection("agenda")}
-                      type="button"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-                    >
-                      <Plus size={14} />
-                      Nova consulta
-                    </button>
-                  </div>
-                )}
-              </div>
-            </header>
+            )}
+          </div>
+        </header>
 
-            {renderSection()}
+          {renderSection()}
           </div>
         </main>
       </div>
