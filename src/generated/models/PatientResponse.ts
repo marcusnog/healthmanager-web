@@ -6,6 +6,7 @@ export type PatientResponse = {
     id?: string;
     name?: string;
     cpf?: string;
+    birthDate?: string;
     phone?: string;
     email?: string;
     healthInsurance?: string;

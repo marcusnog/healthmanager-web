@@ -53,8 +53,16 @@ export function PatientList({
   pageSize,
   total,
   search,
+  sortBy,
+  sortDirection,
+  email,
+  healthInsurance,
   isLoading,
   onSearchChange,
+  onSortByChange,
+  onSortDirectionChange,
+  onEmailChange,
+  onHealthInsuranceChange,
   onPageChange,
 }: {
   patients: PatientResponse[];
@@ -62,8 +70,16 @@ export function PatientList({
   pageSize: number;
   total: number;
   search: string;
+  sortBy: string;
+  sortDirection: string;
+  email: string;
+  healthInsurance: string;
   isLoading: boolean;
   onSearchChange: (value: string) => void;
+  onSortByChange: (value: string) => void;
+  onSortDirectionChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onHealthInsuranceChange: (value: string) => void;
   onPageChange: (page: number) => void;
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -229,16 +245,61 @@ export function PatientList({
         ) : null}
 
         <div className="toolbar mt-4">
-          <div className="toolbar-stack">
-            <label className="min-w-0 flex-1">
-              <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
-              <input
-                className="input-field"
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Buscar por nome, CPF ou telefone"
-                value={search}
-              />
-            </label>
+          <div className="toolbar-stack gap-3">
+            <div className="toolbar-inline flex-wrap gap-3">
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm font-semibold">Busca rapida</span>
+                <input
+                  className="input-field"
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="Buscar por nome, CPF ou telefone"
+                  value={search}
+                />
+              </label>
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm font-semibold">E-mail</span>
+                <input
+                  className="input-field"
+                  onChange={(event) => onEmailChange(event.target.value)}
+                  placeholder="Filtrar por e-mail"
+                  value={email}
+                />
+              </label>
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm font-semibold">Convenio</span>
+                <input
+                  className="input-field"
+                  onChange={(event) => onHealthInsuranceChange(event.target.value)}
+                  placeholder="Filtrar por convenio"
+                  value={healthInsurance}
+                />
+              </label>
+            </div>
+            <div className="toolbar-inline flex-wrap">
+              <label className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-[var(--muted)]">Ordenar por</span>
+                <select
+                  className="input-field w-auto"
+                  value={sortBy}
+                  onChange={(e) => onSortByChange(e.target.value)}
+                >
+                  <option value="name">Nome</option>
+                  <option value="cpf">CPF</option>
+                  <option value="phone">Telefone</option>
+                  <option value="email">E-mail</option>
+                  <option value="healthInsurance">Convenio</option>
+                  <option value="createdAt">Data de cadastro</option>
+                </select>
+              </label>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => onSortDirectionChange(sortDirection === "desc" ? "asc" : "desc")}
+                type="button"
+                title={sortDirection === "desc" ? "Decrescente" : "Crescente"}
+              >
+                {sortDirection === "desc" ? "↓" : "↑"}
+              </button>
+            </div>
             <div className="toolbar-inline flex-wrap">
               <button
                 className="btn btn-ghost btn-sm"
@@ -281,6 +342,9 @@ export function PatientList({
                       <span>CPF {patient.cpf ?? "Nao informado"}</span>
                       <span>{patient.phone ?? "Sem telefone"}</span>
                       <span>{patient.email ?? "Sem email"}</span>
+                      {patient.birthDate ? (
+                        <span>Nasc. {new Date(patient.birthDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex flex-col items-start gap-2 lg:items-end lg:max-w-sm">

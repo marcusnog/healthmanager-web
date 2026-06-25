@@ -135,9 +135,9 @@ describe("CrmWorkspace", () => {
     expect(screen.getByText("21")).toBeVisible();
     expect(screen.getAllByText("R$ 45.120,50")[0]).toBeVisible();
     expect(screen.getByText("81% de confirmacao")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(1, 3, undefined);
-    expect(patientsList).toHaveBeenCalledWith(1, 100, "");
-    expect(appointmentsList).toHaveBeenCalledWith(1, 10, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), undefined);
+    expect(patientsList).toHaveBeenCalledWith(1, 3, undefined, "name", "asc", undefined, undefined);
+    expect(patientsList).toHaveBeenCalledWith(1, 100, "", "name", "asc", undefined, undefined);
+    expect(appointmentsList).toHaveBeenCalledWith(1, 10, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), undefined, undefined);
   });
 
   it("falls back to the blocked session state after logout", async () => {
@@ -262,7 +262,7 @@ describe("CrmWorkspace", () => {
     );
 
     expect(await screen.findByText("Bruna Lopes")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(1, 3, "Bruna");
+    expect(patientsList).toHaveBeenCalledWith(1, 3, "Bruna", "name", "asc", undefined, undefined);
 
     fireEvent.change(
       screen.getByPlaceholderText("Buscar por nome, CPF ou telefone"),
@@ -275,7 +275,7 @@ describe("CrmWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Proxima" }));
 
     expect(await screen.findByText("Carlos Pagina 2")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(2, 3, undefined);
+    expect(patientsList).toHaveBeenCalledWith(2, 3, undefined, "name", "asc", undefined, undefined);
   });
 
   it("updates the appointment query when the agenda date changes", async () => {
@@ -358,6 +358,6 @@ describe("CrmWorkspace", () => {
     });
 
     expect(await screen.findByText("Agenda de amanha")).toBeVisible();
-    expect(appointmentsList).toHaveBeenCalledWith(1, 10, "2026-05-08", undefined);
+    expect(appointmentsList).toHaveBeenCalledWith(1, 10, "2026-05-08", undefined, undefined);
   });
 });

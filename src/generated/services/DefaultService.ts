@@ -80,6 +80,10 @@ export class DefaultService {
      * @param page
      * @param pageSize
      * @param search
+     * @param sortBy
+     * @param sortDirection
+     * @param email
+     * @param healthInsurance
      * @returns PagedPatientResponse OK
      * @throws ApiError
      */
@@ -87,6 +91,10 @@ export class DefaultService {
         page: number = 1,
         pageSize: number = 20,
         search?: string,
+        sortBy?: string,
+        sortDirection?: string,
+        email?: string,
+        healthInsurance?: string,
     ): CancelablePromise<PagedPatientResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -95,6 +103,10 @@ export class DefaultService {
                 'page': page,
                 'pageSize': pageSize,
                 'search': search,
+                'sortBy': sortBy,
+                'sortDirection': sortDirection,
+                'email': email,
+                'healthInsurance': healthInsurance,
             },
         });
     }
@@ -293,6 +305,7 @@ export class DefaultService {
      * @param pageSize
      * @param date
      * @param doctorId
+     * @param status
      * @returns PagedAppointmentResponse OK
      * @throws ApiError
      */
@@ -301,6 +314,7 @@ export class DefaultService {
         pageSize: number = 20,
         date?: string,
         doctorId?: string,
+        status?: 'Scheduled' | 'Confirmed' | 'Cancelled' | 'Completed' | 'NoShow',
     ): CancelablePromise<PagedAppointmentResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -310,6 +324,7 @@ export class DefaultService {
                 'pageSize': pageSize,
                 'date': date,
                 'doctorId': doctorId,
+                'status': status,
             },
         });
     }

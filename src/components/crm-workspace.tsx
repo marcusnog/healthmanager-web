@@ -189,9 +189,14 @@ export function CrmWorkspace() {
   const [isMobile, setIsMobile] = useState(false);
   const [patientSearch, setPatientSearch] = useState("");
   const [patientPage, setPatientPage] = useState(1);
+  const [patientSortBy, setPatientSortBy] = useState("name");
+  const [patientSortDirection, setPatientSortDirection] = useState("asc");
+  const [patientEmail, setPatientEmail] = useState("");
+  const [patientHealthInsurance, setPatientHealthInsurance] = useState("");
   const [appointmentDate, setAppointmentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [appointmentPage, setAppointmentPage] = useState(1);
   const [appointmentDoctorId, setAppointmentDoctorId] = useState<string | undefined>(undefined);
+  const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined>(undefined);
   const [receivablePage, setReceivablePage] = useState(1);
   const [receivableStatus, setReceivableStatus] = useState<"Pending" | "Partial" | "Paid" | undefined>(undefined);
   const [receivableDateFrom, setReceivableDateFrom] = useState<string | undefined>(undefined);
@@ -233,8 +238,8 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const patientsListQuery = useQuery({
-    queryKey: ["patients-list", patientSearch, patientPage],
-    queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined), fallbackPatientsPage),
+    queryKey: ["patients-list", patientSearch, patientPage, patientSortBy, patientSortDirection, patientEmail, patientHealthInsurance],
+    queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined, patientSortBy || undefined, patientSortDirection || undefined, patientEmail || undefined, patientHealthInsurance || undefined), fallbackPatientsPage),
     placeholderData: fallbackPatientsPage,
     enabled: authenticated,
   });
@@ -251,8 +256,8 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
-    queryKey: ["appointments", appointmentDate, appointmentPage, appointmentDoctorId],
-    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
+    queryKey: ["appointments", appointmentDate, appointmentPage, appointmentDoctorId, appointmentStatus],
+    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId, appointmentStatus), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
     placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
     enabled: authenticated,
   });
@@ -284,8 +289,13 @@ export function CrmWorkspace() {
     void logoutAuthSession();
   }
   function handlePatientSearchChange(value: string) { setPatientSearch(value); setPatientPage(1); }
+  function handlePatientSortByChange(value: string) { setPatientSortBy(value); setPatientPage(1); }
+  function handlePatientSortDirectionChange(value: string) { setPatientSortDirection(value); setPatientPage(1); }
+  function handlePatientEmailChange(value: string) { setPatientEmail(value); setPatientPage(1); }
+  function handlePatientHealthInsuranceChange(value: string) { setPatientHealthInsurance(value); setPatientPage(1); }
   function handleAppointmentDateChange(value: string) { setAppointmentDate(value); setAppointmentPage(1); }
   function handleAppointmentDoctorChange(value: string | undefined) { setAppointmentDoctorId(value); setAppointmentPage(1); }
+  function handleAppointmentStatusChange(value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) { setAppointmentStatus(value); setAppointmentPage(1); }
   function handleReceivableStatusChange(value: "Pending" | "Partial" | "Paid" | undefined) { setReceivableStatus(value); setReceivablePage(1); }
   function handleReceivableDateFromChange(value: string | undefined) { setReceivableDateFrom(value); setReceivablePage(1); }
   function handleReceivableDateToChange(value: string | undefined) { setReceivableDateTo(value); setReceivablePage(1); }
@@ -294,24 +304,34 @@ export function CrmWorkspace() {
   const summary = summaryQuery.data ?? fallbackSummary;
 
   const patientListProps = {
+    email: patientEmail,
+    healthInsurance: patientHealthInsurance,
     isLoading: patientsListQuery.isLoading,
+    onEmailChange: handlePatientEmailChange,
+    onHealthInsuranceChange: handlePatientHealthInsuranceChange,
     onPageChange: setPatientPage,
     onSearchChange: handlePatientSearchChange,
+    onSortByChange: handlePatientSortByChange,
+    onSortDirectionChange: handlePatientSortDirectionChange,
     page: patientsListQuery.data?.page ?? 1,
     pageSize: patientsListQuery.data?.pageSize ?? PATIENTS_PAGE_SIZE,
     patients: patientsListQuery.data?.items ?? fallbackPatients,
     search: patientSearch,
+    sortBy: patientSortBy,
+    sortDirection: patientSortDirection,
     total: patientsListQuery.data?.total ?? fallbackPatients.length,
   };
   const appointmentBoardProps = {
     appointmentDate,
     appointmentDoctorId,
+    appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? fallbackAppointments,
     doctors: doctorsQuery.data ?? fallbackDoctors,
     isLoading: appointmentsQuery.isLoading,
     onAppointmentDateChange: handleAppointmentDateChange,
     onDoctorChange: handleAppointmentDoctorChange,
     onPageChange: setAppointmentPage,
+    onStatusChange: handleAppointmentStatusChange,
     page: appointmentsQuery.data?.page ?? 1,
     pageSize: appointmentsQuery.data?.pageSize ?? APPOINTMENTS_PAGE_SIZE,
     patients: patientsCatalogQuery.data ?? fallbackPatients,

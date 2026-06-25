@@ -34,12 +34,20 @@ describe("PatientList", () => {
   let anchorClickSpy: ReturnType<typeof vi.spyOn>;
 
   const baseProps = {
+    email: "",
+    healthInsurance: "",
     isLoading: false,
+    onEmailChange: vi.fn(),
+    onHealthInsuranceChange: vi.fn(),
     onPageChange: vi.fn(),
     onSearchChange: vi.fn(),
+    onSortByChange: vi.fn(),
+    onSortDirectionChange: vi.fn(),
     page: 1,
     pageSize: 10,
     search: "",
+    sortBy: "name",
+    sortDirection: "asc",
     total: 1,
   };
 
@@ -112,7 +120,7 @@ describe("PatientList", () => {
       }),
     ).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Baixar arquivo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Baixar" }));
 
     await waitFor(() =>
       expect(downloadPatientDocument).toHaveBeenCalledWith(
@@ -168,7 +176,7 @@ describe("PatientList", () => {
       }),
     ).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Excluir documento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
 
     await waitFor(() =>
       expect(patientsDocumentsDelete).toHaveBeenCalledWith(
@@ -226,7 +234,7 @@ describe("PatientList", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ana.atualizada@email.com" },
     });
-    fireEvent.change(screen.getByLabelText("Convenio"), {
+    fireEvent.change(screen.getAllByLabelText("Convenio")[0], {
       target: { value: "Particular Premium" },
     });
     fireEvent.change(screen.getByLabelText("Observacoes"), {

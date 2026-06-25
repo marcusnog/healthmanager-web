@@ -21,6 +21,8 @@ vi.mock("@/services/api", () => ({
 describe("AppointmentBoard", () => {
   const baseProps = {
     appointmentDate: "2026-05-07",
+    appointmentDoctorId: undefined,
+    appointmentStatus: undefined as "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined,
     doctors: [
       {
         id: "doctor-1",
@@ -34,6 +36,11 @@ describe("AppointmentBoard", () => {
     ],
     isLoading: false,
     onAppointmentDateChange: vi.fn(),
+    onDoctorChange: vi.fn(),
+    onPageChange: vi.fn(),
+    onStatusChange: vi.fn(),
+    page: 1,
+    pageSize: 10,
     patients: [
       {
         id: "patient-1",
@@ -45,6 +52,7 @@ describe("AppointmentBoard", () => {
         notes: "Paciente novo",
       },
     ],
+    total: 0,
   };
 
   beforeEach(() => {

@@ -315,29 +315,27 @@ export function FinancialOverview({
           )}
         </div>
 
-        {totalPages > 1 ? (
-          <div className="toolbar-inline mt-5 justify-between">
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-              type="button"
-            >
-              Pagina anterior
-            </button>
-            <span className="text-sm font-medium text-[var(--muted)]">
-              Pagina {page} de {totalPages}
-            </span>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-              type="button"
-            >
-              Proxima pagina
-            </button>
-          </div>
-        ) : null}
+        <div className="toolbar-inline mt-5 justify-between">
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            type="button"
+          >
+            Pagina anterior
+          </button>
+          <span className="text-sm font-medium text-[var(--muted)]">
+            Pagina {page} de {totalPages}
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Proxima pagina
+          </button>
+        </div>
       </section>
     </>
   );

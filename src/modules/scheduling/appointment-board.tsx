@@ -48,15 +48,26 @@ function statusBorderClass(status?: string) {
   }
 }
 
+const STATUS_FILTERS = [
+  { key: undefined, label: "Todos" },
+  { key: "Scheduled" as const, label: "Agendado" },
+  { key: "Confirmed" as const, label: "Confirmado" },
+  { key: "Completed" as const, label: "Concluido" },
+  { key: "Cancelled" as const, label: "Cancelado" },
+  { key: "NoShow" as const, label: "Faltou" },
+];
+
 export function AppointmentBoard({
   appointments,
   patients,
   doctors,
   appointmentDate,
   appointmentDoctorId,
+  appointmentStatus,
   isLoading,
   onAppointmentDateChange,
   onDoctorChange,
+  onStatusChange,
   page,
   pageSize,
   total,
@@ -67,9 +78,11 @@ export function AppointmentBoard({
   doctors: DoctorResponse[];
   appointmentDate: string;
   appointmentDoctorId: string | undefined;
+  appointmentStatus: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined;
   isLoading: boolean;
   onAppointmentDateChange: (value: string) => void;
   onDoctorChange: (value: string | undefined) => void;
+  onStatusChange: (value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -350,6 +363,21 @@ export function AppointmentBoard({
               </button>
             </div>
           </div>
+          <div className="toolbar-inline flex-wrap mt-3">
+            {STATUS_FILTERS.map(({ key, label }) => (
+              <button
+                key={label}
+                className={cn(
+                  "btn btn-sm",
+                  appointmentStatus === key ? "btn-brand-outline" : "btn-ghost",
+                )}
+                onClick={() => onStatusChange(key)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="stack-list mt-5">
@@ -433,29 +461,27 @@ export function AppointmentBoard({
           )}
         </div>
 
-        {totalPages > 1 ? (
-          <div className="toolbar-inline mt-5 justify-between">
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-              type="button"
-            >
-              Pagina anterior
-            </button>
-            <span className="text-sm font-medium text-[var(--muted)]">
-              Pagina {page} de {totalPages}
-            </span>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-              type="button"
-            >
-              Proxima pagina
-            </button>
-          </div>
-        ) : null}
+        <div className="toolbar-inline mt-5 justify-between">
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            type="button"
+          >
+            Pagina anterior
+          </button>
+          <span className="text-sm font-medium text-[var(--muted)]">
+            Pagina {page} de {totalPages}
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Proxima pagina
+          </button>
+        </div>
       </section>
     </>
   );
