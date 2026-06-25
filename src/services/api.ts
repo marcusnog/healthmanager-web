@@ -22,6 +22,11 @@ export async function downloadPatientDocument(
     },
   );
 
+  if (response.status === 401) {
+    window.dispatchEvent(new Event("auth:unauthorized"));
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+
   if (!response.ok) {
     throw new Error("Nao foi possivel baixar o documento.");
   }

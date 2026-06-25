@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { clearAuthSession, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
+import { clearAuthSession, getValidAccessToken, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
 import { LoginPanel } from "@/modules/auth/login-panel";
 import { SummaryCards } from "@/modules/dashboard/summary-cards";
 import { DashboardRightRail } from "@/modules/dashboard/dashboard-right-rail";
@@ -212,6 +212,17 @@ export function CrmWorkspace() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(async () => {
+      const token = await getValidAccessToken();
+      if (!token) {
+        window.dispatchEvent(new Event("auth:unauthorized"));
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [session]);
 
   const authenticated = !!session;
 

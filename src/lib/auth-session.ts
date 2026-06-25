@@ -14,7 +14,12 @@ function parseStoredSession(value: string | null): AuthSession | null {
   }
 
   try {
-    return JSON.parse(value) as AuthSession;
+    const session = JSON.parse(value) as AuthSession;
+    if (session.expiresAt && Date.parse(session.expiresAt) <= Date.now()) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return session;
   } catch {
     return null;
   }
