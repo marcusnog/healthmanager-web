@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
-import { DefaultService } from "@/services/api";
+import { DefaultService, appointmentsUpdate } from "@/services/api";
 import {
   StatusBadge,
   resolveAppointmentStatus,
@@ -89,6 +89,7 @@ export function AppointmentBoard({
   onPageChange: (page: number) => void;
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [processingAppointmentId, setProcessingAppointmentId] = useState<
     string | null
@@ -207,6 +208,35 @@ export function AppointmentBoard({
     },
   });
 
+  const updateAppointment = useMutation({
+    mutationFn: async ({
+      appointmentId,
+      values,
+    }: {
+      appointmentId: string;
+      values: {
+        doctorId?: string;
+        startAt?: string;
+        durationMinutes?: number;
+        notes?: string;
+        type?: string;
+        amount?: number;
+      };
+    }) => appointmentsUpdate(appointmentId, values),
+    onSuccess: async () => {
+      setFeedback("Consulta atualizada com sucesso.");
+      setEditingAppointment(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+      ]);
+    },
+    onError: () => {
+      setFeedback("Nao foi possivel atualizar a consulta agora.");
+    },
+  });
+
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
     await createAppointment.mutateAsync(values);
@@ -282,6 +312,24 @@ export function AppointmentBoard({
               </button>
             </div>
           </form>
+        </Modal>
+      ) : null}
+
+      {editingAppointment ? (
+        <Modal title="Editar consulta" onClose={() => setEditingAppointment(null)}>
+          <AppointmentEditForm
+            appointment={editingAppointment}
+            doctors={doctors}
+            onSaved={async (values) => {
+              if (!editingAppointment.id) return;
+              setFeedback(null);
+              await updateAppointment.mutateAsync({
+                appointmentId: editingAppointment.id,
+                values,
+              });
+            }}
+            onCancel={() => setEditingAppointment(null)}
+          />
         </Modal>
       ) : null}
 
@@ -418,6 +466,17 @@ export function AppointmentBoard({
                   </div>
 
                   <div className="toolbar-inline mt-3">
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setFeedback(null);
+                        setEditingAppointment(appointment);
+                      }}
+                      type="button"
+                    >
+                      Editar
+                    </button>
                     {appointment.status !== "Confirmed" ? (
                       <button
                         className="btn btn-brand-outline btn-sm"
@@ -484,6 +543,101 @@ export function AppointmentBoard({
         </div>
       </section>
     </>
+  );
+}
+
+function AppointmentEditForm({
+  appointment,
+  doctors,
+  onSaved,
+  onCancel,
+}: {
+  appointment: AppointmentResponse;
+  doctors: DoctorResponse[];
+  onSaved: (values: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; type?: string; amount?: number }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      doctorId: appointment.doctorId ?? doctors[0]?.id ?? "",
+      startAt: appointment.startAt
+        ? appointment.startAt.slice(0, 16)
+        : new Date().toISOString().slice(0, 16),
+      durationMinutes: appointment.endAt && appointment.startAt
+        ? Math.round((new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) / 60000)
+        : 30,
+      type: appointment.type ?? "Retorno",
+      amount: appointment.amount ?? 0,
+      notes: appointment.notes ?? "",
+    },
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    setFeedback(null);
+    const patch: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; type?: string; amount?: number } = {};
+    if (values.doctorId !== appointment.doctorId) patch.doctorId = values.doctorId;
+    if (values.type !== appointment.type) patch.type = values.type;
+    if (Number(values.amount) !== appointment.amount) patch.amount = Number(values.amount);
+    if (values.notes !== (appointment.notes ?? "")) patch.notes = values.notes || undefined;
+
+    const minutes = Number(values.durationMinutes);
+    const originalMinutes = appointment.endAt && appointment.startAt
+      ? Math.round((new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) / 60000)
+      : 30;
+    if (minutes !== originalMinutes) patch.durationMinutes = minutes;
+
+    const newStart = new Date(values.startAt).toISOString();
+    if (newStart !== appointment.startAt) patch.startAt = newStart;
+
+    if (Object.keys(patch).length === 0) {
+      onCancel();
+      return;
+    }
+    await onSaved(patch);
+  });
+
+  return (
+    <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+      <Field error={errors.doctorId?.message} label="Medico">
+        <select className="input-field" {...register("doctorId")}>
+          {doctors.map((doctor) => (
+            <option key={doctor.id} value={doctor.id}>
+              {doctor.name}
+              {doctor.specialty ? ` - ${doctor.specialty}` : ""}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field error={errors.startAt?.message} label="Inicio">
+        <input className="input-field" type="datetime-local" {...register("startAt")} />
+      </Field>
+      <Field error={errors.durationMinutes?.message} label="Duracao (min)">
+        <input className="input-field" min={15} step={15} type="number" {...register("durationMinutes")} />
+      </Field>
+      <Field error={errors.type?.message} label="Tipo">
+        <input className="input-field" {...register("type")} />
+      </Field>
+      <Field error={errors.amount?.message} label="Valor">
+        <input className="input-field" min={1} step="0.01" type="number" {...register("amount")} />
+      </Field>
+      <Field className="md:col-span-2" error={errors.notes?.message} label="Observacoes">
+        <textarea className="input-field min-h-24" {...register("notes")} />
+      </Field>
+      {feedback ? (
+        <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
+      ) : null}
+      <div className="md:col-span-2 flex justify-end gap-3">
+        <button className="btn btn-ghost btn-sm" onClick={onCancel} type="button">Cancelar</button>
+        <button className="btn btn-primary" type="submit">
+          Salvar alteracoes
+        </button>
+      </div>
+    </form>
   );
 }
 

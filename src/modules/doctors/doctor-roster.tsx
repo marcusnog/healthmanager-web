@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService } from "@/services/api";
+import { DefaultService, doctorsDelete } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
@@ -27,11 +27,31 @@ const updateDoctorSchema = z.object({
 type CreateDoctorValues = z.infer<typeof createDoctorSchema>;
 type UpdateDoctorValues = z.infer<typeof updateDoctorSchema>;
 
-export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
+export function DoctorRoster({
+  doctors,
+  search,
+  page,
+  pageSize,
+  total,
+  isLoading,
+  onSearchChange,
+  onPageChange,
+}: {
+  doctors: DoctorResponse[];
+  search: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onSearchChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+}) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<DoctorResponse | null>(null);
+  const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
 
   const {
     register,
@@ -66,6 +86,23 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
   const onCreate = handleSubmit(async (values) => {
     setFeedback(null);
     await createDoctor.mutateAsync(values);
+  });
+
+  const deleteDoctor = useMutation({
+    mutationFn: async (doctorId: string) => {
+      setDeletingDoctorId(doctorId);
+      await doctorsDelete(doctorId);
+    },
+    onSuccess: async () => {
+      setFeedback("Medico excluido com sucesso.");
+      await queryClient.invalidateQueries({ queryKey: ["doctors"] });
+    },
+    onError: () => {
+      setFeedback("Nao foi possivel excluir o medico agora.");
+    },
+    onSettled: () => {
+      setDeletingDoctorId(null);
+    },
   });
 
   return (
@@ -127,7 +164,7 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
           <div>
             <h3 className="text-base font-semibold text-[var(--ink)]">Medicos</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              {doctors.length} medico{doctors.length === 1 ? "" : "s"} cadastrado{doctors.length === 1 ? "" : "s"}
+              {total} medico{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
             </p>
           </div>
           <button
@@ -148,53 +185,109 @@ export function DoctorRoster({ doctors }: { doctors: DoctorResponse[] }) {
           </div>
         ) : null}
 
+        <div className="toolbar mt-4">
+          <div className="toolbar-stack gap-3">
+            <div className="toolbar-inline flex-wrap gap-3">
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm font-semibold">Busca</span>
+                <input
+                  className="input-field"
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="Buscar por nome, CRM ou especialidade"
+                  value={search}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div className="stack-list mt-5">
-          {doctors.length === 0 ? (
+          {isLoading ? (
+            <DoctorSkeleton />
+          ) : doctors.length === 0 ? (
             <div className="empty-state">
               <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <p className="text-sm font-semibold">Nenhum medico cadastrado ainda.</p>
+              <p className="text-sm font-semibold">Nenhum medico encontrado.</p>
             </div>
-          ) : null}
-          {doctors.map((doctor) => (
-            <article
-              key={doctor.id ?? doctor.crm ?? doctor.name}
-              className="data-card"
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <h4 className="text-sm font-semibold text-[var(--ink)]">
-                    {doctor.name ?? "Medico"}
-                  </h4>
-                  <div className="meta-row mt-1">
-                    {doctor.specialty ? <span>{doctor.specialty}</span> : null}
-                    {doctor.crm ? <span>{doctor.crm}</span> : null}
+          ) : (
+            doctors.map((doctor) => (
+              <article
+                key={doctor.id ?? doctor.crm ?? doctor.name}
+                className="data-card"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-[var(--ink)]">
+                      {doctor.name ?? "Medico"}
+                    </h4>
+                    <div className="meta-row mt-1">
+                      {doctor.specialty ? <span>{doctor.specialty}</span> : null}
+                      {doctor.crm ? <span>{doctor.crm}</span> : null}
+                    </div>
+                    <div className="meta-row mt-1">
+                      {doctor.email ? <span>{doctor.email}</span> : null}
+                      {doctor.phone ? <span>{doctor.phone}</span> : null}
+                    </div>
                   </div>
-                  <div className="meta-row mt-1">
-                    {doctor.email ? <span>{doctor.email}</span> : null}
-                    {doctor.phone ? <span>{doctor.phone}</span> : null}
+                  <div className="toolbar-inline">
+                    <StatusBadge
+                      label={doctor.isActive ? "Ativo" : "Inativo"}
+                      variant={doctor.isActive ? "active" : "inactive"}
+                    />
+                    {doctor.id ? (
+                      <>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setEditingDoctor(doctor)}
+                          type="button"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          disabled={deletingDoctorId === doctor.id}
+                          onClick={() => {
+                            if (window.confirm(`Excluir medico ${doctor.name}?`)) {
+                              setFeedback(null);
+                              void deleteDoctor.mutateAsync(doctor.id ?? "");
+                            }
+                          }}
+                          type="button"
+                        >
+                          {deletingDoctorId === doctor.id ? "Excluindo..." : "Excluir"}
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
-                <div className="toolbar-inline">
-                  <StatusBadge
-                    label={doctor.isActive ? "Ativo" : "Inativo"}
-                    variant={doctor.isActive ? "active" : "inactive"}
-                  />
-                  {doctor.id ? (
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setEditingDoctor(doctor)}
-                      type="button"
-                    >
-                      Editar medico
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="toolbar-inline mt-5 justify-between">
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            type="button"
+          >
+            Anterior
+          </button>
+          <span className="text-sm font-medium text-[var(--muted)]">
+            {page} / {totalPages}
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Proxima
+          </button>
         </div>
       </section>
     </>
@@ -293,6 +386,19 @@ function DoctorEditForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function DoctorSkeleton() {
+  return (
+    <div className="stack-list" aria-busy aria-label="Carregando medicos">
+      {[1, 2, 3].map((index) => (
+        <div key={index} className="data-card">
+          <div className="skeleton h-5 w-40 rounded-full" />
+          <div className="skeleton mt-3 h-4 w-64 rounded-full" />
+        </div>
+      ))}
+    </div>
   );
 }
 

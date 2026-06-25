@@ -3,9 +3,10 @@ import { beforeEach, vi } from "vitest";
 import { DoctorRoster } from "@/modules/doctors/doctor-roster";
 import { renderWithProviders } from "@/test/render";
 
-const { doctorsCreate, doctorsUpdate } = vi.hoisted(() => ({
+const { doctorsCreate, doctorsUpdate, doctorsDelete } = vi.hoisted(() => ({
   doctorsCreate: vi.fn(),
   doctorsUpdate: vi.fn(),
+  doctorsDelete: vi.fn(),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -13,12 +14,24 @@ vi.mock("@/services/api", () => ({
     doctorsCreate,
     doctorsUpdate,
   },
+  doctorsDelete,
 }));
+
+const defaultProps = {
+  search: "",
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  isLoading: false,
+  onSearchChange: vi.fn(),
+  onPageChange: vi.fn(),
+};
 
 describe("DoctorRoster", () => {
   beforeEach(() => {
     doctorsCreate.mockReset();
     doctorsUpdate.mockReset();
+    doctorsDelete.mockReset();
   });
 
   it("creates a doctor through the operational roster form", async () => {
@@ -32,7 +45,7 @@ describe("DoctorRoster", () => {
       isActive: true,
     });
 
-    renderWithProviders(<DoctorRoster doctors={[]} />);
+    renderWithProviders(<DoctorRoster doctors={[]} {...defaultProps} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Novo medico" }));
     fireEvent.change(screen.getByLabelText("Nome"), {
@@ -92,10 +105,12 @@ describe("DoctorRoster", () => {
             isActive: true,
           },
         ]}
+        {...defaultProps}
+        total={1}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Editar medico" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Nome"), {
       target: { value: "Dr. Carlos Eduardo" },
     });

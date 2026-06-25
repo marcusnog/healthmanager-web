@@ -12,7 +12,7 @@ import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService } from "@/services/api";
+import { DefaultService, doctorsListPaged, paymentsList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
@@ -148,6 +148,8 @@ const fallbackDoctors: DoctorResponse[] = [
   { id: "fallback-doctor-1", name: "Dra. Luciana Costa", specialty: "Dermatologia", crm: "CRM-SP-987654", phone: "11997776655", email: "luciana@clinica.com", isActive: true },
 ];
 
+const fallbackDoctorsPage = { items: fallbackDoctors, page: 1, pageSize: 10, total: fallbackDoctors.length };
+
 const fallbackAppointments: AppointmentResponse[] = [
   { id: "fallback-appointment-1", patientId: "fallback-patient-1", doctorId: "fallback-doctor-1", startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z", status: "Scheduled", confirmationStatus: "Pending", type: "Primeira consulta", amount: 250, notes: "Paciente novo" },
 ];
@@ -197,10 +199,16 @@ export function CrmWorkspace() {
   const [appointmentPage, setAppointmentPage] = useState(1);
   const [appointmentDoctorId, setAppointmentDoctorId] = useState<string | undefined>(undefined);
   const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined>(undefined);
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [doctorPage, setDoctorPage] = useState(1);
   const [receivablePage, setReceivablePage] = useState(1);
   const [receivableStatus, setReceivableStatus] = useState<"Pending" | "Partial" | "Paid" | undefined>(undefined);
   const [receivableDateFrom, setReceivableDateFrom] = useState<string | undefined>(undefined);
   const [receivableDateTo, setReceivableDateTo] = useState<string | undefined>(undefined);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [paymentReceivableId, setPaymentReceivableId] = useState<string | undefined>(undefined);
+  const [paymentDateFrom, setPaymentDateFrom] = useState<string | undefined>(undefined);
+  const [paymentDateTo, setPaymentDateTo] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1025);
@@ -250,9 +258,15 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const doctorsQuery = useQuery({
-    queryKey: ["doctors"],
-    queryFn: () => guardedQuery(() => DefaultService.doctorsList(), fallbackDoctors),
-    placeholderData: fallbackDoctors,
+    queryKey: ["doctors", doctorSearch, doctorPage],
+    queryFn: () => guardedQuery(() => doctorsListPaged(doctorPage, 10, doctorSearch || undefined), fallbackDoctorsPage),
+    placeholderData: fallbackDoctorsPage,
+    enabled: authenticated,
+  });
+  const paymentsQuery = useQuery({
+    queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
+    queryFn: () => guardedQuery(() => paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
@@ -299,6 +313,7 @@ export function CrmWorkspace() {
   function handleReceivableStatusChange(value: "Pending" | "Partial" | "Paid" | undefined) { setReceivableStatus(value); setReceivablePage(1); }
   function handleReceivableDateFromChange(value: string | undefined) { setReceivableDateFrom(value); setReceivablePage(1); }
   function handleReceivableDateToChange(value: string | undefined) { setReceivableDateTo(value); setReceivablePage(1); }
+  function handleDoctorSearchChange(value: string) { setDoctorSearch(value); setDoctorPage(1); }
 
   const today = useMemo(() => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }), []);
   const summary = summaryQuery.data ?? fallbackSummary;
@@ -321,12 +336,13 @@ export function CrmWorkspace() {
     sortDirection: patientSortDirection,
     total: patientsListQuery.data?.total ?? fallbackPatients.length,
   };
+  const doctorsData = doctorsQuery.data ?? fallbackDoctorsPage;
   const appointmentBoardProps = {
     appointmentDate,
     appointmentDoctorId,
     appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? fallbackAppointments,
-    doctors: doctorsQuery.data ?? fallbackDoctors,
+    doctors: doctorsData.items ?? fallbackDoctors,
     isLoading: appointmentsQuery.isLoading,
     onAppointmentDateChange: handleAppointmentDateChange,
     onDoctorChange: handleAppointmentDoctorChange,
@@ -346,6 +362,15 @@ export function CrmWorkspace() {
     onStatusChange: handleReceivableStatusChange,
     page: receivablesQuery.data?.page ?? 1,
     pageSize: receivablesQuery.data?.pageSize ?? RECEIVABLES_PAGE_SIZE,
+    payments: paymentsQuery.data?.items ?? [],
+    paymentPage: paymentPage,
+    paymentDateFrom: paymentDateFrom,
+    paymentDateTo: paymentDateTo,
+    paymentReceivableId: paymentReceivableId,
+    onPaymentPageChange: setPaymentPage,
+    onPaymentReceivableIdChange: setPaymentReceivableId,
+    onPaymentDateFromChange: setPaymentDateFrom,
+    onPaymentDateToChange: setPaymentDateTo,
     receivables: receivablesQuery.data?.items ?? fallbackReceivables,
     status: receivableStatus,
     total: receivablesQuery.data?.total ?? fallbackReceivablesPage.total ?? 0,
@@ -433,7 +458,18 @@ export function CrmWorkspace() {
       case "financeiro":
         return <FinancialOverview {...financialOverviewProps} />;
       case "medicos":
-        return <DoctorRoster doctors={doctorsQuery.data ?? fallbackDoctors} />;
+        return (
+          <DoctorRoster
+            doctors={doctorsData.items ?? fallbackDoctors}
+            isLoading={doctorsQuery.isLoading}
+            onSearchChange={handleDoctorSearchChange}
+            onPageChange={setDoctorPage}
+            page={doctorsData.page ?? 1}
+            pageSize={doctorsData.pageSize ?? 10}
+            search={doctorSearch}
+            total={doctorsData.total ?? fallbackDoctors.length}
+          />
+        );
       case "configuracoes":
         return <SettingsPanel />;
     }

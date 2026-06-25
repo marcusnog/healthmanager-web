@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, downloadPatientDocument } from "@/services/api";
+import { DefaultService, downloadPatientDocument, patientsDelete } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
@@ -85,6 +85,7 @@ export function PatientList({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<PatientResponse | null>(null);
   const [activePatient, setActivePatient] = useState<PatientResponse | null>(null);
+  const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
@@ -135,6 +136,26 @@ export function PatientList({
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
     await createPatient.mutateAsync(values);
+  });
+
+  const deletePatient = useMutation({
+    mutationFn: async (patientId: string) => {
+      setDeletingPatientId(patientId);
+      await patientsDelete(patientId);
+    },
+    onSuccess: async () => {
+      setFeedback("Paciente excluido com sucesso.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["patients-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
+      ]);
+    },
+    onError: () => {
+      setFeedback("Nao foi possivel excluir o paciente agora.");
+    },
+    onSettled: () => {
+      setDeletingPatientId(null);
+    },
   });
 
   return (
@@ -374,6 +395,19 @@ export function PatientList({
                       type="button"
                     >
                       Documentos
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      disabled={deletingPatientId === patient.id}
+                      onClick={() => {
+                        if (window.confirm(`Excluir paciente ${patient.name}?`)) {
+                          setFeedback(null);
+                          void deletePatient.mutateAsync(patient.id ?? "");
+                        }
+                      }}
+                      type="button"
+                    >
+                      {deletingPatientId === patient.id ? "Excluindo..." : "Excluir"}
                     </button>
                   </div>
                 ) : null}

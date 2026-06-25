@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService } from "@/services/api";
 import type { ReceivableResponse } from "@/generated";
+import type { PaymentResponse } from "@/generated";
 import { formatCurrency } from "@/lib/formatters";
 import {
   StatusBadge,
@@ -44,10 +45,19 @@ export function FinancialOverview({
   status,
   dateFrom,
   dateTo,
+  payments,
+  paymentPage,
+  paymentDateFrom,
+  paymentDateTo,
+  paymentReceivableId,
   onPageChange,
   onStatusChange,
   onDateFromChange,
   onDateToChange,
+  onPaymentPageChange,
+  onPaymentReceivableIdChange,
+  onPaymentDateFromChange,
+  onPaymentDateToChange,
 }: {
   receivables: ReceivableResponse[];
   page: number;
@@ -56,12 +66,22 @@ export function FinancialOverview({
   status: "Pending" | "Partial" | "Paid" | undefined;
   dateFrom: string | undefined;
   dateTo: string | undefined;
+  payments: PaymentResponse[];
+  paymentPage: number;
+  paymentDateFrom: string | undefined;
+  paymentDateTo: string | undefined;
+  paymentReceivableId: string | undefined;
   onPageChange: (page: number) => void;
   onStatusChange: (status: "Pending" | "Partial" | "Paid" | undefined) => void;
   onDateFromChange: (value: string | undefined) => void;
   onDateToChange: (value: string | undefined) => void;
+  onPaymentPageChange: (page: number) => void;
+  onPaymentReceivableIdChange: (value: string | undefined) => void;
+  onPaymentDateFromChange: (value: string | undefined) => void;
+  onPaymentDateToChange: (value: string | undefined) => void;
 }) {
   const [activeReceivable, setActiveReceivable] = useState<ReceivableResponse | null>(null);
+  const [showPayments, setShowPayments] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
@@ -185,6 +205,57 @@ export function FinancialOverview({
         </Modal>
       ) : null}
 
+      {showPayments ? (
+        <Modal title="Historico de pagamentos" onClose={() => { setShowPayments(false); onPaymentReceivableIdChange(undefined); }}>
+          <div className="toolbar-inline flex-wrap gap-3 mb-4">
+            <label className="min-w-0 flex-1">
+              <span className="mb-2 block text-sm font-semibold">Data de</span>
+              <input
+                className="input-field"
+                type="date"
+                value={paymentDateFrom ?? ""}
+                onChange={(e) => onPaymentDateFromChange(e.target.value || undefined)}
+              />
+            </label>
+            <label className="min-w-0 flex-1">
+              <span className="mb-2 block text-sm font-semibold">Data ate</span>
+              <input
+                className="input-field"
+                type="date"
+                value={paymentDateTo ?? ""}
+                onChange={(e) => onPaymentDateToChange(e.target.value || undefined)}
+              />
+            </label>
+          </div>
+          <div className="stack-list">
+            {payments.length === 0 ? (
+              <div className="empty-state">
+                <p className="text-sm font-semibold">Nenhum pagamento encontrado.</p>
+              </div>
+            ) : (
+              payments.map((payment) => (
+                <div key={payment.id} className="data-card">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{formatCurrency(payment.amount ?? 0)}</p>
+                      <div className="meta-row mt-1">
+                        <span>{payment.paymentMethod}</span>
+                        {payment.paidAt ? (
+                          <span>{new Date(payment.paidAt).toLocaleDateString("pt-BR")}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <p className="text-xs text-[var(--muted)]">{payment.id ? `#${payment.id.slice(0, 8)}` : null}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Modal>
+      ) : null}
+
       <section className="panel rounded-lg p-5 md:p-6">
         <div className="section-heading">
           <div>
@@ -296,18 +367,31 @@ export function FinancialOverview({
                         <span className="text-xs font-semibold text-[var(--muted)] tabular-nums shrink-0">{percentage.toFixed(0)}%</span>
                       </div>
                     </div>
-                    {receivable.status !== "Paid" ? (
+                    <div className="toolbar-inline shrink-0">
                       <button
-                        className="btn btn-ghost btn-sm shrink-0"
+                        className="btn btn-ghost btn-sm"
                         onClick={() => {
                           setFeedback(null);
-                          setActiveReceivable(receivable);
+                          onPaymentReceivableIdChange(receivable.id);
+                          setShowPayments(true);
                         }}
                         type="button"
                       >
-                        Registrar pagamento
+                        Ver pagamentos
                       </button>
-                    ) : null}
+                      {receivable.status !== "Paid" ? (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            setFeedback(null);
+                            setActiveReceivable(receivable);
+                          }}
+                          type="button"
+                        >
+                          Registrar pagamento
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </article>
               );
