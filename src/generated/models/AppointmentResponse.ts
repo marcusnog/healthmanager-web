@@ -13,5 +13,9 @@ export type AppointmentResponse = {
     type?: string;
     amount?: number;
     notes?: string;
+    patientName?: string;
+    patientPhone?: string;
+    doctorName?: string;
+    doctorSpecialty?: string;
 };
 

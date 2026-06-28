@@ -112,6 +112,12 @@ export async function paymentsList(
   return response.json();
 }
 
+export async function dashboardSummary(doctorId?: string) {
+  const params = doctorId ? `?doctorId=${encodeURIComponent(doctorId)}` : "";
+  const response = await apiFetch(`/dashboard/summary${params}`);
+  return response.json() as Promise<import("@/generated").DashboardSummaryResponse>;
+}
+
 export async function doctorsListPaged(
   page: number = 1,
   pageSize: number = 20,

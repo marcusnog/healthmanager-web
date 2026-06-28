@@ -12,7 +12,7 @@ import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService, doctorsListPaged, paymentsList } from "@/services/api";
+import { DefaultService, doctorsListPaged, paymentsList, dashboardSummary } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
@@ -115,6 +115,10 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
+const DOCTOR_NAV = NAV.filter((n) =>
+  ["dashboard", "agenda", "pacientes"].includes(n.section),
+);
+
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:     { title: "Dashboard",      subtitle: "Resumo da operação de hoje" },
   agenda:        { title: "Agenda",         subtitle: "Consultas, confirmações e cancelamentos" },
@@ -122,6 +126,12 @@ const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   financeiro:    { title: "Financeiro",     subtitle: "Contas a receber e pagamentos" },
   medicos:       { title: "Médicos",        subtitle: "Equipe médica e disponibilidade" },
   configuracoes: { title: "Configurações",  subtitle: "Configurações operacionais" },
+};
+
+const DOCTOR_SECTION_TITLE: Record<string, { title: string; subtitle: string }> = {
+  dashboard:  { title: "Dashboard",  subtitle: "Resumo da sua agenda de hoje" },
+  agenda:     { title: "Minha Agenda", subtitle: "Suas consultas, confirmações e cancelamentos" },
+  pacientes:  { title: "Pacientes",  subtitle: "Seus pacientes, busca e documentos" },
 };
 
 /* ─── Fallback data ──────────────────────────────────────────────── */
@@ -151,7 +161,7 @@ const fallbackDoctors: DoctorResponse[] = [
 const fallbackDoctorsPage = { items: fallbackDoctors, page: 1, pageSize: 10, total: fallbackDoctors.length };
 
 const fallbackAppointments: AppointmentResponse[] = [
-  { id: "fallback-appointment-1", patientId: "fallback-patient-1", doctorId: "fallback-doctor-1", startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z", status: "Scheduled", confirmationStatus: "Pending", type: "Primeira consulta", amount: 250, notes: "Paciente novo" },
+  { id: "fallback-appointment-1", patientId: "fallback-patient-1", doctorId: "fallback-doctor-1", startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z", status: "Scheduled", confirmationStatus: "Pending", type: "Primeira consulta", amount: 250, notes: "Paciente novo", patientName: "Marina Souza", patientPhone: "(11) 98888-0000", doctorName: "Dra. Luciana Costa", doctorSpecialty: "Dermatologia" },
 ];
 
 const fallbackReceivables: ReceivableResponse[] = [
@@ -239,12 +249,7 @@ export function CrmWorkspace() {
 
   const authenticated = !!session;
 
-  const summaryQuery = useQuery({
-    queryKey: ["dashboard-summary"],
-    queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(), fallbackSummary),
-    placeholderData: fallbackSummary,
-    enabled: authenticated,
-  });
+  const isDoctor = session?.role === "Doctor";
   const patientsListQuery = useQuery({
     queryKey: ["patients-list", patientSearch, patientPage, patientSortBy, patientSortDirection, patientEmail, patientHealthInsurance],
     queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined, patientSortBy || undefined, patientSortDirection || undefined, patientEmail || undefined, patientHealthInsurance || undefined), fallbackPatientsPage),
@@ -263,6 +268,23 @@ export function CrmWorkspace() {
     placeholderData: fallbackDoctorsPage,
     enabled: authenticated,
   });
+  const currentDoctorId = !isDoctor || !session?.name
+    ? undefined
+    : (doctorsQuery.data?.items ?? []).find(
+        (d) => d.name?.toLowerCase().trim() === session.name.toLowerCase().trim(),
+      )?.id;
+
+  const summaryQuery = useQuery({
+    queryKey: ["dashboard-summary", currentDoctorId],
+    queryFn: () => guardedQuery(() => dashboardSummary(currentDoctorId), fallbackSummary),
+    placeholderData: fallbackSummary,
+    enabled: authenticated,
+  });
+
+  // ponytail: doctor auto-filters appointments; non-doctor uses the manual filter
+  const resolvedAppointmentDoctorId = isDoctor ? currentDoctorId : appointmentDoctorId;
+  const resolvedActiveSection = isDoctor && !["dashboard", "agenda", "pacientes"].includes(activeSection) ? "dashboard" as Section : activeSection;
+
   const paymentsQuery = useQuery({
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
     queryFn: () => guardedQuery(() => paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
@@ -270,8 +292,8 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
-    queryKey: ["appointments", appointmentDate, appointmentPage, appointmentDoctorId, appointmentStatus],
-    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, appointmentDoctorId, appointmentStatus), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
+    queryKey: ["appointments", appointmentDate, appointmentPage, resolvedAppointmentDoctorId, appointmentStatus],
+    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
     placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
     enabled: authenticated,
   });
@@ -339,7 +361,7 @@ export function CrmWorkspace() {
   const doctorsData = doctorsQuery.data ?? fallbackDoctorsPage;
   const appointmentBoardProps = {
     appointmentDate,
-    appointmentDoctorId,
+    appointmentDoctorId: resolvedAppointmentDoctorId,
     appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? fallbackAppointments,
     doctors: doctorsData.items ?? fallbackDoctors,
@@ -431,10 +453,13 @@ export function CrmWorkspace() {
 
   /* ─── Section content ───────────────────────────────────────── */
 
-  const meta = SECTION_TITLE[activeSection];
+  const meta = isDoctor && resolvedActiveSection in DOCTOR_SECTION_TITLE
+    ? DOCTOR_SECTION_TITLE[resolvedActiveSection]
+    : SECTION_TITLE[resolvedActiveSection];
+  const currentNav = isDoctor ? DOCTOR_NAV : NAV;
 
   function renderSection() {
-    switch (activeSection) {
+    switch (resolvedActiveSection) {
       case "dashboard":
         return (
           <div className="dashboard-layout">
@@ -508,7 +533,7 @@ export function CrmWorkspace() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 scrollbar-hide">
-          {NAV.map(({ section, icon, label }) => (
+          {currentNav.map(({ section, icon, label }) => (
             <button
               key={section}
               className={`nav-item ${activeSection === section ? "active" : ""}`}
