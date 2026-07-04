@@ -12,14 +12,14 @@ interface FieldProps {
 
 export function Field({ label, hint, error, required, className, children }: FieldProps) {
   return (
-    <div className={cn("flex flex-col", className)}>
-      <label className="field-label">
+    <label className={cn("flex flex-col", className)}>
+      <span className="field-label">
         {label}
         {required && <span className="text-danger ml-0.5">*</span>}
-      </label>
+      </span>
       {children}
       {hint && !error && <p className="field-hint">{hint}</p>}
       {error && <p className="field-error">{error}</p>}
-    </div>
+    </label>
   );
 }

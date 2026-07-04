@@ -176,7 +176,7 @@ describe("PatientList", () => {
       }),
     ).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Excluir" })[0]);
 
     await waitFor(() =>
       expect(patientsDocumentsDelete).toHaveBeenCalledWith(

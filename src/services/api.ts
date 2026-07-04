@@ -37,27 +37,9 @@ export async function downloadPatientDocument(
   patientId: string,
   documentId: string,
 ) {
-  const accessToken = await getValidAccessToken();
-  const response = await fetch(
-    `${OpenAPI.BASE}/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/download`,
-    {
-      headers: accessToken
-        ? {
-            Authorization: `Bearer ${accessToken}`,
-          }
-        : undefined,
-    },
+  const response = await apiFetch(
+    `/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/download`,
   );
-
-  if (response.status === 401) {
-    window.dispatchEvent(new Event("auth:unauthorized"));
-    throw new Error("Sessão expirada. Faça login novamente.");
-  }
-
-  if (!response.ok) {
-    throw new Error("Nao foi possivel baixar o documento.");
-  }
-
   return response.blob();
 }
 
@@ -137,4 +119,5 @@ export async function doctorsListPaged(
   }>;
 }
 
-export { DefaultService };
+export { DefaultService } from "@/generated/services/DefaultService";
+

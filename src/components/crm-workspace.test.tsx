@@ -134,9 +134,9 @@ describe("CrmWorkspace", () => {
     expect(await screen.findByText("Marina Souza")).toBeVisible();
     expect(screen.getByText("21")).toBeVisible();
     expect(screen.getAllByText("R$ 45.120,50")[0]).toBeVisible();
-    expect(screen.getByText("81% de confirmacao")).toBeVisible();
+    expect(screen.getByText("81% de confirmação")).toBeVisible();
     expect(patientsList).toHaveBeenCalledWith(1, 3, undefined, "name", "asc", undefined, undefined);
-    expect(patientsList).toHaveBeenCalledWith(1, 100, "", "name", "asc", undefined, undefined);
+    expect(patientsList).toHaveBeenCalledWith(1, 100, "");
     expect(appointmentsList).toHaveBeenCalledWith(1, 10, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), undefined, undefined);
   });
 
@@ -152,12 +152,10 @@ describe("CrmWorkspace", () => {
 
     await screen.findByText("Marina Souza");
 
-    fireEvent.click(screen.getByRole("button", { name: "Encerrar sessao" }));
+    fireEvent.click(screen.getByRole("button", { name: "Encerrar sessão" }));
 
-    await waitFor(() =>
-      expect(screen.getByText("Sessao bloqueada")).toBeVisible(),
-    );
-    expect(screen.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    expect(await screen.findByText("Bem-vindo de volta")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeVisible();
   });
 
   it("updates the patient query when search and pagination change", async () => {

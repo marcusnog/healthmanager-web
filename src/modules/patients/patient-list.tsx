@@ -6,6 +6,7 @@ import { z } from "zod";
 import { DefaultService, downloadPatientDocument, patientsDelete } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
+import { formatFileSize, triggerBrowserDownload } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
 const schema = z.object({
@@ -34,18 +35,6 @@ const patientUpdateSchema = z.object({
 
 type DocumentFormValues = z.infer<typeof documentSchema>;
 type PatientUpdateValues = z.infer<typeof patientUpdateSchema>;
-
-function triggerBrowserDownload(file: Blob, fileName: string) {
-  const objectUrl = URL.createObjectURL(file);
-  const link = window.document.createElement("a");
-
-  link.href = objectUrl;
-  link.download = fileName;
-  window.document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(objectUrl);
-}
 
 export function PatientList({
   patients,
@@ -810,18 +799,6 @@ function DocumentCard({
       </div>
     </article>
   );
-}
-
-function formatFileSize(value: number) {
-  if (value >= 1024 * 1024) {
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  if (value >= 1024) {
-    return `${Math.round(value / 1024)} KB`;
-  }
-
-  return `${value} B`;
 }
 
 function PatientSkeleton() {

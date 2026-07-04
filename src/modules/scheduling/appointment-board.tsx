@@ -10,6 +10,7 @@ import {
   resolveAppointmentStatus,
 } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
+import { Field } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import type {
   AppointmentResponse,
@@ -31,20 +32,16 @@ type FormValues = z.infer<typeof schema>;
 type FormInput = z.input<typeof schema>;
 
 function shiftDate(value: string, amount: number) {
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() + amount);
-  return date.toISOString().slice(0, 10);
+  const d = new Date(value);
+  d.setDate(d.getDate() + amount);
+  return d.toISOString().slice(0, 10);
 }
 
 function statusBorderClass(status?: string) {
-  switch (status?.toLowerCase()) {
-    case "confirmed":
-      return "appt-confirmed";
-    case "cancelled":
-      return "appt-cancelled";
-    default:
-      return "appt-scheduled";
+  switch (resolveAppointmentStatus(status)) {
+    case "confirmed": return "appt-confirmed";
+    case "cancelled": return "appt-cancelled";
+    default:          return "appt-scheduled";
   }
 }
 
@@ -656,27 +653,5 @@ function AppointmentSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  className,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={className}>
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      {children}
-      {error ? (
-        <span className="mt-2 block text-sm text-[var(--danger)]">{error}</span>
-      ) : null}
-    </label>
   );
 }

@@ -11,7 +11,7 @@ import type { SessionState } from "@/types/app";
 
 const schema = z.object({
   email: z.string().email("Informe um e-mail válido."),
-  password: z.string().min(1, "Informe sua senha."),
+  password: z.string().min(8, "Use ao menos 8 caracteres."),
 });
 
 type FormValues = z.infer<typeof schema>;

@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/providers/app-provider";
 
 const displayFont = Inter({
   variable: "--font-display",
   subsets: ["latin"],
-});
-
-const monoFont = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +21,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${displayFont.variable} ${monoFont.variable} h-full`}
+      className={`${displayFont.variable} h-full`}
     >
       <body className="h-full text-[var(--ink)] antialiased">
         <AppProvider>{children}</AppProvider>

@@ -4,10 +4,6 @@ import type { AuthSession, ClinicRole, SessionState } from "@/types/app";
 const STORAGE_KEY = "healthmanager.auth";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/backend";
 
-function isBrowser() {
-  return typeof window !== "undefined";
-}
-
 function parseStoredSession(value: string | null): AuthSession | null {
   if (!value) {
     return null;
@@ -77,26 +73,17 @@ export function createAuthSession(response: AuthResponse): AuthSession | null {
 }
 
 export function readAuthSession() {
-  if (!isBrowser()) {
-    return null;
-  }
-
+  if (typeof window === "undefined") return null;
   return parseStoredSession(window.localStorage.getItem(STORAGE_KEY));
 }
 
 export function persistAuthSession(session: AuthSession) {
-  if (!isBrowser()) {
-    return;
-  }
-
+  if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
 export function clearAuthSession() {
-  if (!isBrowser()) {
-    return;
-  }
-
+  if (typeof window === "undefined") return;
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
