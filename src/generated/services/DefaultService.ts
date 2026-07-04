@@ -315,6 +315,8 @@ export class DefaultService {
         date?: string,
         doctorId?: string,
         status?: 'Scheduled' | 'Confirmed' | 'Cancelled' | 'Completed' | 'NoShow',
+        dateFrom?: string,
+        dateTo?: string,
     ): CancelablePromise<PagedAppointmentResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -325,6 +327,8 @@ export class DefaultService {
                 'date': date,
                 'doctorId': doctorId,
                 'status': status,
+                'dateFrom': dateFrom,
+                'dateTo': dateTo,
             },
         });
     }

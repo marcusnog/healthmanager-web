@@ -206,6 +206,7 @@ export function CrmWorkspace() {
   const [patientEmail, setPatientEmail] = useState("");
   const [patientHealthInsurance, setPatientHealthInsurance] = useState("");
   const [appointmentDate, setAppointmentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [appointmentViewMode, setAppointmentViewMode] = useState<"day" | "week">("day");
   const [appointmentPage, setAppointmentPage] = useState(1);
   const [appointmentDoctorId, setAppointmentDoctorId] = useState<string | undefined>(undefined);
   const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined>(undefined);
@@ -285,6 +286,13 @@ export function CrmWorkspace() {
   const resolvedAppointmentDoctorId = isDoctor ? currentDoctorId : appointmentDoctorId;
   const resolvedActiveSection = isDoctor && !["dashboard", "agenda", "pacientes"].includes(activeSection) ? "dashboard" as Section : activeSection;
 
+  const appointmentDateFrom = appointmentViewMode === "week"
+    ? (() => { const d = new Date(appointmentDate + "T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })()
+    : appointmentDate;
+  const appointmentDateTo = appointmentViewMode === "week"
+    ? (() => { const d = new Date(appointmentDateFrom + "T12:00:00"); d.setDate(d.getDate() + 6); return d.toISOString().slice(0, 10); })()
+    : appointmentDate;
+
   const paymentsQuery = useQuery({
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
     queryFn: () => guardedQuery(() => paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
@@ -292,8 +300,13 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
-    queryKey: ["appointments", appointmentDate, appointmentPage, resolvedAppointmentDoctorId, appointmentStatus],
-    queryFn: () => guardedQuery(() => DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus), { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
+    queryKey: ["appointments", appointmentViewMode, appointmentDate, appointmentPage, resolvedAppointmentDoctorId, appointmentStatus],
+    queryFn: () => guardedQuery(() => {
+      if (appointmentViewMode === "week") {
+        return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, undefined, resolvedAppointmentDoctorId, appointmentStatus, appointmentDateFrom, appointmentDateTo);
+      }
+      return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus);
+    }, { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
     placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
     enabled: authenticated,
   });
@@ -329,6 +342,7 @@ export function CrmWorkspace() {
   function handlePatientSortDirectionChange(value: string) { setPatientSortDirection(value); setPatientPage(1); }
   function handlePatientEmailChange(value: string) { setPatientEmail(value); setPatientPage(1); }
   function handlePatientHealthInsuranceChange(value: string) { setPatientHealthInsurance(value); setPatientPage(1); }
+  function handleAppointmentViewModeChange(value: "day" | "week") { setAppointmentViewMode(value); setAppointmentPage(1); }
   function handleAppointmentDateChange(value: string) { setAppointmentDate(value); setAppointmentPage(1); }
   function handleAppointmentDoctorChange(value: string | undefined) { setAppointmentDoctorId(value); setAppointmentPage(1); }
   function handleAppointmentStatusChange(value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) { setAppointmentStatus(value); setAppointmentPage(1); }
@@ -361,12 +375,16 @@ export function CrmWorkspace() {
   const doctorsData = doctorsQuery.data ?? fallbackDoctorsPage;
   const appointmentBoardProps = {
     appointmentDate,
+    appointmentViewMode,
+    appointmentDateFrom,
+    appointmentDateTo,
     appointmentDoctorId: resolvedAppointmentDoctorId,
     appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? fallbackAppointments,
     doctors: doctorsData.items ?? fallbackDoctors,
     isLoading: appointmentsQuery.isLoading,
     onAppointmentDateChange: handleAppointmentDateChange,
+    onAppointmentViewModeChange: handleAppointmentViewModeChange,
     onDoctorChange: handleAppointmentDoctorChange,
     onPageChange: setAppointmentPage,
     onStatusChange: handleAppointmentStatusChange,

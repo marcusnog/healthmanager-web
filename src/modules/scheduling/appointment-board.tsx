@@ -54,15 +54,32 @@ const STATUS_FILTERS = [
   { key: "NoShow" as const, label: "Faltou" },
 ];
 
+const WEEKDAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+const MONTH_NAMES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+function getWeekDays(from: string): string[] {
+  const days: string[] = [];
+  const d = new Date(from + "T12:00:00");
+  for (let i = 0; i < 7; i++) {
+    days.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
 export function AppointmentBoard({
   appointments,
   patients,
   doctors,
   appointmentDate,
+  appointmentViewMode = "day",
+  appointmentDateFrom,
+  appointmentDateTo,
   appointmentDoctorId,
   appointmentStatus,
   isLoading,
   onAppointmentDateChange,
+  onAppointmentViewModeChange,
   onDoctorChange,
   onStatusChange,
   page,
@@ -74,10 +91,14 @@ export function AppointmentBoard({
   patients: PatientResponse[];
   doctors: DoctorResponse[];
   appointmentDate: string;
+  appointmentViewMode?: "day" | "week";
+  appointmentDateFrom?: string;
+  appointmentDateTo?: string;
   appointmentDoctorId: string | undefined;
   appointmentStatus: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined;
   isLoading: boolean;
   onAppointmentDateChange: (value: string) => void;
+  onAppointmentViewModeChange?: (value: "day" | "week") => void;
   onDoctorChange: (value: string | undefined) => void;
   onStatusChange: (value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) => void;
   page: number;
@@ -335,7 +356,10 @@ export function AppointmentBoard({
           <div>
             <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              {total} consulta{total === 1 ? "" : "s"} para {appointmentDate}
+              {total} consulta{total === 1 ? "" : "s"}
+              {appointmentViewMode === "week" && appointmentDateFrom && appointmentDateTo
+                ? ` de ${appointmentDateFrom} a ${appointmentDateTo}`
+                : ` para ${appointmentDate}`}
             </p>
           </div>
           <button
@@ -364,7 +388,7 @@ export function AppointmentBoard({
                   className="input-field"
                   onChange={(event) => onAppointmentDateChange(event.target.value)}
                   type="date"
-                  value={appointmentDate}
+                  value={appointmentViewMode === "week" ? appointmentDateFrom ?? appointmentDate : appointmentDate}
                 />
               </Field>
               <Field className="min-w-0 flex-1" label="Medico">
@@ -386,10 +410,10 @@ export function AppointmentBoard({
             <div className="toolbar-inline flex-wrap gap-3">
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, -1))}
+                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, appointmentViewMode === "week" ? -7 : -1))}
                 type="button"
               >
-                Dia anterior
+                {appointmentViewMode === "week" ? "Semana anterior" : "Dia anterior"}
               </button>
               <button
                 className="btn btn-ghost btn-sm"
@@ -401,11 +425,29 @@ export function AppointmentBoard({
               </button>
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, 1))}
+                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, appointmentViewMode === "week" ? 7 : 1))}
                 type="button"
               >
-                Proximo dia
+                {appointmentViewMode === "week" ? "Proxima semana" : "Proximo dia"}
               </button>
+              {onAppointmentViewModeChange && (
+                <div className="ml-2 flex rounded-md border border-[var(--border)] overflow-hidden">
+                  <button
+                    className={cn("btn btn-sm px-3 rounded-none", appointmentViewMode === "day" ? "btn-brand-outline" : "btn-ghost")}
+                    onClick={() => onAppointmentViewModeChange("day")}
+                    type="button"
+                  >
+                    Dia
+                  </button>
+                  <button
+                    className={cn("btn btn-sm px-3 rounded-none border-l border-[var(--border)]", appointmentViewMode === "week" ? "btn-brand-outline" : "btn-ghost")}
+                    onClick={() => onAppointmentViewModeChange("week")}
+                    type="button"
+                  >
+                    Semana
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="toolbar-inline flex-wrap mt-3">
@@ -425,97 +467,109 @@ export function AppointmentBoard({
           </div>
         </div>
 
-        <div className="stack-list mt-5">
-          {isLoading ? (
-            <AppointmentSkeleton />
-          ) : appointments.length ? (
-            appointments.map((appointment) => {
-              const patient = patientMap[appointment.patientId ?? ""];
-              const doctor = doctorMap[appointment.doctorId ?? ""];
-              const statusVariant = resolveAppointmentStatus(appointment.status);
-              const isProcessing = processingAppointmentId === appointment.id;
+        {appointmentViewMode === "week" && appointmentDateFrom ? (
+          <WeekGrid
+            appointments={appointments}
+            patientMap={patientMap}
+            doctorMap={doctorMap}
+            weekDays={getWeekDays(appointmentDateFrom)}
+            todayDate={todayDate}
+            isLoading={isLoading}
+            onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }}
+          />
+        ) : (
+          <div className="stack-list mt-5">
+            {isLoading ? (
+              <AppointmentSkeleton />
+            ) : appointments.length ? (
+              appointments.map((appointment) => {
+                const patient = patientMap[appointment.patientId ?? ""];
+                const doctor = doctorMap[appointment.doctorId ?? ""];
+                const statusVariant = resolveAppointmentStatus(appointment.status);
+                const isProcessing = processingAppointmentId === appointment.id;
 
-              return (
-                <article
-                  className={cn("data-card appt-card", statusBorderClass(appointment.status))}
-                  key={appointment.id ?? appointment.startAt ?? appointment.notes}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-baseline gap-3">
-                      <span className="tabular-nums text-base font-semibold text-[var(--ink)] shrink-0">
-                        {formatTime(appointment.startAt ?? new Date().toISOString())}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-sm text-[var(--ink)]">
-                          {patient?.name ?? "Paciente"}
+                return (
+                  <article
+                    className={cn("data-card appt-card", statusBorderClass(appointment.status))}
+                    key={appointment.id ?? appointment.startAt ?? appointment.notes}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex items-baseline gap-3">
+                        <span className="tabular-nums text-base font-semibold text-[var(--ink)] shrink-0">
+                          {formatTime(appointment.startAt ?? new Date().toISOString())}
                         </span>
-                        <div className="meta-row mt-0.5">
-                          {doctor?.name ? <span>{doctor.name}</span> : null}
-                          {appointment.type ? <span>{appointment.type}</span> : null}
-                          <span>{formatCurrency(appointment.amount ?? 0)}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-sm text-[var(--ink)]">
+                            {patient?.name ?? "Paciente"}
+                          </span>
+                          <div className="meta-row mt-0.5">
+                            {doctor?.name ? <span>{doctor.name}</span> : null}
+                            {appointment.type ? <span>{appointment.type}</span> : null}
+                            <span>{formatCurrency(appointment.amount ?? 0)}</span>
+                          </div>
+                          {appointment.notes ? (
+                            <p className="mt-1 text-xs text-[var(--muted)] leading-5">{appointment.notes}</p>
+                          ) : null}
                         </div>
-                        {appointment.notes ? (
-                          <p className="mt-1 text-xs text-[var(--muted)] leading-5">{appointment.notes}</p>
-                        ) : null}
                       </div>
+                      <StatusBadge variant={statusVariant} />
                     </div>
-                    <StatusBadge variant={statusVariant} />
-                  </div>
 
-                  <div className="toolbar-inline mt-3">
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      disabled={isProcessing}
-                      onClick={() => {
-                        setFeedback(null);
-                        setEditingAppointment(appointment);
-                      }}
-                      type="button"
-                    >
-                      Editar
-                    </button>
-                    {appointment.status !== "Confirmed" ? (
+                    <div className="toolbar-inline mt-3">
                       <button
-                        className="btn btn-brand-outline btn-sm"
+                        className="btn btn-ghost btn-sm"
                         disabled={isProcessing}
                         onClick={() => {
                           setFeedback(null);
-                          void confirmAppointment.mutateAsync(appointment);
+                          setEditingAppointment(appointment);
                         }}
                         type="button"
                       >
-                        {isProcessing ? <span className="spinner" /> : "Confirmar"}
+                        Editar
                       </button>
-                    ) : null}
-                    {appointment.status !== "Cancelled" ? (
-                      <button
-                        className="btn btn-danger btn-sm"
-                        disabled={isProcessing}
-                        onClick={() => {
-                          setFeedback(null);
-                          void cancelAppointment.mutateAsync(appointment);
-                        }}
-                        type="button"
-                      >
-                        {isProcessing ? <span className="spinner" /> : "Cancelar"}
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })
-          ) : (
-            <div className="empty-state">
-              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              <p className="text-sm font-semibold">
-                Nenhuma consulta encontrada para a data selecionada.
-              </p>
-            </div>
-          )}
-        </div>
+                      {appointment.status !== "Confirmed" ? (
+                        <button
+                          className="btn btn-brand-outline btn-sm"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setFeedback(null);
+                            void confirmAppointment.mutateAsync(appointment);
+                          }}
+                          type="button"
+                        >
+                          {isProcessing ? <span className="spinner" /> : "Confirmar"}
+                        </button>
+                      ) : null}
+                      {appointment.status !== "Cancelled" ? (
+                        <button
+                          className="btn btn-danger btn-sm"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setFeedback(null);
+                            void cancelAppointment.mutateAsync(appointment);
+                          }}
+                          type="button"
+                        >
+                          {isProcessing ? <span className="spinner" /> : "Cancelar"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="empty-state">
+                <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+                <p className="text-sm font-semibold">
+                  Nenhuma consulta encontrada para a data selecionada.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="toolbar-inline mt-5 justify-between">
           <button
@@ -635,6 +689,107 @@ function AppointmentEditForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function WeekGrid({
+  appointments,
+  patientMap,
+  doctorMap,
+  weekDays,
+  todayDate,
+  isLoading,
+  onDayClick,
+}: {
+  appointments: AppointmentResponse[];
+  patientMap: Record<string, PatientResponse | undefined>;
+  doctorMap: Record<string, DoctorResponse | undefined>;
+  weekDays: string[];
+  todayDate: string;
+  isLoading: boolean;
+  onDayClick: (day: string) => void;
+}) {
+  const dayAppointments = useMemo(() => {
+    const map: Record<string, AppointmentResponse[]> = {};
+    for (const day of weekDays) map[day] = [];
+    for (const apt of appointments) {
+      const day = apt.startAt?.slice(0, 10);
+      if (day && map[day]) map[day].push(apt);
+    }
+    return map;
+  }, [appointments, weekDays]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-5 grid grid-cols-7 gap-2 overflow-x-auto">
+        {weekDays.map((_, i) => (
+          <div key={i} className="flex flex-col gap-2 min-w-[120px]">
+            <div className="skeleton h-12 rounded" />
+            <div className="skeleton h-20 rounded" />
+            <div className="skeleton h-16 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 grid grid-cols-7 gap-2 overflow-x-auto">
+      {weekDays.map((day) => {
+        const dateObj = new Date(day + "T12:00:00");
+        const dayName = WEEKDAY_NAMES[dateObj.getDay()];
+        const dayNum = dateObj.getDate();
+        const month = MONTH_NAMES[dateObj.getMonth()];
+        const isToday = day === todayDate;
+        const apts = dayAppointments[day] ?? [];
+
+        return (
+          <div key={day} className="flex flex-col gap-1.5 min-w-[130px]">
+            <button
+              className={cn(
+                "flex flex-col items-center rounded-lg p-2 text-sm transition-colors",
+                isToday
+                  ? "bg-[var(--brand)] text-white"
+                  : "bg-[var(--surface-brand)] text-[var(--ink)] hover:bg-[var(--border)]",
+              )}
+              onClick={() => onDayClick(day)}
+              type="button"
+            >
+              <span className="text-[10px] uppercase tracking-wide font-semibold">{dayName}</span>
+              <span className="text-lg font-bold leading-tight">{dayNum}</span>
+              <span className="text-[10px] uppercase">{month}</span>
+            </button>
+            <div className="flex flex-col gap-1">
+              {apts.length === 0 && !isLoading && (
+                <p className="text-[11px] text-[var(--muted)] text-center py-2">—</p>
+              )}
+              {apts.map((apt) => {
+                const patient = patientMap[apt.patientId ?? ""];
+                const statusVariant = resolveAppointmentStatus(apt.status);
+                const isCancelled = statusVariant === "cancelled";
+                return (
+                  <div
+                    key={apt.id}
+                    className={cn(
+                      "rounded-md border p-1.5 text-[11px] leading-tight transition-colors",
+                      isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
+                    )}
+                  >
+                    <div className="font-semibold text-[var(--ink)]">
+                      {formatTime(apt.startAt ?? "")}
+                    </div>
+                    <div className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
+                      {patient?.name ?? "—"}
+                    </div>
+                    <StatusBadge variant={statusVariant} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
