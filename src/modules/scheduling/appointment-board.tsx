@@ -39,9 +39,12 @@ function shiftDate(value: string, amount: number) {
 
 function statusBorderClass(status?: string) {
   switch (resolveAppointmentStatus(status)) {
-    case "confirmed": return "appt-confirmed";
-    case "cancelled": return "appt-cancelled";
-    default:          return "appt-scheduled";
+    case "confirmed":  return "appt-confirmed";
+    case "cancelled":
+    case "noshow":     return "appt-cancelled";
+    case "inprogress": return "appt-confirmed";
+    case "completed":  return "appt-scheduled";
+    default:           return "appt-scheduled";
   }
 }
 
@@ -49,6 +52,7 @@ const STATUS_FILTERS = [
   { key: undefined, label: "Todos" },
   { key: "Scheduled" as const, label: "Agendado" },
   { key: "Confirmed" as const, label: "Confirmado" },
+  { key: "InProgress" as const, label: "Em atendimento" },
   { key: "Completed" as const, label: "Concluido" },
   { key: "Cancelled" as const, label: "Cancelado" },
   { key: "NoShow" as const, label: "Faltou" },
@@ -224,6 +228,57 @@ export function AppointmentBoard({
     onSettled: () => {
       setProcessingAppointmentId(null);
     },
+  });
+
+  const markInProgressAppointment = useMutation({
+    mutationFn: async (appointment: AppointmentResponse) => {
+      if (!appointment.id) throw new Error("Consulta sem identificador.");
+      setProcessingAppointmentId(appointment.id);
+      return DefaultService.appointmentsInProgress(appointment.id);
+    },
+    onSuccess: async (appointment) => {
+      setFeedback(`${appointment.type ?? "Consulta"} iniciada.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+      ]);
+    },
+    onError: () => setFeedback("Nao foi possivel atualizar o status."),
+    onSettled: () => setProcessingAppointmentId(null),
+  });
+
+  const completeAppointment = useMutation({
+    mutationFn: async (appointment: AppointmentResponse) => {
+      if (!appointment.id) throw new Error("Consulta sem identificador.");
+      setProcessingAppointmentId(appointment.id);
+      return DefaultService.appointmentsComplete(appointment.id);
+    },
+    onSuccess: async (appointment) => {
+      setFeedback(`${appointment.type ?? "Consulta"} concluida.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+      ]);
+    },
+    onError: () => setFeedback("Nao foi possivel concluir a consulta."),
+    onSettled: () => setProcessingAppointmentId(null),
+  });
+
+  const markNoShowAppointment = useMutation({
+    mutationFn: async (appointment: AppointmentResponse) => {
+      if (!appointment.id) throw new Error("Consulta sem identificador.");
+      setProcessingAppointmentId(appointment.id);
+      return DefaultService.appointmentsNoShow(appointment.id);
+    },
+    onSuccess: async (appointment) => {
+      setFeedback(`${appointment.type ?? "Consulta"} marcada como falta.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+      ]);
+    },
+    onError: () => setFeedback("Nao foi possivel marcar falta."),
+    onSettled: () => setProcessingAppointmentId(null),
   });
 
   const updateAppointment = useMutation({
@@ -527,7 +582,7 @@ export function AppointmentBoard({
                       >
                         Editar
                       </button>
-                      {appointment.status !== "Confirmed" ? (
+                      {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
                         <button
                           className="btn btn-brand-outline btn-sm"
                           disabled={isProcessing}
@@ -540,7 +595,46 @@ export function AppointmentBoard({
                           {isProcessing ? <span className="spinner" /> : "Confirmar"}
                         </button>
                       ) : null}
-                      {appointment.status !== "Cancelled" ? (
+                      {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
+                        <button
+                          className="btn btn-sm"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setFeedback(null);
+                            void markInProgressAppointment.mutateAsync(appointment);
+                          }}
+                          type="button"
+                        >
+                          {isProcessing ? <span className="spinner" /> : "Em atendimento"}
+                        </button>
+                      ) : null}
+                      {appointment.status === "InProgress" ? (
+                        <button
+                          className="btn btn-brand-outline btn-sm"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setFeedback(null);
+                            void completeAppointment.mutateAsync(appointment);
+                          }}
+                          type="button"
+                        >
+                          {isProcessing ? <span className="spinner" /> : "Compareceu"}
+                        </button>
+                      ) : null}
+                      {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? (
+                        <button
+                          className="btn btn-sm"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setFeedback(null);
+                            void markNoShowAppointment.mutateAsync(appointment);
+                          }}
+                          type="button"
+                        >
+                          {isProcessing ? <span className="spinner" /> : "Faltou"}
+                        </button>
+                      ) : null}
+                      {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? (
                         <button
                           className="btn btn-danger btn-sm"
                           disabled={isProcessing}
@@ -550,7 +644,7 @@ export function AppointmentBoard({
                           }}
                           type="button"
                         >
-                          {isProcessing ? <span className="spinner" /> : "Cancelar"}
+                          {isProcessing ? <span className="spinner" /> : "Remarcou"}
                         </button>
                       ) : null}
                     </div>

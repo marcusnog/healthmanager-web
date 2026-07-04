@@ -314,7 +314,7 @@ export class DefaultService {
         pageSize: number = 20,
         date?: string,
         doctorId?: string,
-        status?: 'Scheduled' | 'Confirmed' | 'Cancelled' | 'Completed' | 'NoShow',
+        status?: 'Scheduled' | 'Confirmed' | 'Cancelled' | 'Completed' | 'NoShow' | 'InProgress',
         dateFrom?: string,
         dateTo?: string,
     ): CancelablePromise<PagedAppointmentResponse> {
@@ -374,6 +374,54 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/appointments/{id}/cancel',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns AppointmentResponse OK
+     * @throws ApiError
+     */
+    public static appointmentsInProgress(
+        id: string,
+    ): CancelablePromise<AppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{id}/in-progress',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns AppointmentResponse OK
+     * @throws ApiError
+     */
+    public static appointmentsComplete(
+        id: string,
+    ): CancelablePromise<AppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{id}/complete',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns AppointmentResponse OK
+     * @throws ApiError
+     */
+    public static appointmentsNoShow(
+        id: string,
+    ): CancelablePromise<AppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{id}/no-show',
             path: {
                 'id': id,
             },

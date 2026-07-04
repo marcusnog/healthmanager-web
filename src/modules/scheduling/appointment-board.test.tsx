@@ -141,7 +141,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remarcou" }));
 
     await waitFor(() =>
       expect(appointmentsCancel).toHaveBeenCalledWith("appointment-1"),
