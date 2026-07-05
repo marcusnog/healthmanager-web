@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { Field } from "@/components/ui/field";
+import { changePassword } from "@/services/api";
+
 const SETTINGS = [
   {
     title: "Expediente",
@@ -35,8 +39,8 @@ export function SettingsPanel() {
             Configuracoes operacionais do tenant
           </h3>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Esta area resume os pilares operacionais do MVP e deixa claro o que
-            ja esta preparado para crescer sem overengineering.
+            Esta area resume os pilares operacionais do MVP e o que ja
+            esta preparado para crescer sem overengineering.
           </p>
         </div>
         <div className="highlight-card max-w-sm">
@@ -58,7 +62,87 @@ export function SettingsPanel() {
           />
         ))}
       </div>
+
+      <ChangePasswordForm />
     </section>
+  );
+}
+
+function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus(null);
+
+    if (newPassword !== confirmPassword) {
+      setStatus({ type: "error", message: "Nova senha e confirmacao nao conferem." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setStatus({ type: "success", message: "Senha alterada com sucesso." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao alterar senha.";
+      setStatus({ type: "error", message: msg });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-8">
+      <h4 className="text-xl font-semibold">Alterar senha</h4>
+      <form onSubmit={handleSubmit} className="mt-4 grid max-w-md gap-4">
+        <Field label="Senha atual">
+          <input
+            className="field-input"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            minLength={8}
+          />
+        </Field>
+        <Field label="Nova senha">
+          <input
+            className="field-input"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength={8}
+          />
+        </Field>
+        <Field label="Confirmar nova senha">
+          <input
+            className="field-input"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={8}
+          />
+        </Field>
+        {status && (
+          <p className={status.type === "success" ? "text-sm text-[var(--success)]" : "text-sm text-[var(--danger)]"}>
+            {status.message}
+          </p>
+        )}
+        <button className="btn btn-primary self-start" type="submit" disabled={loading}>
+          {loading ? "Alterando..." : "Alterar senha"}
+        </button>
+      </form>
+    </div>
   );
 }
 
