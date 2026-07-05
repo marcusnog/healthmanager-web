@@ -131,7 +131,7 @@ describe("CrmWorkspace", () => {
 
     renderWithProviders(<CrmWorkspace />);
 
-    expect(await screen.findByText("Marina Souza")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("Marina Souza")).toBeVisible());
     expect(screen.getByText("21")).toBeVisible();
     expect(screen.getAllByText("R$ 45.120,50")[0]).toBeVisible();
     expect(screen.getByText("81% de confirmação")).toBeVisible();
