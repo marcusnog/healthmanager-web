@@ -8,5 +8,6 @@ export type PaymentResponse = {
     amount?: number;
     paymentMethod?: string;
     paidAt?: string;
+    patientName?: string;
 };
 

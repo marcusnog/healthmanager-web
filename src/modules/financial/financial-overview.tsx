@@ -239,6 +239,7 @@ export function FinancialOverview({
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">{formatCurrency(payment.amount ?? 0)}</p>
                       <div className="meta-row mt-1">
+                        {payment.patientName ? <span>{payment.patientName}</span> : null}
                         <span>{payment.paymentMethod}</span>
                         {payment.paidAt ? (
                           <span>{new Date(payment.paidAt).toLocaleDateString("pt-BR")}</span>
@@ -342,6 +343,9 @@ export function FinancialOverview({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge variant={statusVariant} />
+                        {receivable.patientName ? (
+                          <span className="text-sm font-semibold text-[var(--ink)]">{receivable.patientName}</span>
+                        ) : null}
                         <span className="text-xs text-[var(--muted)]">
                           Venc.{" "}
                           {new Date(

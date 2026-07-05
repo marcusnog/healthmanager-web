@@ -10,5 +10,7 @@ export type ReceivableResponse = {
     outstandingAmount?: number;
     status?: string;
     dueDate?: string;
+    patientId?: string;
+    patientName?: string;
 };
 
