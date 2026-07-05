@@ -345,7 +345,7 @@ export function CrmWorkspace() {
   function handleAppointmentViewModeChange(value: "day" | "week") { setAppointmentViewMode(value); setAppointmentPage(1); }
   function handleAppointmentDateChange(value: string) { setAppointmentDate(value); setAppointmentPage(1); }
   function handleAppointmentDoctorChange(value: string | undefined) { setAppointmentDoctorId(value); setAppointmentPage(1); }
-  function handleAppointmentStatusChange(value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) { setAppointmentStatus(value); setAppointmentPage(1); }
+  function handleAppointmentStatusChange(value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined) { setAppointmentStatus(value); setAppointmentPage(1); }
   function handleReceivableStatusChange(value: "Pending" | "Partial" | "Paid" | undefined) { setReceivableStatus(value); setReceivablePage(1); }
   function handleReceivableDateFromChange(value: string | undefined) { setReceivableDateFrom(value); setReceivablePage(1); }
   function handleReceivableDateToChange(value: string | undefined) { setReceivableDateTo(value); setReceivablePage(1); }

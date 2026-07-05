@@ -99,7 +99,7 @@ export function AppointmentBoard({
   appointmentDateFrom?: string;
   appointmentDateTo?: string;
   appointmentDoctorId: string | undefined;
-  appointmentStatus: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined;
+  appointmentStatus: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined;
   isLoading: boolean;
   onAppointmentDateChange: (value: string) => void;
   onAppointmentViewModeChange?: (value: "day" | "week") => void;
