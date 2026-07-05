@@ -104,7 +104,7 @@ export function AppointmentBoard({
   onAppointmentDateChange: (value: string) => void;
   onAppointmentViewModeChange?: (value: "day" | "week") => void;
   onDoctorChange: (value: string | undefined) => void;
-  onStatusChange: (value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined) => void;
+  onStatusChange: (value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined) => void;
   page: number;
   pageSize: number;
   total: number;

@@ -209,7 +209,7 @@ export function CrmWorkspace() {
   const [appointmentViewMode, setAppointmentViewMode] = useState<"day" | "week">("day");
   const [appointmentPage, setAppointmentPage] = useState(1);
   const [appointmentDoctorId, setAppointmentDoctorId] = useState<string | undefined>(undefined);
-  const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined>(undefined);
+  const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined>(undefined);
   const [doctorSearch, setDoctorSearch] = useState("");
   const [doctorPage, setDoctorPage] = useState(1);
   const [receivablePage, setReceivablePage] = useState(1);
