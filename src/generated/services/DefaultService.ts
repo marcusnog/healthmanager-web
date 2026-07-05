@@ -9,12 +9,14 @@ import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
 import type { CreatePatientDocumentRequest } from '../models/CreatePatientDocumentRequest';
 import type { CreatePatientRequest } from '../models/CreatePatientRequest';
 import type { CreatePaymentRequest } from '../models/CreatePaymentRequest';
+import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { DashboardSummaryResponse } from '../models/DashboardSummaryResponse';
 import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
 import type { PagedPatientResponse } from '../models/PagedPatientResponse';
 import type { PagedReceivableResponse } from '../models/PagedReceivableResponse';
+import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { PatientDocumentResponse } from '../models/PatientDocumentResponse';
 import type { PatientPortalAppointmentResponse } from '../models/PatientPortalAppointmentResponse';
 import type { PatientPortalAuthResponse } from '../models/PatientPortalAuthResponse';
@@ -466,6 +468,21 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/payments',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns ReceivableResponse Created
+     * @throws ApiError
+     */
+    public static receivablesManual(
+        requestBody: CreateManualReceivableRequest,
+    ): CancelablePromise<ReceivableResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/receivables/manual',
             body: requestBody,
             mediaType: 'application/json',
         });

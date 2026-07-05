@@ -14,6 +14,7 @@ export type { CreateDoctorRequest } from './models/CreateDoctorRequest';
 export type { CreatePatientDocumentRequest } from './models/CreatePatientDocumentRequest';
 export type { CreatePatientRequest } from './models/CreatePatientRequest';
 export type { CreatePaymentRequest } from './models/CreatePaymentRequest';
+export type { CreateManualReceivableRequest } from './models/CreateManualReceivableRequest';
 export type { DashboardSummaryResponse } from './models/DashboardSummaryResponse';
 export type { DoctorResponse } from './models/DoctorResponse';
 export type { LoginRequest } from './models/LoginRequest';

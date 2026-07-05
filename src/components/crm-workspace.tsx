@@ -402,6 +402,7 @@ export function CrmWorkspace() {
     onStatusChange: handleReceivableStatusChange,
     page: receivablesQuery.data?.page ?? 1,
     pageSize: receivablesQuery.data?.pageSize ?? RECEIVABLES_PAGE_SIZE,
+    patients: patientsCatalogQuery.data ?? [],
     payments: paymentsQuery.data?.items ?? [],
     paymentPage: paymentPage,
     paymentDateFrom: paymentDateFrom,

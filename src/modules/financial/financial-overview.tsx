@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService } from "@/services/api";
-import type { ReceivableResponse } from "@/generated";
-import type { PaymentResponse } from "@/generated";
+import type { ReceivableResponse, PaymentResponse, PatientResponse, CreateManualReceivableRequest } from "@/generated";
 import { formatCurrency } from "@/lib/formatters";
 import {
   StatusBadge,
@@ -14,7 +13,7 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
-const schema = z.object({
+const paymentSchema = z.object({
   amount: z.coerce.number().positive("Informe um valor valido."),
   paymentMethod: z.enum([
     "Cash",
@@ -27,8 +26,24 @@ const schema = z.object({
   notes: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
-type FormInput = z.input<typeof schema>;
+const expenseSchema = z.object({
+  description: z.string().min(1, "Informe a descricao da despesa."),
+  amount: z.coerce.number().positive("Informe um valor valido."),
+  paymentMethod: z.enum([
+    "Cash",
+    "Pix",
+    "CreditCard",
+    "DebitCard",
+    "Insurance",
+  ]),
+  paidAt: z.string().min(1, "Informe a data do pagamento."),
+  notes: z.string().optional(),
+});
+
+type PaymentFormValues = z.infer<typeof paymentSchema>;
+type PaymentFormInput = z.input<typeof paymentSchema>;
+type ExpenseFormValues = z.infer<typeof expenseSchema>;
+type ExpenseFormInput = z.input<typeof expenseSchema>;
 
 const STATUS_FILTERS = [
   { key: undefined, label: "Todos" },
@@ -45,6 +60,7 @@ export function FinancialOverview({
   status,
   dateFrom,
   dateTo,
+  patients,
   payments,
   paymentPage,
   paymentDateFrom,
@@ -66,6 +82,7 @@ export function FinancialOverview({
   status: "Pending" | "Partial" | "Paid" | undefined;
   dateFrom: string | undefined;
   dateTo: string | undefined;
+  patients: PatientResponse[];
   payments: PaymentResponse[];
   paymentPage: number;
   paymentDateFrom: string | undefined;
@@ -82,17 +99,25 @@ export function FinancialOverview({
 }) {
   const [activeReceivable, setActiveReceivable] = useState<ReceivableResponse | null>(null);
   const [showPayments, setShowPayments] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [registerMode, setRegisterMode] = useState<"patient" | "expense">("patient");
+  const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
+  const [selectedPatientReceivable, setSelectedPatientReceivable] = useState<ReceivableResponse | undefined>(undefined);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
 
+  const patientReceivables = selectedPatientId
+    ? receivables.filter((r) => r.patientId === selectedPatientId && r.status !== "Paid")
+    : [];
+
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<FormInput, undefined, FormValues>({
-    resolver: zodResolver(schema),
+    register: registerPayment,
+    handleSubmit: handlePaymentSubmit,
+    reset: resetPayment,
+    formState: { errors: paymentErrors },
+  } = useForm<PaymentFormInput, undefined, PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
     defaultValues: {
       amount: 50,
       paymentMethod: "Pix",
@@ -101,13 +126,35 @@ export function FinancialOverview({
     },
   });
 
-  const registerPayment = useMutation({
+  const {
+    register: registerExpense,
+    handleSubmit: handleExpenseSubmit,
+    reset: resetExpense,
+    formState: { errors: expenseErrors },
+  } = useForm<ExpenseFormInput, undefined, ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      description: "",
+      amount: 50,
+      paymentMethod: "Pix",
+      paidAt: new Date().toISOString().slice(0, 16),
+      notes: "",
+    },
+  });
+
+  const invalidateFinancial = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+    queryClient.invalidateQueries({ queryKey: ["payments"] }),
+    queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+  ]);
+
+  const registerPaymentMutation = useMutation({
     mutationFn: async ({
       receivableId,
       values,
     }: {
       receivableId: string;
-      values: FormValues;
+      values: PaymentFormValues;
     }) =>
       DefaultService.paymentsCreate({
         receivableId,
@@ -119,27 +166,65 @@ export function FinancialOverview({
     onSuccess: async () => {
       setFeedback("Pagamento registrado com sucesso.");
       setActiveReceivable(null);
-      reset({
+      setShowRegister(false);
+      resetPayment({
         amount: 50,
         paymentMethod: "Pix",
         paidAt: new Date().toISOString().slice(0, 16),
         notes: "",
       });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["receivables"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
-      ]);
+      await invalidateFinancial();
     },
     onError: () => {
       setFeedback("Nao foi possivel registrar o pagamento agora.");
     },
   });
 
-  const onSubmit = handleSubmit(async (values) => {
+  const createExpenseMutation = useMutation({
+    mutationFn: async (values: ExpenseFormValues) => {
+      const body: CreateManualReceivableRequest = {
+        amount: values.amount,
+        description: values.description,
+        paymentMethod: values.paymentMethod,
+        paidAt: new Date(values.paidAt).toISOString(),
+        notes: values.notes || undefined,
+      };
+      return DefaultService.receivablesManual(body);
+    },
+    onSuccess: async () => {
+      setFeedback("Despesa registrada com sucesso.");
+      setShowRegister(false);
+      resetExpense({
+        description: "",
+        amount: 50,
+        paymentMethod: "Pix",
+        paidAt: new Date().toISOString().slice(0, 16),
+        notes: "",
+      });
+      await invalidateFinancial();
+    },
+    onError: () => {
+      setFeedback("Nao foi possivel registrar a despesa.");
+    },
+  });
+
+  const onPaymentFormSubmit = handlePaymentSubmit(async (values) => {
     if (!activeReceivable?.id) return;
     setFeedback(null);
-    await registerPayment.mutateAsync({ receivableId: activeReceivable.id, values });
+    await registerPaymentMutation.mutateAsync({ receivableId: activeReceivable.id, values });
   });
+
+  const onExpenseFormSubmit = handleExpenseSubmit(async (values) => {
+    setFeedback(null);
+    await createExpenseMutation.mutateAsync(values);
+  });
+
+  const clearRegisterModal = () => {
+    setShowRegister(false);
+    setSelectedPatientId(undefined);
+    setSelectedPatientReceivable(undefined);
+    setActiveReceivable(null);
+  };
 
   return (
     <>
@@ -154,19 +239,19 @@ export function FinancialOverview({
               {formatCurrency(activeReceivable.outstandingAmount ?? 0)}
             </p>
           </div>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-            <Field error={errors.amount?.message} label="Valor recebido">
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={onPaymentFormSubmit}>
+            <Field error={paymentErrors.amount?.message} label="Valor recebido">
               <input
                 className="input-field"
                 max={activeReceivable.outstandingAmount ?? undefined}
                 min={0.01}
                 step="0.01"
                 type="number"
-                {...register("amount")}
+                {...registerPayment("amount")}
               />
             </Field>
-            <Field error={errors.paymentMethod?.message} label="Forma de pagamento">
-              <select className="input-field" {...register("paymentMethod")}>
+            <Field error={paymentErrors.paymentMethod?.message} label="Forma de pagamento">
+              <select className="input-field" {...registerPayment("paymentMethod")}>
                 <option value="Pix">Pix</option>
                 <option value="Cash">Dinheiro</option>
                 <option value="CreditCard">Cartao de credito</option>
@@ -174,15 +259,15 @@ export function FinancialOverview({
                 <option value="Insurance">Convenio</option>
               </select>
             </Field>
-            <Field error={errors.paidAt?.message} label="Data do pagamento">
+            <Field error={paymentErrors.paidAt?.message} label="Data do pagamento">
               <input
                 className="input-field"
                 type="datetime-local"
-                {...register("paidAt")}
+                {...registerPayment("paidAt")}
               />
             </Field>
-            <Field error={errors.notes?.message} label="Observacoes">
-              <input className="input-field" {...register("notes")} />
+            <Field error={paymentErrors.notes?.message} label="Observacoes">
+              <input className="input-field" {...registerPayment("notes")} />
             </Field>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button
@@ -194,10 +279,10 @@ export function FinancialOverview({
               </button>
               <button
                 className="btn btn-primary"
-                disabled={registerPayment.isPending}
+                disabled={registerPaymentMutation.isPending}
                 type="submit"
               >
-                {registerPayment.isPending ? (
+                {registerPaymentMutation.isPending ? (
                   <span className="spinner" />
                 ) : (
                   "Confirmar pagamento"
@@ -205,6 +290,194 @@ export function FinancialOverview({
               </button>
             </div>
           </form>
+        </Modal>
+      ) : null}
+
+      {showRegister ? (
+        <Modal title="Registrar pagamento" onClose={clearRegisterModal}>
+          <div className="toolbar-inline mb-4">
+            <button
+              className={cn("btn btn-sm", registerMode === "patient" ? "btn-brand-outline" : "btn-ghost")}
+              onClick={() => { setRegisterMode("patient"); setSelectedPatientReceivable(undefined); }}
+              type="button"
+            >
+              Paciente
+            </button>
+            <button
+              className={cn("btn btn-sm", registerMode === "expense" ? "btn-brand-outline" : "btn-ghost")}
+              onClick={() => { setRegisterMode("expense"); setSelectedPatientReceivable(undefined); }}
+              type="button"
+            >
+              Despesa da clinica
+            </button>
+          </div>
+
+          {registerMode === "patient" ? (
+            <div className="grid gap-4">
+              <Field label="Selecione o paciente">
+                <select
+                  className="input-field"
+                  value={selectedPatientId ?? ""}
+                  onChange={(e) => { setSelectedPatientId(e.target.value || undefined); setSelectedPatientReceivable(undefined); }}
+                >
+                  <option value="">Selecione...</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+
+              {selectedPatientId && patientReceivables.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">Nenhum recebivel pendente para este paciente.</p>
+              ) : null}
+
+              {patientReceivables.length > 0 ? (
+                <div>
+                  <p className="mb-2 text-sm font-semibold">Recebiveis em aberto</p>
+                  <div className="overflow-x-auto">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Descricao</th>
+                          <th className="numeric">Original</th>
+                          <th className="numeric">Em aberto</th>
+                          <th>Vencimento</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {patientReceivables.map((r) => (
+                          <tr key={r.id} className={cn(r.id === selectedPatientReceivable?.id ? "bg-[var(--bg)]" : "")}>
+                            <td>{r.id ? `#${r.id.slice(0, 8)}` : "-"}</td>
+                            <td className="numeric">{formatCurrency(r.originalAmount ?? 0)}</td>
+                            <td className="numeric">{formatCurrency(r.outstandingAmount ?? 0)}</td>
+                            <td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString("pt-BR") : "-"}</td>
+                            <td>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => { setSelectedPatientReceivable(r); setActiveReceivable(r); }}
+                                type="button"
+                              >
+                                {r.id === selectedPatientReceivable?.id ? "Selecionado" : "Selecionar"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedPatientReceivable ? (
+                <form className="grid gap-4 md:grid-cols-2 border-t border-[var(--border)] pt-4" onSubmit={onPaymentFormSubmit}>
+                  <div className="md:col-span-2">
+                    <p className="text-sm font-semibold text-[var(--ink)]">
+                      Pagamento: {selectedPatientReceivable.patientName} — {formatCurrency(selectedPatientReceivable.outstandingAmount ?? 0)} em aberto
+                    </p>
+                  </div>
+                  <input type="hidden" value={selectedPatientReceivable.id} />
+                  <Field error={paymentErrors.amount?.message} label="Valor">
+                    <input
+                      className="input-field"
+                      max={selectedPatientReceivable.outstandingAmount ?? undefined}
+                      min={0.01}
+                      step="0.01"
+                      type="number"
+                      {...registerPayment("amount")}
+                    />
+                  </Field>
+                  <Field error={paymentErrors.paymentMethod?.message} label="Forma de pagamento">
+                    <select className="input-field" {...registerPayment("paymentMethod")}>
+                      <option value="Pix">Pix</option>
+                      <option value="Cash">Dinheiro</option>
+                      <option value="CreditCard">Cartao de credito</option>
+                      <option value="DebitCard">Cartao de debito</option>
+                      <option value="Insurance">Convenio</option>
+                    </select>
+                  </Field>
+                  <Field error={paymentErrors.paidAt?.message} label="Data">
+                    <input
+                      className="input-field"
+                      type="datetime-local"
+                      {...registerPayment("paidAt")}
+                    />
+                  </Field>
+                  <Field error={paymentErrors.notes?.message} label="Observacoes">
+                    <input className="input-field" {...registerPayment("notes")} />
+                  </Field>
+                  <div className="md:col-span-2 flex justify-end gap-3">
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={clearRegisterModal}
+                      type="button"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      disabled={registerPaymentMutation.isPending}
+                      type="submit"
+                    >
+                      {registerPaymentMutation.isPending ? <span className="spinner" /> : "Confirmar pagamento"}
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+            </div>
+          ) : (
+            <form className="grid gap-4 md:grid-cols-2" onSubmit={onExpenseFormSubmit}>
+              <div className="md:col-span-2">
+                <Field error={expenseErrors.description?.message} label="Descricao">
+                  <input className="input-field" {...registerExpense("description")} />
+                </Field>
+              </div>
+              <Field error={expenseErrors.amount?.message} label="Valor">
+                <input
+                  className="input-field"
+                  min={0.01}
+                  step="0.01"
+                  type="number"
+                  {...registerExpense("amount")}
+                />
+              </Field>
+              <Field error={expenseErrors.paymentMethod?.message} label="Forma de pagamento">
+                <select className="input-field" {...registerExpense("paymentMethod")}>
+                  <option value="Pix">Pix</option>
+                  <option value="Cash">Dinheiro</option>
+                  <option value="CreditCard">Cartao de credito</option>
+                  <option value="DebitCard">Cartao de debito</option>
+                  <option value="Insurance">Convenio</option>
+                </select>
+              </Field>
+              <Field error={expenseErrors.paidAt?.message} label="Data">
+                <input
+                  className="input-field"
+                  type="datetime-local"
+                  {...registerExpense("paidAt")}
+                />
+              </Field>
+              <Field error={expenseErrors.notes?.message} label="Observacoes">
+                <input className="input-field" {...registerExpense("notes")} />
+              </Field>
+              <div className="md:col-span-2 flex justify-end gap-3">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={clearRegisterModal}
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  disabled={createExpenseMutation.isPending}
+                  type="submit"
+                >
+                  {createExpenseMutation.isPending ? <span className="spinner" /> : "Registrar despesa"}
+                </button>
+              </div>
+            </form>
+          )}
         </Modal>
       ) : null}
 
@@ -269,9 +542,18 @@ export function FinancialOverview({
               {total} registro{total === 1 ? "" : "s"} · filtro: {status ?? "Todos"}
             </p>
           </div>
-          {feedback ? (
-            <p className="text-sm text-[var(--muted)]">{feedback}</p>
-          ) : null}
+          <div className="toolbar-inline">
+            {feedback ? (
+              <p className="text-sm text-[var(--muted)]">{feedback}</p>
+            ) : null}
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => { setFeedback(null); setShowRegister(true); }}
+              type="button"
+            >
+              + Registrar pagamento
+            </button>
+          </div>
         </div>
 
         <div className="toolbar flex flex-col gap-3">
