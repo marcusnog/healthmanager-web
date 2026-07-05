@@ -953,6 +953,46 @@ textarea.input-field {
   transition: width 0.4s ease;
 }
 
+/* ─── Data table ─────────────────────────────────────────────────── */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.625rem 0.75rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.data-table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tfoot td {
+  font-weight: 600;
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+  padding: 0.75rem;
+}
+
 /* ─── Utilities ──────────────────────────────────────────────────── */
 
 .scrollbar-hide {

@@ -227,33 +227,34 @@ export function FinancialOverview({
               />
             </label>
           </div>
-          <div className="stack-list">
-            {payments.length === 0 ? (
-              <div className="empty-state">
-                <p className="text-sm font-semibold">Nenhum pagamento encontrado.</p>
-              </div>
-            ) : (
-              payments.map((payment) => (
-                <div key={payment.id} className="data-card">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{formatCurrency(payment.amount ?? 0)}</p>
-                      <div className="meta-row mt-1">
-                        {payment.patientName ? <span>{payment.patientName}</span> : null}
-                        <span>{payment.paymentMethod}</span>
-                        {payment.paidAt ? (
-                          <span>{new Date(payment.paidAt).toLocaleDateString("pt-BR")}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="shrink-0">
-                      <p className="text-xs text-[var(--muted)]">{payment.id ? `#${payment.id.slice(0, 8)}` : null}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          {payments.length === 0 ? (
+            <div className="empty-state">
+              <p className="text-sm font-semibold">Nenhum pagamento encontrado.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th className="numeric">Valor</th>
+                    <th>Metodo</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td>{payment.patientName ?? "-"}</td>
+                      <td className="numeric">{formatCurrency(payment.amount ?? 0)}</td>
+                      <td>{payment.paymentMethod}</td>
+                      <td>{payment.paidAt ? new Date(payment.paidAt).toLocaleDateString("pt-BR") : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Modal>
       ) : null}
 
@@ -317,91 +318,88 @@ export function FinancialOverview({
           </div>
         </div>
 
-        <div className="stack-list mt-5">
-          {receivables.length === 0 ? (
-            <div className="empty-state">
-              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                <rect x="2" y="5" width="20" height="14" rx="2" />
-                <path d="M2 10h20M6 15h4" />
-              </svg>
-              <p className="text-sm font-semibold">Nenhuma conta encontrada para os filtros selecionados.</p>
-            </div>
-          ) : (
-            receivables.map((receivable) => {
-              const statusVariant = resolveReceivableStatus(receivable.status);
-              const original = receivable.originalAmount ?? 0;
-              const received = receivable.receivedAmount ?? 0;
-              const percentage =
-                original > 0 ? Math.min(100, (received / original) * 100) : 0;
-
-              return (
-                <article
-                  key={receivable.id ?? receivable.appointmentId ?? receivable.dueDate}
-                  className="data-card"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <StatusBadge variant={statusVariant} />
-                        {receivable.patientName ? (
-                          <span className="text-sm font-semibold text-[var(--ink)]">{receivable.patientName}</span>
-                        ) : null}
-                        <span className="text-xs text-[var(--muted)]">
-                          Venc.{" "}
-                          {new Date(
-                            receivable.dueDate ?? new Date().toISOString(),
-                          ).toLocaleDateString("pt-BR")}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-baseline gap-4 flex-wrap">
-                        <span className="text-xs text-[var(--muted)]">
-                          Original <span className="ml-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(original)}</span>
-                        </span>
-                        <span className="text-xs text-[var(--muted)]">
-                          Recebido <span className="ml-1 text-sm font-semibold text-[var(--success)]">{formatCurrency(received)}</span>
-                        </span>
-                        <span className="text-xs text-[var(--muted)]">
-                          Em aberto <span className="ml-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(receivable.outstandingAmount ?? 0)}</span>
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-center gap-3">
-                        <div className="progress-track flex-1">
-                          <div className="progress-fill" style={{ width: `${percentage}%` }} />
+        {receivables.length === 0 ? (
+          <div className="empty-state mt-5">
+            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <path d="M2 10h20M6 15h4" />
+            </svg>
+            <p className="text-sm font-semibold">Nenhuma conta encontrada para os filtros selecionados.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto mt-5">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th className="numeric">Original</th>
+                  <th className="numeric">Recebido</th>
+                  <th className="numeric">Em aberto</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th className="numeric">%</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receivables.map((receivable) => {
+                  const statusVariant = resolveReceivableStatus(receivable.status);
+                  const original = receivable.originalAmount ?? 0;
+                  const received = receivable.receivedAmount ?? 0;
+                  const outstanding = receivable.outstandingAmount ?? 0;
+                  const percentage = original > 0 ? Math.min(100, (received / original) * 100) : 0;
+                  return (
+                    <tr key={receivable.id ?? receivable.appointmentId ?? receivable.dueDate}>
+                      <td>{receivable.patientName ?? "-"}</td>
+                      <td className="numeric">{formatCurrency(original)}</td>
+                      <td className="numeric">{formatCurrency(received)}</td>
+                      <td className="numeric">{formatCurrency(outstanding)}</td>
+                      <td>{new Date(receivable.dueDate ?? new Date().toISOString()).toLocaleDateString("pt-BR")}</td>
+                      <td><StatusBadge variant={statusVariant} /></td>
+                      <td className="numeric">{percentage.toFixed(0)}%</td>
+                      <td>
+                        <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              setFeedback(null);
+                              onPaymentReceivableIdChange(receivable.id);
+                              setShowPayments(true);
+                            }}
+                            type="button"
+                          >
+                            Pagamentos
+                          </button>
+                          {receivable.status !== "Paid" ? (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => {
+                                setFeedback(null);
+                                setActiveReceivable(receivable);
+                              }}
+                              type="button"
+                            >
+                              Receber
+                            </button>
+                          ) : null}
                         </div>
-                        <span className="text-xs font-semibold text-[var(--muted)] tabular-nums shrink-0">{percentage.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                    <div className="toolbar-inline shrink-0">
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setFeedback(null);
-                          onPaymentReceivableIdChange(receivable.id);
-                          setShowPayments(true);
-                        }}
-                        type="button"
-                      >
-                        Ver pagamentos
-                      </button>
-                      {receivable.status !== "Paid" ? (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            setFeedback(null);
-                            setActiveReceivable(receivable);
-                          }}
-                          type="button"
-                        >
-                          Registrar pagamento
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.originalAmount ?? 0), 0))}</td>
+                  <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.receivedAmount ?? 0), 0))}</td>
+                  <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.outstandingAmount ?? 0), 0))}</td>
+                  <td colSpan={4} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
         <div className="toolbar-inline mt-5 justify-between">
           <button
