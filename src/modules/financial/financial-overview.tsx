@@ -382,7 +382,7 @@ export function FinancialOverview({
                               }}
                               type="button"
                             >
-                              Receber
+                              Registrar pagamento
                             </button>
                           ) : null}
                         </div>
