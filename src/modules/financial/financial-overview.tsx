@@ -146,6 +146,9 @@ export function FinancialOverview({
       {activeReceivable ? (
         <Modal title="Registrar pagamento" onClose={() => setActiveReceivable(null)}>
           <div className="mb-4 rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3">
+            {activeReceivable.patientName ? (
+              <p className="text-sm font-semibold text-[var(--ink)]">{activeReceivable.patientName}</p>
+            ) : null}
             <p className="text-xs text-[var(--muted)]">Em aberto</p>
             <p className="mt-0.5 text-base font-semibold text-[var(--ink)]">
               {formatCurrency(activeReceivable.outstandingAmount ?? 0)}
