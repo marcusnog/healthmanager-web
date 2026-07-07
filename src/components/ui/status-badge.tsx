@@ -60,6 +60,24 @@ export function resolveReceivableStatus(status?: string): StatusVariant {
   }
 }
 
+export function resolveExpenseStatus(status?: string): StatusVariant {
+  switch (status?.toLowerCase()) {
+    case "paid":      return "paid";
+    case "cancelled": return "cancelled";
+    default:          return "pending";
+  }
+}
+
+export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  Supplies: "Insumos",
+  Equipment: "Equipamentos",
+  Salary: "Salarios",
+  Marketing: "Marketing",
+  Utilities: "Contas",
+  Rent: "Aluguel",
+  Other: "Outros",
+};
+
 export function StatusBadge({
   variant,
   label,

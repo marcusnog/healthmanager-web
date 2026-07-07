@@ -12,7 +12,7 @@ import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService, doctorsListPaged, paymentsList, dashboardSummary } from "@/services/api";
+import { DefaultService, doctorsListPaged, paymentsList, dashboardSummary, expensesList, financialSummary } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
@@ -123,7 +123,7 @@ const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:     { title: "Dashboard",      subtitle: "Resumo da operação de hoje" },
   agenda:        { title: "Agenda",         subtitle: "Consultas, confirmações e cancelamentos" },
   pacientes:     { title: "Pacientes",      subtitle: "Cadastro, busca e documentos" },
-  financeiro:    { title: "Financeiro",     subtitle: "Contas a receber e pagamentos" },
+  financeiro:    { title: "Financeiro",     subtitle: "Receitas, despesas e saldo" },
   medicos:       { title: "Médicos",        subtitle: "Equipe médica e disponibilidade" },
   configuracoes: { title: "Configurações",  subtitle: "Configurações operacionais" },
 };
@@ -220,6 +220,11 @@ export function CrmWorkspace() {
   const [paymentReceivableId, setPaymentReceivableId] = useState<string | undefined>(undefined);
   const [paymentDateFrom, setPaymentDateFrom] = useState<string | undefined>(undefined);
   const [paymentDateTo, setPaymentDateTo] = useState<string | undefined>(undefined);
+  const [expensePage, setExpensePage] = useState(1);
+  const [expenseCategory, setExpenseCategory] = useState<string | undefined>(undefined);
+  const [expenseStatus, setExpenseStatus] = useState<string | undefined>(undefined);
+  const [expenseDateFrom, setExpenseDateFrom] = useState<string | undefined>(undefined);
+  const [expenseDateTo, setExpenseDateTo] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1025);
@@ -317,6 +322,20 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
 
+  const expensesQuery = useQuery({
+    queryKey: ["expenses", expensePage, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo],
+    queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
+    enabled: authenticated,
+  });
+
+  const financialSummaryQuery = useQuery({
+    queryKey: ["financial-summary"],
+    queryFn: () => guardedQuery(() => financialSummary(), { totalReceived: 0, totalExpenses: 0, balance: 0 }),
+    placeholderData: { totalReceived: 0, totalExpenses: 0, balance: 0 },
+    enabled: authenticated,
+  });
+
   useEffect(() => {
     const handler = () => {
       clearAuthSession();
@@ -349,6 +368,10 @@ export function CrmWorkspace() {
   function handleReceivableStatusChange(value: "Pending" | "Partial" | "Paid" | undefined) { setReceivableStatus(value); setReceivablePage(1); }
   function handleReceivableDateFromChange(value: string | undefined) { setReceivableDateFrom(value); setReceivablePage(1); }
   function handleReceivableDateToChange(value: string | undefined) { setReceivableDateTo(value); setReceivablePage(1); }
+  function handleExpenseCategoryChange(value: string | undefined) { setExpenseCategory(value); setExpensePage(1); }
+  function handleExpenseStatusChange(value: string | undefined) { setExpenseStatus(value); setExpensePage(1); }
+  function handleExpenseDateFromChange(value: string | undefined) { setExpenseDateFrom(value); setExpensePage(1); }
+  function handleExpenseDateToChange(value: string | undefined) { setExpenseDateTo(value); setExpensePage(1); }
   function handleDoctorSearchChange(value: string) { setDoctorSearch(value); setDoctorPage(1); }
 
   const today = useMemo(() => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }), []);
@@ -415,6 +438,19 @@ export function CrmWorkspace() {
     receivables: receivablesQuery.data?.items ?? fallbackReceivables,
     status: receivableStatus,
     total: receivablesQuery.data?.total ?? fallbackReceivablesPage.total ?? 0,
+    expenses: expensesQuery.data?.items ?? [],
+    expensePage: expensePage,
+    expenseTotal: expensesQuery.data?.total ?? 0,
+    expenseCategory: expenseCategory,
+    expenseStatus: expenseStatus,
+    expenseDateFrom: expenseDateFrom,
+    expenseDateTo: expenseDateTo,
+    onExpensePageChange: setExpensePage,
+    onExpenseCategoryChange: handleExpenseCategoryChange,
+    onExpenseStatusChange: handleExpenseStatusChange,
+    onExpenseDateFromChange: handleExpenseDateFromChange,
+    onExpenseDateToChange: handleExpenseDateToChange,
+    summary: financialSummaryQuery.data ?? { totalReceived: 0, totalExpenses: 0, balance: 0 },
   };
 
   /* ─── Login screen ──────────────────────────────────────────── */

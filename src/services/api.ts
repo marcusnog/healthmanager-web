@@ -107,6 +107,55 @@ export async function dashboardSummary(doctorId?: string) {
   return response.json() as Promise<import("@/generated").DashboardSummaryResponse>;
 }
 
+export async function expensesList(
+  page: number = 1,
+  pageSize: number = 20,
+  category?: string,
+  status?: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const params = new URLSearchParams();
+  params.set("Page", String(page));
+  params.set("PageSize", String(pageSize));
+  if (category) params.set("Category", category);
+  if (status) params.set("Status", status);
+  if (dateFrom) params.set("DateFrom", dateFrom);
+  if (dateTo) params.set("DateTo", dateTo);
+  const response = await apiFetch(`/financial/expenses?${params.toString()}`);
+  return response.json();
+}
+
+export async function expenseSave(id: string | undefined, body: {
+  description: string;
+  amount: number;
+  category: string;
+  paymentMethod: string;
+  paidAt?: string;
+  status?: string;
+  notes?: string;
+}) {
+  const method = id ? "PUT" : "POST";
+  const url = id ? `/financial/expenses/${id}` : `/financial/expenses`;
+  const response = await apiFetch(url, { method, body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function expenseDelete(id: string) {
+  await apiFetch(`/financial/expenses/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function financialSummary() {
+  const response = await apiFetch(`/financial/summary`);
+  return response.json() as Promise<{
+    totalReceived: number;
+    totalExpenses: number;
+    balance: number;
+  }>;
+}
+
 export async function doctorsListPaged(
   page: number = 1,
   pageSize: number = 20,
