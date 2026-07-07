@@ -16,20 +16,6 @@ export function applyPhoneMask(value: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-export function formatCpf(cpf: string) {
-  const d = cpf.replace(DIGITS, "");
-  if (d.length !== 11) return cpf;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
-
-export function formatPhone(phone: string) {
-  const d = phone.replace(DIGITS, "");
-  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4)}`;
-  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  return phone;
-}
-
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

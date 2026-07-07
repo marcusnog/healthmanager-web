@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PortalService } from "@/services/portal-api";
-import { formatCpf, applyCpfMask } from "@/lib/formatters";
+import { applyCpfMask } from "@/lib/formatters";
 import {
   readPortalSession,
   savePortalSession,
@@ -408,7 +408,7 @@ function PortalDashboard({
           <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
             CPF{" "}
             <strong style={{ color: "var(--ink)" }}>
-              {patient?.cpf ? formatCpf(patient.cpf) : "—"}
+              {patient?.cpf ? applyCpfMask(patient.cpf) : "—"}
             </strong>
           </span>
           {patient?.healthInsurance && (

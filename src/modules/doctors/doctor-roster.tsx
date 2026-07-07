@@ -7,7 +7,7 @@ import { DefaultService, doctorsDelete } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
-import { applyPhoneMask, formatPhone } from "@/lib/formatters";
+import { applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
 const createDoctorSchema = z.object({
@@ -231,7 +231,7 @@ export function DoctorRoster({
                     </div>
                     <div className="meta-row mt-1">
                       {doctor.email ? <span>{doctor.email}</span> : null}
-                      {doctor.phone ? <span>{formatPhone(doctor.phone)}</span> : null}
+                      {doctor.phone ? <span>{applyPhoneMask(doctor.phone)}</span> : null}
                     </div>
                   </div>
                   <div className="toolbar-inline">

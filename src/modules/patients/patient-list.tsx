@@ -6,7 +6,7 @@ import { z } from "zod";
 import { DefaultService, downloadPatientDocument, patientsDelete } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
-import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask, formatCpf, formatPhone } from "@/lib/formatters";
+import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
 const schema = z.object({
@@ -349,8 +349,8 @@ export function PatientList({
                       {patient.name ?? "Paciente"}
                     </h4>
                     <div className="meta-row mt-2">
-                      <span>CPF {patient.cpf ? formatCpf(patient.cpf) : "Nao informado"}</span>
-                      <span>{patient.phone ? formatPhone(patient.phone) : "Sem telefone"}</span>
+                      <span>CPF {patient.cpf ? applyCpfMask(patient.cpf) : "Nao informado"}</span>
+                      <span>{patient.phone ? applyPhoneMask(patient.phone) : "Sem telefone"}</span>
                       <span>{patient.email ?? "Sem email"}</span>
                       {patient.birthDate ? (
                         <span>Nasc. {new Date(patient.birthDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
