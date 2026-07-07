@@ -6,7 +6,7 @@ import { z } from "zod";
 import { DefaultService, downloadPatientDocument, patientsDelete } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
-import { formatFileSize, triggerBrowserDownload } from "@/lib/formatters";
+import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask, formatCpf, formatPhone } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
 const schema = z.object({
@@ -156,10 +156,10 @@ export function PatientList({
               <input className="input-field" {...register("name")} />
             </Field>
             <Field error={errors.cpf?.message} label="CPF">
-              <input className="input-field" {...register("cpf")} />
+              <input className="input-field" placeholder="000.000.000-00" {...register("cpf", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyCpfMask(e.currentTarget.value); }} />
             </Field>
             <Field error={errors.phone?.message} label="Telefone">
-              <input className="input-field" {...register("phone")} />
+              <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
             </Field>
             <Field error={errors.birthDate?.message} label="Data de nascimento">
               <input className="input-field" type="date" {...register("birthDate")} />
@@ -349,8 +349,8 @@ export function PatientList({
                       {patient.name ?? "Paciente"}
                     </h4>
                     <div className="meta-row mt-2">
-                      <span>CPF {patient.cpf ?? "Nao informado"}</span>
-                      <span>{patient.phone ?? "Sem telefone"}</span>
+                      <span>CPF {patient.cpf ? formatCpf(patient.cpf) : "Nao informado"}</span>
+                      <span>{patient.phone ? formatPhone(patient.phone) : "Sem telefone"}</span>
                       <span>{patient.email ?? "Sem email"}</span>
                       {patient.birthDate ? (
                         <span>Nasc. {new Date(patient.birthDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
@@ -475,7 +475,7 @@ function PatientEditForm({
         <input className="input-field" {...register("name")} />
       </Field>
       <Field error={errors.phone?.message} label="Telefone">
-        <input className="input-field" {...register("phone")} />
+        <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
       </Field>
       <Field error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />

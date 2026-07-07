@@ -7,6 +7,8 @@ import { DefaultService, doctorsDelete } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
+import { applyPhoneMask, formatPhone } from "@/lib/formatters";
+import { cn } from "@/lib/cn";
 
 const createDoctorSchema = z.object({
   name: z.string().min(3, "Informe o nome do medico."),
@@ -120,7 +122,7 @@ export function DoctorRoster({
               <input className="input-field" {...register("crm")} />
             </Field>
             <Field error={errors.phone?.message} label="Telefone">
-              <input className="input-field" {...register("phone")} />
+              <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v?.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
             </Field>
             <Field className="md:col-span-2" error={errors.email?.message} label="Email">
               <input className="input-field" {...register("email")} />
@@ -229,7 +231,7 @@ export function DoctorRoster({
                     </div>
                     <div className="meta-row mt-1">
                       {doctor.email ? <span>{doctor.email}</span> : null}
-                      {doctor.phone ? <span>{doctor.phone}</span> : null}
+                      {doctor.phone ? <span>{formatPhone(doctor.phone)}</span> : null}
                     </div>
                   </div>
                   <div className="toolbar-inline">
@@ -353,7 +355,7 @@ function DoctorEditForm({
         <input className="input-field" {...register("specialty")} />
       </Field>
       <Field error={errors.phone?.message} label="Telefone">
-        <input className="input-field" {...register("phone")} />
+        <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v?.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
       </Field>
       <Field error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />

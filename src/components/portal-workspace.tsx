@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PortalService } from "@/services/portal-api";
+import { formatCpf, applyCpfMask } from "@/lib/formatters";
 import {
   readPortalSession,
   savePortalSession,
@@ -179,7 +180,8 @@ function PortalLogin({ onLogin }: { onLogin: () => void }) {
                 className="input-field"
                 placeholder="000.000.000-00"
                 type="text"
-                {...register("cpf")}
+                {...register("cpf", { setValueAs: (v: string) => v.replace(/\D/g, "") })}
+                onInput={(e) => { e.currentTarget.value = applyCpfMask(e.currentTarget.value); }}
               />
               {errors.cpf && (
                 <span className="mt-1.5 block text-xs text-[var(--danger)]">
@@ -899,12 +901,6 @@ function getInitials(name: string) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-}
-
-function formatCpf(cpf: string) {
-  const d = cpf.replace(/\D/g, "");
-  if (d.length !== 11) return cpf;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
 
 /* ─── Root ───────────────────────────────────────────────────────── */
