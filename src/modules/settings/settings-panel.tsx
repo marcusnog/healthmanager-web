@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Field } from "@/components/ui/field";
-import { changePassword } from "@/services/api";
+import { DefaultService } from "@/services/api";
 
 const SETTINGS = [
   {
@@ -86,7 +86,7 @@ function ChangePasswordForm() {
 
     setLoading(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      await DefaultService.authChangePassword({ currentPassword, newPassword });
       setStatus({ type: "success", message: "Senha alterada com sucesso." });
       setCurrentPassword("");
       setNewPassword("");

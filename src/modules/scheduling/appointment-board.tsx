@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
-import { DefaultService, appointmentsUpdate } from "@/services/api";
+import { DefaultService } from "@/services/api";
 import {
   StatusBadge,
   resolveAppointmentStatus,
@@ -295,7 +295,7 @@ export function AppointmentBoard({
         type?: string;
         amount?: number;
       };
-    }) => appointmentsUpdate(appointmentId, values),
+    }) => DefaultService.appointmentsUpdate(appointmentId, values),
     onSuccess: async () => {
       setFeedback("Consulta atualizada com sucesso.");
       setEditingAppointment(null);

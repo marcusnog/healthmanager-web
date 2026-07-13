@@ -12,7 +12,7 @@ import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService, doctorsListPaged, paymentsList, dashboardSummary, expensesList, financialSummary } from "@/services/api";
+import { DefaultService, expensesList, financialSummary } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
@@ -270,7 +270,7 @@ export function CrmWorkspace() {
   });
   const doctorsQuery = useQuery({
     queryKey: ["doctors", doctorSearch, doctorPage],
-    queryFn: () => guardedQuery(() => doctorsListPaged(doctorPage, 10, doctorSearch || undefined), fallbackDoctorsPage),
+    queryFn: () => guardedQuery(() => DefaultService.doctorsList(doctorPage, 10, doctorSearch || undefined), fallbackDoctorsPage),
     placeholderData: fallbackDoctorsPage,
     enabled: authenticated,
   });
@@ -282,7 +282,7 @@ export function CrmWorkspace() {
 
   const summaryQuery = useQuery({
     queryKey: ["dashboard-summary", currentDoctorId],
-    queryFn: () => guardedQuery(() => dashboardSummary(currentDoctorId), fallbackSummary),
+    queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(currentDoctorId), fallbackSummary),
     placeholderData: fallbackSummary,
     enabled: authenticated,
   });
@@ -300,7 +300,7 @@ export function CrmWorkspace() {
 
   const paymentsQuery = useQuery({
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
-    queryFn: () => guardedQuery(() => paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });

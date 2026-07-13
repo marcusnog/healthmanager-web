@@ -4,19 +4,21 @@
 /* eslint-disable */
 import type { AppointmentResponse } from '../models/AppointmentResponse';
 import type { AuthResponse } from '../models/AuthResponse';
+import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
+import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { CreatePatientDocumentRequest } from '../models/CreatePatientDocumentRequest';
 import type { CreatePatientRequest } from '../models/CreatePatientRequest';
 import type { CreatePaymentRequest } from '../models/CreatePaymentRequest';
-import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { DashboardSummaryResponse } from '../models/DashboardSummaryResponse';
 import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
+import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
 import type { PagedPatientResponse } from '../models/PagedPatientResponse';
+import type { PagedPaymentResponse } from '../models/PagedPaymentResponse';
 import type { PagedReceivableResponse } from '../models/PagedReceivableResponse';
-import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { PatientDocumentResponse } from '../models/PatientDocumentResponse';
 import type { PatientPortalAppointmentResponse } from '../models/PatientPortalAppointmentResponse';
 import type { PatientPortalAuthResponse } from '../models/PatientPortalAuthResponse';
@@ -25,7 +27,9 @@ import type { PatientPortalProfileResponse } from '../models/PatientPortalProfil
 import type { PatientPortalReceivableResponse } from '../models/PatientPortalReceivableResponse';
 import type { PatientResponse } from '../models/PatientResponse';
 import type { PaymentResponse } from '../models/PaymentResponse';
+import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentRequest';
 import type { UpdateDoctorRequest } from '../models/UpdateDoctorRequest';
 import type { UpdatePatientRequest } from '../models/UpdatePatientRequest';
 import type { UploadPatientDocumentForm } from '../models/UploadPatientDocumentForm';
@@ -74,6 +78,21 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/auth/logout',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns void
+     * @throws ApiError
+     */
+    public static authChangePassword(
+        requestBody: ChangePasswordRequest,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/auth/change-password',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -145,6 +164,22 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static patientsDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/patients/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
@@ -258,13 +293,25 @@ export class DefaultService {
         });
     }
     /**
-     * @returns DoctorResponse OK
+     * @param page
+     * @param pageSize
+     * @param search
+     * @returns PagedDoctorResponse OK
      * @throws ApiError
      */
-    public static doctorsList(): CancelablePromise<Array<DoctorResponse>> {
+    public static doctorsList(
+        page: number = 1,
+        pageSize: number = 20,
+        search?: string,
+    ): CancelablePromise<PagedDoctorResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/doctors',
+            query: {
+                'Page': page,
+                'PageSize': pageSize,
+                'Search': search,
+            },
         });
     }
     /**
@@ -303,11 +350,29 @@ export class DefaultService {
         });
     }
     /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static doctorsDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/doctors/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
      * @param page
      * @param pageSize
      * @param date
      * @param doctorId
      * @param status
+     * @param dateFrom
+     * @param dateTo
      * @returns PagedAppointmentResponse OK
      * @throws ApiError
      */
@@ -430,6 +495,26 @@ export class DefaultService {
         });
     }
     /**
+     * @param id
+     * @param requestBody
+     * @returns AppointmentResponse OK
+     * @throws ApiError
+     */
+    public static appointmentsUpdate(
+        id: string,
+        requestBody: UpdateAppointmentRequest,
+    ): CancelablePromise<AppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/appointments/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * @param page
      * @param pageSize
      * @param status
@@ -447,13 +532,56 @@ export class DefaultService {
     ): CancelablePromise<PagedReceivableResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/receivables',
+            url: '/financial/receivables',
             query: {
                 'page': page,
                 'pageSize': pageSize,
                 'status': status,
                 'dateFrom': dateFrom,
                 'dateTo': dateTo,
+            },
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns ReceivableResponse Created
+     * @throws ApiError
+     */
+    public static receivablesManual(
+        requestBody: CreateManualReceivableRequest,
+    ): CancelablePromise<ReceivableResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/financial/receivables/manual',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param receivableId
+     * @param dateFrom
+     * @param dateTo
+     * @returns PagedPaymentResponse OK
+     * @throws ApiError
+     */
+    public static paymentsList(
+        page: number = 1,
+        pageSize: number = 20,
+        receivableId?: string,
+        dateFrom?: string,
+        dateTo?: string,
+    ): CancelablePromise<PagedPaymentResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/financial/payments',
+            query: {
+                'Page': page,
+                'PageSize': pageSize,
+                'ReceivableId': receivableId,
+                'DateFrom': dateFrom,
+                'DateTo': dateTo,
             },
         });
     }
@@ -467,34 +595,25 @@ export class DefaultService {
     ): CancelablePromise<PaymentResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/payments',
+            url: '/financial/payments',
             body: requestBody,
             mediaType: 'application/json',
         });
     }
     /**
-     * @param requestBody
-     * @returns ReceivableResponse Created
-     * @throws ApiError
-     */
-    public static receivablesManual(
-        requestBody: CreateManualReceivableRequest,
-    ): CancelablePromise<ReceivableResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/receivables/manual',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
+     * @param doctorId
      * @returns DashboardSummaryResponse OK
      * @throws ApiError
      */
-    public static dashboardSummary(): CancelablePromise<DashboardSummaryResponse> {
+    public static dashboardSummary(
+        doctorId?: string,
+    ): CancelablePromise<DashboardSummaryResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/dashboard/summary',
+            query: {
+                'doctorId': doctorId,
+            },
         });
     }
     /**

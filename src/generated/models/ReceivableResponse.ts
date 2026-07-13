@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type ReceivableResponse = {
     id?: string;
-    appointmentId?: string;
+    appointmentId?: string | null;
     originalAmount?: number;
     receivedAmount?: number;
     outstandingAmount?: number;

@@ -13,8 +13,8 @@ vi.mock("@/services/api", () => ({
   DefaultService: {
     doctorsCreate,
     doctorsUpdate,
+    doctorsDelete,
   },
-  doctorsDelete,
 }));
 
 const defaultProps = {

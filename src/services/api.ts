@@ -33,80 +33,6 @@ async function apiFetch(
   return response;
 }
 
-export async function downloadPatientDocument(
-  patientId: string,
-  documentId: string,
-) {
-  const response = await apiFetch(
-    `/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/download`,
-  );
-  return response.blob();
-}
-
-export async function patientsDelete(patientId: string): Promise<void> {
-  await apiFetch(`/patients/${encodeURIComponent(patientId)}`, {
-    method: "DELETE",
-  });
-}
-
-export async function doctorsDelete(doctorId: string): Promise<void> {
-  await apiFetch(`/doctors/${encodeURIComponent(doctorId)}`, {
-    method: "DELETE",
-  });
-}
-
-export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  await apiFetch("/auth/change-password", {
-    method: "POST",
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
-}
-
-export async function appointmentsUpdate(
-  appointmentId: string,
-  body: {
-    doctorId?: string;
-    startAt?: string;
-    durationMinutes?: number;
-    notes?: string;
-    type?: string;
-    amount?: number;
-  },
-) {
-  const response = await apiFetch(
-    `/appointments/${encodeURIComponent(appointmentId)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    },
-  );
-  return response.json();
-}
-
-export async function paymentsList(
-  page: number = 1,
-  pageSize: number = 20,
-  receivableId?: string,
-  dateFrom?: string,
-  dateTo?: string,
-) {
-  const params = new URLSearchParams();
-  params.set("Page", String(page));
-  params.set("PageSize", String(pageSize));
-  if (receivableId) params.set("ReceivableId", receivableId);
-  if (dateFrom) params.set("DateFrom", dateFrom);
-  if (dateTo) params.set("DateTo", dateTo);
-
-  const response = await apiFetch(`/payments?${params.toString()}`);
-  return response.json();
-}
-
-export async function dashboardSummary(doctorId?: string) {
-  const params = doctorId ? `?doctorId=${encodeURIComponent(doctorId)}` : "";
-  const response = await apiFetch(`/dashboard/summary${params}`);
-  return response.json() as Promise<import("@/generated").DashboardSummaryResponse>;
-}
-
 export async function expensesList(
   page: number = 1,
   pageSize: number = 20,
@@ -153,25 +79,6 @@ export async function financialSummary() {
     totalReceived: number;
     totalExpenses: number;
     balance: number;
-  }>;
-}
-
-export async function doctorsListPaged(
-  page: number = 1,
-  pageSize: number = 20,
-  search?: string,
-) {
-  const params = new URLSearchParams();
-  params.set("Page", String(page));
-  params.set("PageSize", String(pageSize));
-  if (search) params.set("Search", search);
-
-  const response = await apiFetch(`/doctors?${params.toString()}`);
-  return response.json() as Promise<{
-    items: import("@/generated").DoctorResponse[];
-    page: number;
-    pageSize: number;
-    total: number;
   }>;
 }
 

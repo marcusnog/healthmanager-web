@@ -8,15 +8,15 @@ const {
   patientsDocumentsDelete,
   patientsDocumentsList,
   patientsDocumentsUpload,
+  patientsDocumentsDownload,
   patientsUpdate,
-  downloadPatientDocument,
 } = vi.hoisted(() => ({
   patientsCreate: vi.fn(),
   patientsDocumentsDelete: vi.fn(),
   patientsDocumentsList: vi.fn(),
   patientsDocumentsUpload: vi.fn(),
+  patientsDocumentsDownload: vi.fn(),
   patientsUpdate: vi.fn(),
-  downloadPatientDocument: vi.fn(),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -25,9 +25,9 @@ vi.mock("@/services/api", () => ({
     patientsDocumentsDelete,
     patientsDocumentsList,
     patientsDocumentsUpload,
+    patientsDocumentsDownload,
     patientsUpdate,
   },
-  downloadPatientDocument,
 }));
 
 describe("PatientList", () => {
@@ -57,7 +57,7 @@ describe("PatientList", () => {
     patientsDocumentsList.mockReset();
     patientsDocumentsUpload.mockReset();
     patientsUpdate.mockReset();
-    downloadPatientDocument.mockReset();
+    patientsDocumentsDownload.mockReset();
     baseProps.onPageChange.mockReset();
     baseProps.onSearchChange.mockReset();
     anchorClickSpy = vi
@@ -91,7 +91,7 @@ describe("PatientList", () => {
         storagePath: "clinics/clinic-1/patients/patient-1/laudo.pdf",
       },
     ]);
-    downloadPatientDocument.mockResolvedValueOnce(
+    patientsDocumentsDownload.mockResolvedValueOnce(
       new Blob(["pdf-demo"], { type: "application/pdf" }),
     );
 
@@ -123,7 +123,7 @@ describe("PatientList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Baixar" }));
 
     await waitFor(() =>
-      expect(downloadPatientDocument).toHaveBeenCalledWith(
+      expect(patientsDocumentsDownload).toHaveBeenCalledWith(
         "patient-1",
         "document-1",
       ),

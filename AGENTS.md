@@ -13,6 +13,7 @@ Next.js 16.2.5 App Router + React 19 — CRM médico multi-tenant.
 
 ```bash
 npm install
+npm ci                             # CI — faster, respects lockfile
 npm run dev                        # local dev at :3000
 npm run build
 npm run lint
@@ -24,6 +25,8 @@ npm run generate:api               # regenerates src/generated/ from backend ope
 ```
 
 Before first E2E run: `npx playwright install chromium`.
+
+`generate:api` reads `../HealthManager/docs/openapi.json` (sibling backend repo) via `openapi-typescript-codegen`. The backend repo must be at the expected path.
 
 ## Project structure
 
@@ -54,12 +57,23 @@ tests/
 
 - `@/` path alias maps to `./src` (configured in tsconfig.json)
 - OpenAPI client lives in `src/generated/` — never edit by hand. Regenerate via `npm run generate:api` pointing to the backend's `docs/openapi.json`
+- Hand-written API wrappers live in `src/services/api.ts` (extends the generated client for custom endpoints like document download, payments, expenses)
 - Backend proxy: `/backend/*` rewrites to `API_PROXY_TARGET` (default `http://127.0.0.1:8080`) — see `next.config.ts`
 - Vitest: jsdom environment, coverage excludes `src/generated/` and `src/app/`
 - Two Playwright configs: `playwright.config.ts` (mocked) and `playwright.real.config.ts` (real backend — starts .NET API in-memory automatically)
-- Tailwind v4 with `@tailwindcss/postcss` (new config system, no `tailwind.config.js`)
+- Tailwind v4 with `@tailwindcss/postcss` (no `tailwind.config.js`)
 - Zod v4 + React Hook Form + `@hookform/resolvers` for forms
 - `@tanstack/react-query` for data fetching
+- UI primitives in `src/components/ui/`: Avatar, Modal, Field, EmptyState, StatusBadge
+- Test wrapper in `src/test/render.tsx`: `renderWithProviders(ui)` wraps components in QueryClientProvider
+- CI runs `lint → test → build` with Node 20, `npm ci`
+
+## Environment variables
+
+| Variable | Required? | Default | Purpose |
+|----------|-----------|---------|---------|
+| `NEXT_PUBLIC_API_BASE_URL` | No | `/backend` | API base URL (overrides dev proxy) |
+| `API_PROXY_TARGET` | No | `http://127.0.0.1:8080` | Backend dev server for `next.config.ts` rewrites |
 
 ## Visual design rules
 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 function XIcon() {
   return (
@@ -20,36 +20,31 @@ export function Modal({
   children: React.ReactNode;
   size?: "md" | "lg";
 }) {
+  const ref = useRef<HTMLDialogElement>(null);
+
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const el = ref.current;
+    if (!el) return;
+    if (typeof el.showModal === "function") el.showModal();
+    const handler = () => onClose();
+    el.addEventListener("close", handler);
+    return () => el.removeEventListener("close", handler);
   }, [onClose]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className={`modal-panel ${size === "lg" ? "modal-panel-lg" : "modal-panel-md"}`}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-          <button
-            className="modal-close"
-            onClick={onClose}
-            type="button"
-            aria-label="Fechar"
-          >
-            <XIcon />
-          </button>
-        </div>
-        <div className="modal-body">{children}</div>
+    <dialog ref={ref} className={`modal-panel ${size === "lg" ? "modal-panel-lg" : "modal-panel-md"}`}>
+      <div className="modal-header">
+        <h2 className="modal-title">{title}</h2>
+        <button
+          className="modal-close"
+          onClick={onClose}
+          type="button"
+          aria-label="Fechar"
+        >
+          <XIcon />
+        </button>
       </div>
-    </div>
+      <div className="modal-body">{children}</div>
+    </dialog>
   );
 }

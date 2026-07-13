@@ -10,3 +10,4 @@ export type CreateManualReceivableRequest = {
     paidAt?: string;
     notes?: string;
 };
+

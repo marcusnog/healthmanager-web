@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, downloadPatientDocument, patientsDelete } from "@/services/api";
+import { DefaultService } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
@@ -130,7 +130,7 @@ export function PatientList({
   const deletePatient = useMutation({
     mutationFn: async (patientId: string) => {
       setDeletingPatientId(patientId);
-      await patientsDelete(patientId);
+      await DefaultService.patientsDelete(patientId);
     },
     onSuccess: async () => {
       setFeedback("Paciente excluido com sucesso.");
@@ -584,7 +584,7 @@ function PatientDocumentsPanel({
       }
 
       setDownloadingDocumentId(patientDocument.id);
-      const file = await downloadPatientDocument(patientId, patientDocument.id);
+      const file = await DefaultService.patientsDocumentsDownload(patientId, patientDocument.id);
 
       triggerBrowserDownload(
         file,

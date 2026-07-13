@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, doctorsDelete } from "@/services/api";
+import { DefaultService } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
@@ -93,7 +93,7 @@ export function DoctorRoster({
   const deleteDoctor = useMutation({
     mutationFn: async (doctorId: string) => {
       setDeletingDoctorId(doctorId);
-      await doctorsDelete(doctorId);
+      await DefaultService.doctorsDelete(doctorId);
     },
     onSuccess: async () => {
       setFeedback("Medico excluido com sucesso.");
