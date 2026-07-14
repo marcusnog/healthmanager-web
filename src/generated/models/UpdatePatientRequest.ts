@@ -7,6 +7,6 @@ export type UpdatePatientRequest = {
     phone: string;
     email?: string;
     healthInsurance?: string;
+    healthInsuranceId?: string;
     notes?: string;
 };
-

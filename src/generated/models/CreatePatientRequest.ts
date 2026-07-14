@@ -9,6 +9,6 @@ export type CreatePatientRequest = {
     phone: string;
     email?: string;
     healthInsurance?: string;
+    healthInsuranceId?: string;
     notes?: string;
 };
-

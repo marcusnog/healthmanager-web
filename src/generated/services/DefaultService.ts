@@ -340,7 +340,7 @@ export class DefaultService {
         requestBody: UpdateDoctorRequest,
     ): CancelablePromise<DoctorResponse> {
         return __request(OpenAPI, {
-            method: 'PATCH',
+            method: 'PUT',
             url: '/doctors/{id}',
             path: {
                 'id': id,

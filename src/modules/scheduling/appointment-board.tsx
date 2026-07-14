@@ -336,7 +336,7 @@ export function AppointmentBoard({
                 {doctors.map((doctor) => (
                   <option key={doctor.id ?? doctor.crm} value={doctor.id}>
                     {doctor.name}
-                    {doctor.specialty ? ` - ${doctor.specialty}` : ""}
+                    {(doctor.specialties ?? []).length > 0 ? ` - ${doctor.specialties!.map((s) => s.name).join(", ")}` : ""}
                   </option>
                 ))}
               </select>
@@ -455,13 +455,13 @@ export function AppointmentBoard({
                   <option value="">Todos</option>
                   {doctors.map((doctor) => (
                     <option key={doctor.id ?? doctor.crm} value={doctor.id}>
-                      {doctor.name}
-                      {doctor.specialty ? ` - ${doctor.specialty}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
+                    {doctor.name}
+                    {(doctor.specialties ?? []).length > 0 ? ` - ${doctor.specialties!.map((s) => s.name).join(", ")}` : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
             <div className="toolbar-inline flex-wrap gap-3">
               <button
                 className="btn btn-ghost btn-sm"
@@ -753,7 +753,7 @@ function AppointmentEditForm({
           {doctors.map((doctor) => (
             <option key={doctor.id} value={doctor.id}>
               {doctor.name}
-              {doctor.specialty ? ` - ${doctor.specialty}` : ""}
+              {(doctor.specialties ?? []).length > 0 ? ` - ${doctor.specialties!.map((s) => s.name).join(", ")}` : ""}
             </option>
           ))}
         </select>

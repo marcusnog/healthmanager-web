@@ -11,8 +11,11 @@ import { PatientList } from "@/modules/patients/patient-list";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
+import { HealthInsuranceList } from "@/modules/health-insurances/health-insurance-list";
+import { SpecialtyList } from "@/modules/specialties/specialty-list";
+import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService, expensesList, financialSummary } from "@/services/api";
+import { DefaultService, expensesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type {
   DashboardSummaryResponse,
@@ -34,6 +37,9 @@ type Section =
   | "pacientes"
   | "financeiro"
   | "medicos"
+  | "convenios"
+  | "especialidades"
+  | "agenda-medicos"
   | "configuracoes";
 
 /* ─── Icons ─────────────────────────────────────────────────────── */
@@ -81,6 +87,29 @@ function MedicosIcon() {
     </svg>
   );
 }
+function HealthIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
+}
+function TagIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <path d="M7 7h.01" />
+    </svg>
+  );
+}
+function ClockIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  );
+}
 function ConfigIcon() {
   return (
     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
@@ -112,20 +141,26 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
   { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
   { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
+  { section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
+  { section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
+  { section: "agenda-medicos",icon: <ClockIcon />,      label: "Agenda Médicos" },
   { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
 const DOCTOR_NAV = NAV.filter((n) =>
-  ["dashboard", "agenda", "pacientes"].includes(n.section),
+  ["dashboard", "agenda", "pacientes", "agenda-medicos"].includes(n.section),
 );
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
-  dashboard:     { title: "Dashboard",      subtitle: "Resumo da operação de hoje" },
-  agenda:        { title: "Agenda",         subtitle: "Consultas, confirmações e cancelamentos" },
-  pacientes:     { title: "Pacientes",      subtitle: "Cadastro, busca e documentos" },
-  financeiro:    { title: "Financeiro",     subtitle: "Receitas, despesas e saldo" },
-  medicos:       { title: "Médicos",        subtitle: "Equipe médica e disponibilidade" },
-  configuracoes: { title: "Configurações",  subtitle: "Configurações operacionais" },
+  dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
+  agenda:         { title: "Agenda",           subtitle: "Consultas, confirmações e cancelamentos" },
+  pacientes:      { title: "Pacientes",        subtitle: "Cadastro, busca e documentos" },
+  financeiro:     { title: "Financeiro",       subtitle: "Receitas, despesas e saldo" },
+  medicos:        { title: "Médicos",          subtitle: "Equipe médica e disponibilidade" },
+  convenios:      { title: "Convênios",        subtitle: "Cadastro de convênios e contatos" },
+  especialidades: { title: "Especialidades",   subtitle: "Especialidades e vínculo com médicos" },
+  "agenda-medicos": { title: "Agenda por Médico", subtitle: "Horários disponíveis por profissional" },
+  configuracoes:  { title: "Configurações",    subtitle: "Configurações operacionais" },
 };
 
 const DOCTOR_SECTION_TITLE: Record<string, { title: string; subtitle: string }> = {
@@ -155,7 +190,7 @@ const fallbackPatients: PatientResponse[] = [
 ];
 
 const fallbackDoctors: DoctorResponse[] = [
-  { id: "fallback-doctor-1", name: "Dra. Luciana Costa", specialty: "Dermatologia", crm: "CRM-SP-987654", phone: "11997776655", email: "luciana@clinica.com", isActive: true },
+  { id: "fallback-doctor-1", name: "Dra. Luciana Costa", specialties: [{ id: "spec-1", name: "Dermatologia" }], crm: "CRM-SP-987654", phone: "11997776655", email: "luciana@clinica.com", isActive: true },
 ];
 
 const fallbackDoctorsPage = { items: fallbackDoctors, page: 1, pageSize: 10, total: fallbackDoctors.length };
@@ -175,6 +210,7 @@ const RECEIVABLES_PAGE_SIZE = 5;
 const fallbackPatientsPage: PagedPatientResponse = { items: fallbackPatients, page: 1, pageSize: PATIENTS_PAGE_SIZE, total: fallbackPatients.length };
 const fallbackAppointmentsPage: PagedAppointmentResponse = { items: fallbackAppointments, page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: fallbackAppointments.length };
 const fallbackReceivablesPage: PagedReceivableResponse = { items: fallbackReceivables, page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: fallbackReceivables.length };
+const EMPTY_PAGE = { items: [] as any[], page: 1, pageSize: 20, total: 0 };
 
 function filterAppointmentsForDate(appointments: AppointmentResponse[], date: string) {
   return appointments.filter((a) => a.startAt?.slice(0, 10) === date);
@@ -225,6 +261,12 @@ export function CrmWorkspace() {
   const [expenseStatus, setExpenseStatus] = useState<string | undefined>(undefined);
   const [expenseDateFrom, setExpenseDateFrom] = useState<string | undefined>(undefined);
   const [expenseDateTo, setExpenseDateTo] = useState<string | undefined>(undefined);
+  const [hiSearch, setHiSearch] = useState("");
+  const [hiPage, setHiPage] = useState(1);
+  const [specSearch, setSpecSearch] = useState("");
+  const [specPage, setSpecPage] = useState(1);
+  const [availPage, setAvailPage] = useState(1);
+  const [availDoctorId, setAvailDoctorId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1025);
@@ -300,8 +342,8 @@ export function CrmWorkspace() {
 
   const paymentsQuery = useQuery({
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
-    queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
-    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
+        queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), EMPTY_PAGE),
+    placeholderData: EMPTY_PAGE,
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
@@ -324,11 +366,29 @@ export function CrmWorkspace() {
 
   const expensesQuery = useQuery({
     queryKey: ["expenses", expensePage, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo],
-    queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
-    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
+        queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), EMPTY_PAGE),
+    placeholderData: EMPTY_PAGE,
     enabled: authenticated,
   });
 
+  const healthInsQuery = useQuery({
+    queryKey: ["healthInsurances", hiSearch, hiPage],
+    queryFn: () => guardedQuery(() => healthInsurancesList(hiPage, 20, hiSearch || undefined), EMPTY_PAGE),
+    placeholderData: EMPTY_PAGE,
+    enabled: authenticated,
+  });
+  const specialtiesQuery = useQuery({
+    queryKey: ["specialties", specSearch, specPage],
+    queryFn: () => guardedQuery(() => specialtiesList(specPage, 20, specSearch || undefined), EMPTY_PAGE),
+    placeholderData: EMPTY_PAGE,
+    enabled: authenticated,
+  });
+  const availabilitiesQuery = useQuery({
+    queryKey: ["availabilities", availPage, availDoctorId],
+    queryFn: () => guardedQuery(() => availabilitiesList(availPage, 50, availDoctorId), { items: [], page: 1, pageSize: 50, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 50, total: 0 },
+    enabled: authenticated,
+  });
   const financialSummaryQuery = useQuery({
     queryKey: ["financial-summary"],
     queryFn: () => guardedQuery(() => financialSummary(), { totalReceived: 0, totalExpenses: 0, balance: 0 }),
@@ -548,6 +608,47 @@ export function CrmWorkspace() {
             pageSize={doctorsData.pageSize ?? 10}
             search={doctorSearch}
             total={doctorsData.total ?? fallbackDoctors.length}
+          />
+        );
+      case "convenios":
+        return (
+          <HealthInsuranceList
+            items={healthInsQuery.data?.items ?? []}
+            page={healthInsQuery.data?.page ?? 1}
+            pageSize={healthInsQuery.data?.pageSize ?? 20}
+            total={healthInsQuery.data?.total ?? 0}
+            search={hiSearch}
+            isLoading={healthInsQuery.isLoading}
+            onSearchChange={(v) => { setHiSearch(v); setHiPage(1); }}
+            onPageChange={setHiPage}
+          />
+        );
+      case "especialidades":
+        return (
+          <SpecialtyList
+            items={specialtiesQuery.data?.items ?? []}
+            page={specialtiesQuery.data?.page ?? 1}
+            pageSize={specialtiesQuery.data?.pageSize ?? 20}
+            total={specialtiesQuery.data?.total ?? 0}
+            search={specSearch}
+            isLoading={specialtiesQuery.isLoading}
+            onSearchChange={(v) => { setSpecSearch(v); setSpecPage(1); }}
+            onPageChange={setSpecPage}
+            onEditDoctor={(doctorId) => { setActiveSection("medicos"); }}
+          />
+        );
+      case "agenda-medicos":
+        return (
+          <AvailabilityList
+            items={availabilitiesQuery.data?.items ?? []}
+            page={availabilitiesQuery.data?.page ?? 1}
+            pageSize={availabilitiesQuery.data?.pageSize ?? 50}
+            total={availabilitiesQuery.data?.total ?? 0}
+            doctorId={availDoctorId}
+            doctors={(doctorsQuery.data?.items ?? []).map((d) => ({ id: d.id ?? "", name: d.name ?? "" }))}
+            isLoading={availabilitiesQuery.isLoading}
+            onDoctorChange={(id) => { setAvailDoctorId(id); setAvailPage(1); }}
+            onPageChange={setAvailPage}
           />
         );
       case "configuracoes":

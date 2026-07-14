@@ -1,18 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService } from "@/services/api";
+import { DefaultService, specialtiesList } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
 import { applyPhoneMask } from "@/lib/formatters";
-import { cn } from "@/lib/cn";
 
 const createDoctorSchema = z.object({
   name: z.string().min(3, "Informe o nome do medico."),
-  specialty: z.string().min(3, "Informe a especialidade."),
   crm: z.string().min(3, "Informe o CRM."),
   phone: z.string().optional(),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
@@ -20,7 +18,6 @@ const createDoctorSchema = z.object({
 
 const updateDoctorSchema = z.object({
   name: z.string().min(3, "Informe o nome do medico."),
-  specialty: z.string().min(3, "Informe a especialidade."),
   phone: z.string().optional(),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
   isActive: z.boolean(),
@@ -55,28 +52,32 @@ export function DoctorRoster({
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateDoctorValues>({
-    resolver: zodResolver(createDoctorSchema),
-    defaultValues: { name: "", specialty: "", crm: "", phone: "", email: "" },
+  const allSpecialtiesQuery = useQuery({
+    queryKey: ["all-specialties"],
+    queryFn: async () => { const r = await specialtiesList(1, 1000); return r.items ?? []; },
+    placeholderData: [],
   });
+  const allSpecialties = allSpecialtiesQuery.data ?? [];
+
+  const form = useForm<CreateDoctorValues>({
+    resolver: zodResolver(createDoctorSchema),
+    defaultValues: { name: "", crm: "", phone: "", email: "" },
+  });
+  const [createSpecialtyIds, setCreateSpecialtyIds] = useState<string[]>([]);
 
   const createDoctor = useMutation({
     mutationFn: async (values: CreateDoctorValues) =>
       DefaultService.doctorsCreate({
         name: values.name,
-        specialty: values.specialty,
         crm: values.crm,
         phone: values.phone || undefined,
         email: values.email || undefined,
+        specialtyIds: createSpecialtyIds.length > 0 ? createSpecialtyIds : undefined,
       }),
     onSuccess: async () => {
       setFeedback("Medico cadastrado com sucesso.");
-      reset();
+      form.reset();
+      setCreateSpecialtyIds([]);
       setIsCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["doctors"] });
     },
@@ -85,7 +86,7 @@ export function DoctorRoster({
     },
   });
 
-  const onCreate = handleSubmit(async (values) => {
+  const onCreate = form.handleSubmit(async (values) => {
     setFeedback(null);
     await createDoctor.mutateAsync(values);
   });
@@ -112,34 +113,33 @@ export function DoctorRoster({
       {isCreateOpen ? (
         <Modal title="Novo medico" onClose={() => setIsCreateOpen(false)}>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={onCreate}>
-            <Field error={errors.name?.message} label="Nome">
-              <input className="input-field" {...register("name")} />
+            <Field error={form.formState.errors.name?.message} label="Nome">
+              <input className="input-field" {...form.register("name")} />
             </Field>
-            <Field error={errors.specialty?.message} label="Especialidade">
-              <input className="input-field" {...register("specialty")} />
+            <Field error={form.formState.errors.crm?.message} label="CRM">
+              <input className="input-field" {...form.register("crm")} />
             </Field>
-            <Field error={errors.crm?.message} label="CRM">
-              <input className="input-field" {...register("crm")} />
+            <Field error={form.formState.errors.phone?.message} label="Telefone">
+              <input className="input-field" placeholder="(11) 98888-0000" {...form.register("phone", { setValueAs: (v: string) => v?.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
             </Field>
-            <Field error={errors.phone?.message} label="Telefone">
-              <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v?.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
+            <Field className="md:col-span-2" error={form.formState.errors.email?.message} label="Email">
+              <input className="input-field" {...form.register("email")} />
             </Field>
-            <Field className="md:col-span-2" error={errors.email?.message} label="Email">
-              <input className="input-field" {...register("email")} />
-            </Field>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-semibold">Especialidades</label>
+              <div className="flex flex-wrap gap-2">
+                {allSpecialties.length === 0 && <p className="text-sm text-(--muted)">Nenhuma especialidade cadastrada. Crie em Configuracoes.</p>}
+                {allSpecialties.map((s: any) => (
+                  <label key={s.id} className="flex items-center gap-1.5 text-sm cursor-pointer rounded border border-(--border) px-2.5 py-1.5 hover:bg-(--surface)">
+                    <input type="checkbox" checked={createSpecialtyIds.includes(s.id)} onChange={() => setCreateSpecialtyIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className="md:col-span-2 flex justify-end gap-3">
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setIsCreateOpen(false)}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={createDoctor.isPending}
-                type="submit"
-              >
+              <button className="btn btn-ghost btn-sm" onClick={() => setIsCreateOpen(false)} type="button">Cancelar</button>
+              <button className="btn btn-primary" disabled={createDoctor.isPending} type="submit">
                 {createDoctor.isPending ? "Salvando..." : "Salvar medico"}
               </button>
             </div>
@@ -151,6 +151,7 @@ export function DoctorRoster({
         <Modal title="Editar medico" onClose={() => setEditingDoctor(null)}>
           <DoctorEditForm
             doctor={editingDoctor}
+            allSpecialties={allSpecialties}
             onSaved={async (message) => {
               setFeedback(message);
               setEditingDoctor(null);
@@ -169,22 +170,13 @@ export function DoctorRoster({
               {total} medico{total === 1 ? "" : "s"} encontrado{total === 1 ? "" : "s"}
             </p>
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => {
-              setFeedback(null);
-              setIsCreateOpen(true);
-            }}
-            type="button"
-          >
+          <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setIsCreateOpen(true); }} type="button">
             Novo medico
           </button>
         </div>
 
         {feedback ? (
-          <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
-            {feedback}
-          </div>
+          <div className="mt-5 rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">{feedback}</div>
         ) : null}
 
         <div className="toolbar mt-4">
@@ -192,12 +184,7 @@ export function DoctorRoster({
             <div className="toolbar-inline flex-wrap gap-3">
               <label className="min-w-0 flex-1">
                 <span className="mb-2 block text-sm font-semibold">Busca</span>
-                <input
-                  className="input-field"
-                  onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder="Buscar por nome, CRM ou especialidade"
-                  value={search}
-                />
+                <input className="input-field" onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar por nome, CRM ou especialidade" value={search} />
               </label>
             </div>
           </div>
@@ -216,17 +203,14 @@ export function DoctorRoster({
             </div>
           ) : (
             doctors.map((doctor) => (
-              <article
-                key={doctor.id ?? doctor.crm ?? doctor.name}
-                className="data-card"
-              >
+              <article key={doctor.id ?? doctor.crm ?? doctor.name} className="data-card">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-[var(--ink)]">
-                      {doctor.name ?? "Medico"}
-                    </h4>
+                    <h4 className="text-sm font-semibold text-[var(--ink)]">{doctor.name ?? "Medico"}</h4>
                     <div className="meta-row mt-1">
-                      {doctor.specialty ? <span>{doctor.specialty}</span> : null}
+                      {(doctor.specialties ?? []).length > 0
+                        ? doctor.specialties!.map((s) => <span key={s.id} className="meta-chip">{s.name}</span>)
+                        : <span className="text-sm text-[var(--muted)]">Sem especialidade</span>}
                       {doctor.crm ? <span>{doctor.crm}</span> : null}
                     </div>
                     <div className="meta-row mt-1">
@@ -235,30 +219,11 @@ export function DoctorRoster({
                     </div>
                   </div>
                   <div className="toolbar-inline">
-                    <StatusBadge
-                      label={doctor.isActive ? "Ativo" : "Inativo"}
-                      variant={doctor.isActive ? "active" : "inactive"}
-                    />
+                    <StatusBadge label={doctor.isActive ? "Ativo" : "Inativo"} variant={doctor.isActive ? "active" : "inactive"} />
                     {doctor.id ? (
                       <>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setEditingDoctor(doctor)}
-                          type="button"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          disabled={deletingDoctorId === doctor.id}
-                          onClick={() => {
-                            if (window.confirm(`Excluir medico ${doctor.name}?`)) {
-                              setFeedback(null);
-                              void deleteDoctor.mutateAsync(doctor.id ?? "");
-                            }
-                          }}
-                          type="button"
-                        >
+                        <button className="btn btn-ghost btn-sm" onClick={() => setEditingDoctor(doctor)} type="button">Editar</button>
+                        <button className="btn btn-danger btn-sm" disabled={deletingDoctorId === doctor.id} onClick={() => { if (window.confirm(`Excluir medico ${doctor.name}?`)) { setFeedback(null); void deleteDoctor.mutateAsync(doctor.id ?? ""); } }} type="button">
                           {deletingDoctorId === doctor.id ? "Excluindo..." : "Excluir"}
                         </button>
                       </>
@@ -271,25 +236,9 @@ export function DoctorRoster({
         </div>
 
         <div className="toolbar-inline mt-5 justify-between">
-          <button
-            className="btn btn-ghost btn-sm"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            type="button"
-          >
-            Anterior
-          </button>
-          <span className="text-sm font-medium text-[var(--muted)]">
-            {page} / {totalPages}
-          </span>
-          <button
-            className="btn btn-ghost btn-sm"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            type="button"
-          >
-            Proxima
-          </button>
+          <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} type="button">Anterior</button>
+          <span className="text-sm font-medium text-[var(--muted)]">{page} / {totalPages}</span>
+          <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} type="button">Proxima</button>
         </div>
       </section>
     </>
@@ -298,14 +247,19 @@ export function DoctorRoster({
 
 function DoctorEditForm({
   doctor,
+  allSpecialties,
   onSaved,
   onCancel,
 }: {
   doctor: DoctorResponse;
+  allSpecialties: any[];
   onSaved: (message: string) => Promise<void>;
   onCancel: () => void;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [specialtyIds, setSpecialtyIds] = useState<string[]>(
+    () => (doctor.specialties ?? []).map((s) => s.id).filter(Boolean) as string[],
+  );
   const {
     register,
     handleSubmit,
@@ -314,7 +268,6 @@ function DoctorEditForm({
     resolver: zodResolver(updateDoctorSchema),
     defaultValues: {
       name: doctor.name ?? "",
-      specialty: doctor.specialty ?? "",
       phone: doctor.phone ?? "",
       email: doctor.email ?? "",
       isActive: doctor.isActive ?? true,
@@ -325,16 +278,14 @@ function DoctorEditForm({
     mutationFn: async (values: UpdateDoctorValues) =>
       DefaultService.doctorsUpdate(doctor.id ?? "", {
         name: values.name,
-        specialty: values.specialty,
         phone: values.phone || undefined,
         email: values.email || undefined,
         isActive: values.isActive,
+        specialtyIds: specialtyIds.length > 0 ? specialtyIds : undefined,
       }),
     onSuccess: async (updatedDoctor) => {
       setFeedback("Medico atualizado com sucesso.");
-      await onSaved(
-        `${updatedDoctor.name ?? doctor.name ?? "Medico"} atualizado com sucesso.`,
-      );
+      await onSaved(`${updatedDoctor.name ?? doctor.name ?? "Medico"} atualizado com sucesso.`);
     },
     onError: () => {
       setFeedback("Nao foi possivel atualizar o medico agora.");
@@ -351,39 +302,32 @@ function DoctorEditForm({
       <Field error={errors.name?.message} label="Nome">
         <input className="input-field" {...register("name")} />
       </Field>
-      <Field error={errors.specialty?.message} label="Especialidade">
-        <input className="input-field" {...register("specialty")} />
-      </Field>
       <Field error={errors.phone?.message} label="Telefone">
         <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v?.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
       </Field>
-      <Field error={errors.email?.message} label="Email">
+      <Field className="md:col-span-2" error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />
       </Field>
+      <div className="md:col-span-2">
+        <label className="mb-2 block text-sm font-semibold">Especialidades</label>
+        <div className="flex flex-wrap gap-2">
+          {allSpecialties.length === 0 && <p className="text-sm text-(--muted)">Nenhuma especialidade cadastrada.</p>}
+          {allSpecialties.map((s: any) => (
+            <label key={s.id} className="flex items-center gap-1.5 text-sm cursor-pointer rounded border border-(--border) px-2.5 py-1.5 hover:bg-(--surface)">
+              <input type="checkbox" checked={specialtyIds.includes(s.id)} onChange={() => setSpecialtyIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} />
+              {s.name}
+            </label>
+          ))}
+        </div>
+      </div>
       <label className="flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-sm font-semibold md:col-span-2">
-        <input
-          className="h-4 w-4 accent-[var(--brand)]"
-          type="checkbox"
-          {...register("isActive")}
-        />
+        <input className="h-4 w-4 accent-[var(--brand)]" type="checkbox" {...register("isActive")} />
         Medico disponivel para a agenda
       </label>
-      {feedback ? (
-        <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
-      ) : null}
+      {feedback ? <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p> : null}
       <div className="md:col-span-2 flex justify-end gap-3">
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={onCancel}
-          type="button"
-        >
-          Cancelar
-        </button>
-        <button
-          className="btn btn-primary"
-          disabled={updateDoctor.isPending}
-          type="submit"
-        >
+        <button className="btn btn-ghost btn-sm" onClick={onCancel} type="button">Cancelar</button>
+        <button className="btn btn-primary" disabled={updateDoctor.isPending} type="submit">
           {updateDoctor.isPending ? "Salvando..." : "Salvar alteracoes"}
         </button>
       </div>

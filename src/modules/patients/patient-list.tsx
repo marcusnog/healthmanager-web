@@ -3,19 +3,31 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService } from "@/services/api";
+import { DefaultService, healthInsurancesList } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
+function isValidCpf(cpf: string): boolean {
+  const digits = cpf.replace(/\D/g, "");
+  if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) return false;
+  const calc = (factor: number) => {
+    let sum = 0;
+    for (let i = 0; i < factor - 1; i++) sum += parseInt(digits[i]) * (factor - i);
+    const rem = (sum * 10) % 11;
+    return rem === 10 ? 0 : rem;
+  };
+  return calc(10) === parseInt(digits[9]) && calc(11) === parseInt(digits[10]);
+}
+
 const schema = z.object({
   name: z.string().min(3, "Informe o nome do paciente."),
-  cpf: z.string().min(11, "Informe um CPF valido."),
+  cpf: z.string().refine((v) => isValidCpf(v), { message: "CPF invalido." }),
   phone: z.string().min(10, "Informe um telefone valido."),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
   birthDate: z.string().optional(),
-  healthInsurance: z.string().optional(),
+  healthInsuranceId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -29,7 +41,7 @@ const patientUpdateSchema = z.object({
   name: z.string().min(3, "Informe o nome do paciente."),
   phone: z.string().min(10, "Informe um telefone valido."),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
-  healthInsurance: z.string().optional(),
+  healthInsuranceId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -92,10 +104,17 @@ export function PatientList({
       phone: "",
       email: "",
       birthDate: "",
-      healthInsurance: "",
+      healthInsuranceId: "",
       notes: "",
     },
   });
+
+  const healthInsQuery = useQuery({
+    queryKey: ["health-insurances-catalog"],
+    queryFn: async () => { const r = await healthInsurancesList(1, 200); return r.items ?? []; },
+    placeholderData: [],
+  });
+  const healthPlans = healthInsQuery.data ?? [];
 
   const createPatient = useMutation({
     mutationFn: async (values: FormValues) =>
@@ -105,7 +124,7 @@ export function PatientList({
         phone: values.phone.replace(/\D/g, ""),
         email: values.email || undefined,
         birthDate: values.birthDate || undefined,
-        healthInsurance: values.healthInsurance || undefined,
+        healthInsuranceId: values.healthInsuranceId || undefined,
         notes: values.notes || undefined,
       }),
     onSuccess: async () => {
@@ -167,8 +186,11 @@ export function PatientList({
             <Field error={errors.email?.message} label="Email">
               <input className="input-field" {...register("email")} />
             </Field>
-            <Field error={errors.healthInsurance?.message} label="Convenio">
-              <input className="input-field" {...register("healthInsurance")} />
+            <Field error={errors.healthInsuranceId?.message} label="Convenio">
+              <select className="input-field" {...register("healthInsuranceId")}>
+                <option value="">Sem convenio</option>
+                {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
             </Field>
             <Field
               className="md:col-span-2"
@@ -439,10 +461,17 @@ function PatientEditForm({
       name: patient.name ?? "",
       phone: patient.phone ?? "",
       email: patient.email ?? "",
-      healthInsurance: patient.healthInsurance ?? "",
+      healthInsuranceId: patient.healthInsuranceId ?? "",
       notes: patient.notes ?? "",
     },
   });
+
+  const healthInsQuery = useQuery({
+    queryKey: ["health-insurances-catalog"],
+    queryFn: async () => { const r = await healthInsurancesList(1, 200); return r.items ?? []; },
+    placeholderData: [],
+  });
+  const healthPlans = healthInsQuery.data ?? [];
 
   const updatePatient = useMutation({
     mutationFn: async (values: PatientUpdateValues) =>
@@ -450,7 +479,7 @@ function PatientEditForm({
         name: values.name,
         phone: values.phone.replace(/\D/g, ""),
         email: values.email || undefined,
-        healthInsurance: values.healthInsurance || undefined,
+        healthInsuranceId: values.healthInsuranceId || undefined,
         notes: values.notes || undefined,
       }),
     onSuccess: async (updatedPatient) => {
@@ -480,8 +509,11 @@ function PatientEditForm({
       <Field error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />
       </Field>
-      <Field error={errors.healthInsurance?.message} label="Convenio">
-        <input className="input-field" {...register("healthInsurance")} />
+      <Field error={errors.healthInsuranceId?.message} label="Convenio">
+        <select className="input-field" {...register("healthInsuranceId")}>
+          <option value="">Sem convenio</option>
+          {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
       </Field>
       <Field
         className="md:col-span-2"

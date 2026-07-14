@@ -73,6 +73,83 @@ export async function expenseDelete(id: string) {
   });
 }
 
+// ── Health Insurance ──
+
+export async function healthInsurancesList(page = 1, pageSize = 20, search?: string) {
+  const params = new URLSearchParams();
+  params.set("Page", String(page));
+  params.set("PageSize", String(pageSize));
+  if (search) params.set("Search", search);
+  const response = await apiFetch(`/health-insurances?${params.toString()}`);
+  return response.json();
+}
+
+export async function healthInsuranceCreate(body: { name: string; phone?: string; contactName?: string }) {
+  const response = await apiFetch("/health-insurances", { method: "POST", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function healthInsuranceUpdate(id: string, body: { name: string; phone?: string; contactName?: string }) {
+  const response = await apiFetch(`/health-insurances/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function healthInsuranceDelete(id: string) {
+  await apiFetch(`/health-insurances/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// ── Specialties ──
+
+export async function specialtiesList(page = 1, pageSize = 20, search?: string) {
+  const params = new URLSearchParams();
+  params.set("Page", String(page));
+  params.set("PageSize", String(pageSize));
+  if (search) params.set("Search", search);
+  const response = await apiFetch(`/specialties?${params.toString()}`);
+  return response.json();
+}
+
+export async function specialtyCreate(body: { name: string }) {
+  const response = await apiFetch("/specialties", { method: "POST", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function specialtyUpdate(id: string, body: { name: string }) {
+  const response = await apiFetch(`/specialties/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function specialtyDelete(id: string) {
+  await apiFetch(`/specialties/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// ── Doctor Availabilities ──
+
+export async function availabilitiesList(page = 1, pageSize = 50, doctorId?: string) {
+  const params = new URLSearchParams();
+  params.set("Page", String(page));
+  params.set("PageSize", String(pageSize));
+  if (doctorId) params.set("DoctorId", doctorId);
+  const response = await apiFetch(`/doctor-availabilities?${params.toString()}`);
+  return response.json();
+}
+
+export async function availabilityCreate(body: {
+  doctorId: string; dayOfWeek: number; startTime: string; endTime: string; isAvailable?: boolean;
+}) {
+  const response = await apiFetch("/doctor-availabilities", { method: "POST", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function availabilityUpdate(id: string, body: { dayOfWeek: number; startTime: string; endTime: string; isAvailable: boolean }) {
+  const response = await apiFetch(`/doctor-availabilities/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) });
+  return response.json();
+}
+
+export async function availabilityDelete(id: string) {
+  await apiFetch(`/doctor-availabilities/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export async function financialSummary() {
   const response = await apiFetch(`/financial/summary`);
   return response.json() as Promise<{

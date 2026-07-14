@@ -10,7 +10,8 @@ export type PatientResponse = {
     phone?: string;
     email?: string;
     healthInsurance?: string;
+    healthInsuranceId?: string;
+    healthInsuranceName?: string;
     notes?: string;
     patientAccessToken?: string;
 };
-

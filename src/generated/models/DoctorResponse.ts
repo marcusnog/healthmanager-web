@@ -6,9 +6,8 @@ export type DoctorResponse = {
     id?: string;
     name?: string;
     crm?: string;
-    specialty?: string;
     phone?: string;
     email?: string;
     isActive?: boolean;
+    specialties?: { id: string; name: string }[];
 };
-

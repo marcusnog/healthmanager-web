@@ -10,6 +10,7 @@ const {
   patientsDocumentsUpload,
   patientsDocumentsDownload,
   patientsUpdate,
+  healthInsurancesList,
 } = vi.hoisted(() => ({
   patientsCreate: vi.fn(),
   patientsDocumentsDelete: vi.fn(),
@@ -17,6 +18,7 @@ const {
   patientsDocumentsUpload: vi.fn(),
   patientsDocumentsDownload: vi.fn(),
   patientsUpdate: vi.fn(),
+  healthInsurancesList: vi.fn().mockResolvedValue({ items: [{ id: "hi-1", name: "Particular Premium" }], page: 1, pageSize: 200, total: 1 }),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -28,6 +30,7 @@ vi.mock("@/services/api", () => ({
     patientsDocumentsDownload,
     patientsUpdate,
   },
+  healthInsurancesList,
 }));
 
 describe("PatientList", () => {
@@ -234,9 +237,6 @@ describe("PatientList", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ana.atualizada@email.com" },
     });
-    fireEvent.change(screen.getAllByLabelText("Convenio")[0], {
-      target: { value: "Particular Premium" },
-    });
     fireEvent.change(screen.getByLabelText("Observacoes"), {
       target: { value: "Observacao ajustada." },
     });
@@ -248,7 +248,7 @@ describe("PatientList", () => {
         name: "Ana Martins Atualizada",
         phone: "11988887777",
         email: "ana.atualizada@email.com",
-        healthInsurance: "Particular Premium",
+        healthInsuranceId: undefined,
         notes: "Observacao ajustada.",
       }),
     );

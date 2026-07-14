@@ -4,9 +4,8 @@
 /* eslint-disable */
 export type UpdateDoctorRequest = {
     name: string;
-    specialty: string;
     phone?: string;
     email?: string;
     isActive: boolean;
+    specialtyIds?: string[];
 };
-
