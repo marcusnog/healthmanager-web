@@ -6,7 +6,7 @@ import { z } from "zod";
 import { availabilityCreate, availabilityUpdate, availabilityDelete } from "@/services/api";
 import { Modal } from "@/components/ui/modal";
 
-const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
 const schema = z.object({
   dayOfWeek: z.string(),
@@ -66,22 +66,22 @@ export function AvailabilityList({
       endTime: v.endTime,
       isAvailable: v.isAvailable,
     }),
-    onSuccess: async () => { setFeedback("Disponibilidade cadastrada."); form.reset(); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
-    onError: () => { setFeedback("Erro ao cadastrar disponibilidade."); },
+    onSuccess: async () => { setFeedback("Disponibilidade cadastrada com sucesso."); form.reset(); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
+    onError: () => { setFeedback("Nao foi possivel cadastrar a disponibilidade agora."); },
   });
 
   const updateMut = useMutation({
     mutationFn: (v: FormValues) => availabilityUpdate(editingId!, {
       dayOfWeek: parseInt(v.dayOfWeek), startTime: v.startTime, endTime: v.endTime, isAvailable: v.isAvailable,
     }),
-    onSuccess: async () => { setFeedback("Disponibilidade atualizada."); form.reset(); setEditingId(null); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
-    onError: () => { setFeedback("Erro ao atualizar disponibilidade."); },
+    onSuccess: async () => { setFeedback("Disponibilidade atualizada com sucesso."); form.reset(); setEditingId(null); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
+    onError: () => { setFeedback("Nao foi possivel atualizar a disponibilidade agora."); },
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => availabilityDelete(id),
-    onSuccess: async () => { setFeedback("Disponibilidade excluida."); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
-    onError: () => { setFeedback("Erro ao excluir disponibilidade."); },
+    onSuccess: async () => { setFeedback("Disponibilidade excluida com sucesso."); await queryClient.invalidateQueries({ queryKey: ["availabilities"] }); },
+    onError: () => { setFeedback("Nao foi possivel excluir a disponibilidade agora."); },
   });
 
   function openCreate() {
@@ -108,80 +108,107 @@ export function AvailabilityList({
   }, {});
 
   return (
-    <div>
-      {feedback && <p className="text-sm text-(--success) mb-3">{feedback}</p>}
+    <section className="panel rounded-lg p-5 md:p-6">
+      <div className="section-heading">
+        <div>
+          <h3 className="text-base font-semibold text-[var(--ink)]">Agenda dos medicos</h3>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Gerencie os horarios disponiveis por medico
+          </p>
+        </div>
+      </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <select className="input w-64" value={doctorId ?? ""} onChange={(e) => onDoctorChange(e.target.value || undefined)}>
-          <option value="">Selecione um medico...</option>
-          {doctors.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        {doctorId && <button className="btn btn-primary" onClick={openCreate}>Nova disponibilidade</button>}
+      {feedback ? (
+        <div className="rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">{feedback}</div>
+      ) : null}
+
+      <div className="toolbar mt-4">
+        <div className="toolbar-stack gap-3">
+          <div className="toolbar-inline flex-wrap gap-3">
+            <label className="min-w-0 flex-1">
+              <span className="mb-2 block text-sm font-semibold">Medico</span>
+              <select className="input-field w-64" value={doctorId ?? ""} onChange={(e) => onDoctorChange(e.target.value || undefined)}>
+                <option value="">Selecione um medico...</option>
+                {doctors.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </label>
+            {doctorId && <button className="btn btn-primary btn-sm self-end" onClick={() => { setFeedback(null); openCreate(); }} type="button">Nova disponibilidade</button>}
+          </div>
+        </div>
       </div>
 
       {!doctorId ? (
-        <p className="text-(--muted) text-center py-6">Selecione um medico para gerenciar a agenda.</p>
+        <div className="empty-state mt-5">
+          <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          <p className="text-sm font-semibold">Selecione um medico para gerenciar a agenda.</p>
+        </div>
       ) : isLoading ? (
-        <p className="text-(--muted)">Carregando...</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {DAYS.map((dayName, i) => {
-              const slots = grouped[i] ?? [];
-              return (
-                <div key={i} className="border border-(--border) rounded-lg p-3">
-                  <h3 className="font-semibold mb-2 text-sm">{dayName}</h3>
-                  {slots.length === 0 ? (
-                    <p className="text-xs text-(--muted)">Sem horarios</p>
-                  ) : (
-                    slots.map((slot) => (
-                      <div key={slot.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-(--border) last:border-0 ${!slot.isAvailable ? "opacity-40" : ""}`}>
-                        <span>
-                          {slot.startTime} - {slot.endTime}
-                          {!slot.isAvailable && <span className="text-xs text-(--danger) ml-1">(bloqueado)</span>}
-                        </span>
-                        <div className="flex gap-1">
-                          <button className="btn btn-ghost btn-xs" onClick={() => openEdit(slot)}>Editar</button>
-                          <button className="btn btn-ghost btn-xs text-(--danger)" onClick={() => deleteMut.mutate(slot.id)}>X</button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 text-sm">
-              <span className="text-(--muted)">Pagina {page} de {totalPages}</span>
-              <div className="flex gap-1">
-                <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Anterior</button>
-                <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Proxima</button>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-5" aria-busy aria-label="Carregando horarios">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-[var(--border)] rounded-lg p-3">
+              <div className="skeleton h-5 w-24 rounded-full" />
+              <div className="skeleton mt-3 h-12 w-full rounded-lg" />
             </div>
-          )}
-        </>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-5">
+          {DAYS.map((dayName, i) => {
+            const slots = grouped[i] ?? [];
+            return (
+              <div key={i} className="border border-[var(--border)] rounded-lg p-3">
+                <h4 className="text-sm font-semibold text-[var(--ink)] mb-2">{dayName}</h4>
+                {slots.length === 0 ? (
+                  <p className="text-xs text-[var(--muted)]">Sem horarios</p>
+                ) : (
+                  slots.map((slot) => (
+                    <div key={slot.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-[var(--border)] last:border-0 ${!slot.isAvailable ? "opacity-40" : ""}`}>
+                      <span>
+                        {slot.startTime} - {slot.endTime}
+                        {!slot.isAvailable && <span className="text-xs text-[var(--danger)] ml-1">(bloqueado)</span>}
+                      </span>
+                      <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
+                        <button className="btn btn-ghost btn-xs" onClick={() => openEdit(slot)} type="button">Editar</button>
+                        <button className="btn btn-ghost btn-xs text-[var(--danger)]" onClick={() => deleteMut.mutate(slot.id)} type="button">X</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="toolbar-inline mt-5 justify-between">
+          <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} type="button">Anterior</button>
+          <span className="text-sm font-medium text-[var(--muted)]">{page} / {totalPages}</span>
+          <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} type="button">Proxima</button>
+        </div>
       )}
 
       {isFormOpen && (
         <Modal title={editingId ? "Editar disponibilidade" : "Nova disponibilidade"} onClose={() => setIsFormOpen(false)}>
           <form onSubmit={onSubmit} className="flex flex-col gap-3">
             <div>
-              <label className="label">Dia da semana</label>
-              <select className="input" {...form.register("dayOfWeek")}>
+              <span className="label">Dia da semana</span>
+              <select className="input-field" {...form.register("dayOfWeek")}>
                 {DAYS.map((name, i) => <option key={i} value={i}>{name}</option>)}
               </select>
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="label">Inicio</label>
-                <input className="input" type="time" {...form.register("startTime")} />
+                <span className="label">Inicio</span>
+                <input className="input-field" type="time" {...form.register("startTime")} />
                 {form.formState.errors.startTime && <p className="field-error">{form.formState.errors.startTime.message}</p>}
               </div>
               <div className="flex-1">
-                <label className="label">Termino</label>
-                <input className="input" type="time" {...form.register("endTime")} />
+                <span className="label">Termino</span>
+                <input className="input-field" type="time" {...form.register("endTime")} />
                 {form.formState.errors.endTime && <p className="field-error">{form.formState.errors.endTime.message}</p>}
               </div>
             </div>
@@ -196,6 +223,6 @@ export function AvailabilityList({
           </form>
         </Modal>
       )}
-    </div>
+    </section>
   );
 }
