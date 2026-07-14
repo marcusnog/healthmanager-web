@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, specialtiesList } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
+import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
 import { applyPhoneMask } from "@/lib/formatters";
@@ -345,27 +346,5 @@ function DoctorSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  className,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={className}>
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      {children}
-      {error ? (
-        <span className="mt-2 block text-sm text-[var(--danger)]">{error}</span>
-      ) : null}
-    </label>
   );
 }

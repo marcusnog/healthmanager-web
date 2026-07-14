@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Field } from "@/components/ui/field";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -777,12 +778,4 @@ export function FinancialOverview({
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <label>
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      {children}
-      {error ? <span className="mt-2 block text-sm text-[var(--danger)]">{error}</span> : null}
-    </label>
-  );
-}
+

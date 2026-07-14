@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, healthInsurancesList } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
+import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
@@ -843,27 +844,5 @@ function PatientSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  className,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={className}>
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      {children}
-      {error ? (
-        <span className="mt-2 block text-sm text-[var(--danger)]">{error}</span>
-      ) : null}
-    </label>
   );
 }

@@ -131,11 +131,11 @@ describe("CrmWorkspace", () => {
 
     renderWithProviders(<CrmWorkspace />);
 
-    await waitFor(() => expect(screen.getByText("Marina Souza")).toBeVisible());
+    await waitFor(() => expect(screen.getAllByText("Marina Souza")[0]).toBeVisible());
     expect(screen.getByText("21")).toBeVisible();
     expect(screen.getAllByText("R$ 45.120,50")[0]).toBeVisible();
     expect(screen.getByText("81% de confirmação")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(1, 3, undefined, "name", "asc", undefined, undefined);
+    expect(patientsList).toHaveBeenCalledWith(1, 10, undefined, "name", "asc", undefined, undefined);
     expect(patientsList).toHaveBeenCalledWith(1, 100, "");
     expect(appointmentsList).toHaveBeenCalledWith(1, 10, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), undefined, undefined);
   });
@@ -150,7 +150,7 @@ describe("CrmWorkspace", () => {
 
     renderWithProviders(<CrmWorkspace />);
 
-    await screen.findByText("Marina Souza");
+    await waitFor(() => expect(screen.queryByText("Encerrar sessão")).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: "Encerrar sessão" }));
 
@@ -204,7 +204,7 @@ describe("CrmWorkspace", () => {
           ],
           page,
           pageSize,
-          total: 4,
+          total: 11,
         };
       }
 
@@ -222,7 +222,7 @@ describe("CrmWorkspace", () => {
           ],
           page,
           pageSize,
-          total: 4,
+          total: 11,
         };
       }
 
@@ -239,7 +239,7 @@ describe("CrmWorkspace", () => {
         ],
         page,
         pageSize,
-        total: 4,
+        total: 11,
       };
     });
 
@@ -260,7 +260,7 @@ describe("CrmWorkspace", () => {
     );
 
     expect(await screen.findByText("Bruna Lopes")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(1, 3, "Bruna", "name", "asc", undefined, undefined);
+    expect(patientsList).toHaveBeenCalledWith(1, 10, "Bruna", "name", "asc", undefined, undefined);
 
     fireEvent.change(
       screen.getByPlaceholderText("Buscar por nome, CPF ou telefone"),
@@ -273,7 +273,7 @@ describe("CrmWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Proxima" }));
 
     expect(await screen.findByText("Carlos Pagina 2")).toBeVisible();
-    expect(patientsList).toHaveBeenCalledWith(2, 3, undefined, "name", "asc", undefined, undefined);
+    expect(patientsList).toHaveBeenCalledWith(2, 10, undefined, "name", "asc", undefined, undefined);
   });
 
   it("updates the appointment query when the agenda date changes", async () => {
@@ -300,7 +300,7 @@ describe("CrmWorkspace", () => {
         },
       ],
       page: 1,
-      pageSize: 3,
+      pageSize: 10,
       total: 1,
     });
     appointmentsList.mockImplementation(async (_page, _pageSize, date) => {

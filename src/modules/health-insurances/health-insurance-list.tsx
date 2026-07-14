@@ -43,21 +43,26 @@ export function HealthInsuranceList({
     defaultValues: { name: "", phone: "", contactName: "" },
   });
 
+  function invalidateHealthInsurances() {
+    queryClient.invalidateQueries({ queryKey: ["healthInsurances"] });
+    queryClient.invalidateQueries({ queryKey: ["health-insurances-catalog"] });
+  }
+
   const createMut = useMutation({
     mutationFn: (v: FormValues) => healthInsuranceCreate({ name: v.name, phone: v.phone || undefined, contactName: v.contactName || undefined }),
-    onSuccess: async () => { setFeedback("Convenio cadastrado com sucesso."); form.reset(); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["healthInsurances"] }); },
+    onSuccess: async () => { setFeedback("Convenio cadastrado com sucesso."); form.reset(); setIsFormOpen(false); await invalidateHealthInsurances(); },
     onError: () => { setFeedback("Nao foi possivel cadastrar o convenio agora."); },
   });
 
   const updateMut = useMutation({
     mutationFn: (v: FormValues) => healthInsuranceUpdate(editingId!, { name: v.name, phone: v.phone || undefined, contactName: v.contactName || undefined }),
-    onSuccess: async () => { setFeedback("Convenio atualizado com sucesso."); form.reset(); setEditingId(null); setIsFormOpen(false); await queryClient.invalidateQueries({ queryKey: ["healthInsurances"] }); },
+    onSuccess: async () => { setFeedback("Convenio atualizado com sucesso."); form.reset(); setEditingId(null); setIsFormOpen(false); await invalidateHealthInsurances(); },
     onError: () => { setFeedback("Nao foi possivel atualizar o convenio agora."); },
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => healthInsuranceDelete(id),
-    onSuccess: async () => { setFeedback("Convenio excluido com sucesso."); await queryClient.invalidateQueries({ queryKey: ["healthInsurances"] }); },
+    onSuccess: async () => { setFeedback("Convenio excluido com sucesso."); await invalidateHealthInsurances(); },
     onError: () => { setFeedback("Nao foi possivel excluir o convenio agora."); },
   });
 

@@ -171,45 +171,9 @@ const DOCTOR_SECTION_TITLE: Record<string, { title: string; subtitle: string }> 
 
 /* ─── Fallback data ──────────────────────────────────────────────── */
 
-function shouldStartBlocked() {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("blocked") === "1";
-}
-
-const fallbackSummary: DashboardSummaryResponse = {
-  appointmentsToday: 21,
-  cancelledToday: 1,
-  confirmedToday: 16,
-  monthlyRevenue: 45120.5,
-  noShowRate: 0.05,
-  confirmationRate: 0.81,
-};
-
-const fallbackPatients: PatientResponse[] = [
-  { id: "fallback-patient-1", name: "Marina Souza", cpf: "12345678901", phone: "(11) 98888-0000", email: "marina@email.com", healthInsurance: "Particular", notes: "Paciente novo" },
-];
-
-const fallbackDoctors: DoctorResponse[] = [
-  { id: "fallback-doctor-1", name: "Dra. Luciana Costa", specialties: [{ id: "spec-1", name: "Dermatologia" }], crm: "CRM-SP-987654", phone: "11997776655", email: "luciana@clinica.com", isActive: true },
-];
-
-const fallbackDoctorsPage = { items: fallbackDoctors, page: 1, pageSize: 10, total: fallbackDoctors.length };
-
-const fallbackAppointments: AppointmentResponse[] = [
-  { id: "fallback-appointment-1", patientId: "fallback-patient-1", doctorId: "fallback-doctor-1", startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z", status: "Scheduled", confirmationStatus: "Pending", type: "Primeira consulta", amount: 250, notes: "Paciente novo", patientName: "Marina Souza", patientPhone: "(11) 98888-0000", doctorName: "Dra. Luciana Costa", doctorSpecialty: "Dermatologia" },
-];
-
-const fallbackReceivables: ReceivableResponse[] = [
-  { id: "fallback-receivable-1", appointmentId: "fallback-appointment-1", originalAmount: 250, receivedAmount: 100, outstandingAmount: 150, status: "Partial", dueDate: "2026-05-07T00:00:00Z" },
-];
-
-const PATIENTS_PAGE_SIZE = 3;
+const PATIENTS_PAGE_SIZE = 10;
 const APPOINTMENTS_PAGE_SIZE = 10;
 const RECEIVABLES_PAGE_SIZE = 5;
-
-const fallbackPatientsPage: PagedPatientResponse = { items: fallbackPatients, page: 1, pageSize: PATIENTS_PAGE_SIZE, total: fallbackPatients.length };
-const fallbackAppointmentsPage: PagedAppointmentResponse = { items: fallbackAppointments, page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: fallbackAppointments.length };
-const fallbackReceivablesPage: PagedReceivableResponse = { items: fallbackReceivables, page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: fallbackReceivables.length };
 const EMPTY_PAGE = { items: [] as any[], page: 1, pageSize: 20, total: 0 };
 
 function filterAppointmentsForDate(appointments: AppointmentResponse[], date: string) {
@@ -230,7 +194,7 @@ async function guardedQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 export function CrmWorkspace() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<SessionState | null>(
-    () => (shouldStartBlocked() ? null : readStoredSessionState()),
+    () => readStoredSessionState(),
   );
   const [activeSection, setActiveSection] = useState<Section>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -276,12 +240,8 @@ export function CrmWorkspace() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (shouldStartBlocked()) { setSession(null); return; }
-      const storedSession = readStoredSessionState();
-      if (storedSession) setSession(storedSession);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    const storedSession = readStoredSessionState();
+    if (storedSession) setSession(storedSession);
   }, []);
 
   useEffect(() => {
@@ -300,20 +260,20 @@ export function CrmWorkspace() {
   const isDoctor = session?.role === "Doctor";
   const patientsListQuery = useQuery({
     queryKey: ["patients-list", patientSearch, patientPage, patientSortBy, patientSortDirection, patientEmail, patientHealthInsurance],
-    queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined, patientSortBy || undefined, patientSortDirection || undefined, patientEmail || undefined, patientHealthInsurance || undefined), fallbackPatientsPage),
-    placeholderData: fallbackPatientsPage,
+    queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined, patientSortBy || undefined, patientSortDirection || undefined, patientEmail || undefined, patientHealthInsurance || undefined), { items: [], page: 1, pageSize: PATIENTS_PAGE_SIZE, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: PATIENTS_PAGE_SIZE, total: 0 },
     enabled: authenticated,
   });
   const patientsCatalogQuery = useQuery({
     queryKey: ["patients-catalog"],
-    queryFn: () => guardedQuery(async () => { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; }, fallbackPatients),
-    placeholderData: fallbackPatients,
+    queryFn: () => guardedQuery(async () => { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; }, []),
+    placeholderData: [],
     enabled: authenticated,
   });
   const doctorsQuery = useQuery({
     queryKey: ["doctors", doctorSearch, doctorPage],
-    queryFn: () => guardedQuery(() => DefaultService.doctorsList(doctorPage, 10, doctorSearch || undefined), fallbackDoctorsPage),
-    placeholderData: fallbackDoctorsPage,
+    queryFn: () => guardedQuery(() => DefaultService.doctorsList(doctorPage, 10, doctorSearch || undefined), { items: [], page: 1, pageSize: 10, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 10, total: 0 },
     enabled: authenticated,
   });
   const currentDoctorId = !isDoctor || !session?.name
@@ -324,8 +284,8 @@ export function CrmWorkspace() {
 
   const summaryQuery = useQuery({
     queryKey: ["dashboard-summary", currentDoctorId],
-    queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(currentDoctorId), fallbackSummary),
-    placeholderData: fallbackSummary,
+    queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(currentDoctorId), { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 }),
+    placeholderData: { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 },
     enabled: authenticated,
   });
 
@@ -353,14 +313,14 @@ export function CrmWorkspace() {
         return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, undefined, resolvedAppointmentDoctorId, appointmentStatus, appointmentDateFrom, appointmentDateTo);
       }
       return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus);
-    }, { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) }),
-    placeholderData: { ...fallbackAppointmentsPage, items: filterAppointmentsForDate(fallbackAppointments, appointmentDate) },
+    }, { items: [], page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: 0 },
     enabled: authenticated,
   });
   const receivablesQuery = useQuery({
     queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo],
-    queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), fallbackReceivablesPage),
-    placeholderData: fallbackReceivablesPage,
+    queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 },
     enabled: authenticated,
   });
 
@@ -435,7 +395,7 @@ export function CrmWorkspace() {
   function handleDoctorSearchChange(value: string) { setDoctorSearch(value); setDoctorPage(1); }
 
   const today = useMemo(() => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }), []);
-  const summary = summaryQuery.data ?? fallbackSummary;
+  const summary = summaryQuery.data ?? { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 };
 
   const patientListProps = {
     email: patientEmail,
@@ -449,13 +409,13 @@ export function CrmWorkspace() {
     onSortDirectionChange: handlePatientSortDirectionChange,
     page: patientsListQuery.data?.page ?? 1,
     pageSize: patientsListQuery.data?.pageSize ?? PATIENTS_PAGE_SIZE,
-    patients: patientsListQuery.data?.items ?? fallbackPatients,
+    patients: patientsListQuery.data?.items ?? [],
     search: patientSearch,
     sortBy: patientSortBy,
     sortDirection: patientSortDirection,
-    total: patientsListQuery.data?.total ?? fallbackPatients.length,
+    total: patientsListQuery.data?.total ?? 0,
   };
-  const doctorsData = doctorsQuery.data ?? fallbackDoctorsPage;
+  const doctorsData = doctorsQuery.data ?? { items: [], page: 1, pageSize: 10, total: 0 };
   const appointmentBoardProps = {
     appointmentDate,
     appointmentViewMode,
@@ -463,8 +423,8 @@ export function CrmWorkspace() {
     appointmentDateTo,
     appointmentDoctorId: resolvedAppointmentDoctorId,
     appointmentStatus,
-    appointments: appointmentsQuery.data?.items ?? fallbackAppointments,
-    doctors: doctorsData.items ?? fallbackDoctors,
+    appointments: appointmentsQuery.data?.items ?? [],
+    doctors: doctorsData.items ?? [],
     isLoading: appointmentsQuery.isLoading,
     onAppointmentDateChange: handleAppointmentDateChange,
     onAppointmentViewModeChange: handleAppointmentViewModeChange,
@@ -473,8 +433,8 @@ export function CrmWorkspace() {
     onStatusChange: handleAppointmentStatusChange,
     page: appointmentsQuery.data?.page ?? 1,
     pageSize: appointmentsQuery.data?.pageSize ?? APPOINTMENTS_PAGE_SIZE,
-    patients: patientsCatalogQuery.data ?? fallbackPatients,
-    total: appointmentsQuery.data?.total ?? fallbackAppointmentsPage.total ?? 0,
+    patients: patientsCatalogQuery.data ?? [],
+    total: appointmentsQuery.data?.total ?? 0,
   };
   const financialOverviewProps = {
     dateFrom: receivableDateFrom,
@@ -495,9 +455,9 @@ export function CrmWorkspace() {
     onPaymentReceivableIdChange: setPaymentReceivableId,
     onPaymentDateFromChange: setPaymentDateFrom,
     onPaymentDateToChange: setPaymentDateTo,
-    receivables: receivablesQuery.data?.items ?? fallbackReceivables,
+    receivables: receivablesQuery.data?.items ?? [],
     status: receivableStatus,
-    total: receivablesQuery.data?.total ?? fallbackReceivablesPage.total ?? 0,
+    total: receivablesQuery.data?.total ?? 0,
     expenses: expensesQuery.data?.items ?? [],
     expensePage: expensePage,
     expenseTotal: expensesQuery.data?.total ?? 0,
@@ -582,8 +542,8 @@ export function CrmWorkspace() {
             <div className="dashboard-grid-main">
               <AppointmentBoard {...appointmentBoardProps} />
               <DashboardRightRail
-                patients={patientsListQuery.data?.items ?? fallbackPatients}
-                receivables={receivablesQuery.data?.items ?? fallbackReceivables}
+                patients={patientsListQuery.data?.items ?? []}
+                receivables={receivablesQuery.data?.items ?? []}
                 onNewAppointment={() => setActiveSection("agenda")}
                 onNewPatient={() => setActiveSection("pacientes")}
                 onViewFinancial={() => setActiveSection("financeiro")}
@@ -600,14 +560,14 @@ export function CrmWorkspace() {
       case "medicos":
         return (
           <DoctorRoster
-            doctors={doctorsData.items ?? fallbackDoctors}
+            doctors={doctorsData.items ?? []}
             isLoading={doctorsQuery.isLoading}
             onSearchChange={handleDoctorSearchChange}
             onPageChange={setDoctorPage}
             page={doctorsData.page ?? 1}
             pageSize={doctorsData.pageSize ?? 10}
             search={doctorSearch}
-            total={doctorsData.total ?? fallbackDoctors.length}
+            total={doctorsData.total ?? 0}
           />
         );
       case "convenios":

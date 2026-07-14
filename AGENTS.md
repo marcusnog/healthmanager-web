@@ -48,12 +48,15 @@ src/
     formatters.ts       # CPF/phone masks, BRL currency, date, file size
   modules/              # Feature modules
     auth/               # login-panel
+    availabilities/     # doctor-availability-manager
     dashboard/          # summary-cards, dashboard-right-rail
     doctors/            # doctor-roster
     financial/          # financial-overview
+    health-insurances/  # health-insurance-manager
     patients/           # patient-list
     scheduling/         # appointment-board
     settings/           # settings-panel
+    specialties/        # specialty-manager
   providers/
     app-provider.tsx    # QueryClientProvider (staleTime 30s, skip retry on 401)
   services/
@@ -84,7 +87,7 @@ tests/
 - Two auth sessions: clinic (`localStorage healthmanager.auth`, with JWT refresh) and patient portal (`localStorage healthmanager.portal`, no refresh)
 - Test wrapper: `renderWithProviders(ui)` from `src/test/render.tsx`
 - Linting: ESLint with `eslint-config-next/core-web-vitals` + `typescript`; ignores `.next/`, `src/generated/`, coverage, playwright reports
-- CI runs `lint → test → build` with Node 20, `npm ci`
+- No CI workflow yet — add one in `.github/workflows/` when ready
 
 ## Environment variables
 
