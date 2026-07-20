@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, healthInsurancesList } from "@/services/api";
+import type { HealthInsuranceResponse } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -288,7 +289,7 @@ export function PatientList({
             <Field error={errors.healthInsuranceId?.message} label="Convenio">
               <select className="input-field" {...register("healthInsuranceId")}>
                 <option value="">Sem convenio</option>
-                {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {healthPlans.map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </Field>
             <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
@@ -345,7 +346,6 @@ export function PatientList({
           <PatientDocumentsPanel
             patientAccessToken={activePatient.patientAccessToken ?? ""}
             patientId={activePatient.id ?? ""}
-            patientName={activePatient.name ?? "Paciente"}
           />
         </Modal>
       ) : null}
@@ -620,7 +620,7 @@ function PatientEditForm({
       <Field error={errors.healthInsuranceId?.message} label="Convenio">
         <select className="input-field" {...register("healthInsuranceId")}>
           <option value="">Sem convenio</option>
-          {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {healthPlans.map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
@@ -656,11 +656,9 @@ function PatientEditForm({
 
 function PatientDocumentsPanel({
   patientId,
-  patientName,
   patientAccessToken,
 }: {
   patientId: string;
-  patientName: string;
   patientAccessToken: string;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);

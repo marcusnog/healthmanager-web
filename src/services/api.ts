@@ -1,6 +1,25 @@
 import { OpenAPI } from "@/generated/core/OpenAPI";
-import { DefaultService } from "@/generated/services/DefaultService";
 import { getValidAccessToken } from "@/lib/auth-session";
+
+export interface HealthInsuranceResponse {
+  id: string;
+  name: string;
+  phone?: string;
+  contactName?: string;
+}
+
+export interface SpecialtyResponse {
+  id: string;
+  name: string;
+  doctors: Array<{ id: string; name: string; crm: string }>;
+}
+
+interface PagedApiResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
 
 OpenAPI.BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "/backend";
@@ -81,7 +100,7 @@ export async function healthInsurancesList(page = 1, pageSize = 20, search?: str
   params.set("PageSize", String(pageSize));
   if (search) params.set("Search", search);
   const response = await apiFetch(`/health-insurances?${params.toString()}`);
-  return response.json();
+  return response.json() as Promise<PagedApiResponse<HealthInsuranceResponse>>;
 }
 
 export async function healthInsuranceCreate(body: { name: string; phone?: string; contactName?: string }) {
@@ -106,7 +125,7 @@ export async function specialtiesList(page = 1, pageSize = 20, search?: string) 
   params.set("PageSize", String(pageSize));
   if (search) params.set("Search", search);
   const response = await apiFetch(`/specialties?${params.toString()}`);
-  return response.json();
+  return response.json() as Promise<PagedApiResponse<SpecialtyResponse>>;
 }
 
 export async function specialtyCreate(body: { name: string }) {

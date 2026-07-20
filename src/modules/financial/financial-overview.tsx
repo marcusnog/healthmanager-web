@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, expenseSave, expenseDelete } from "@/services/api";
-import type { ReceivableResponse, PaymentResponse, PatientResponse, CreateManualReceivableRequest } from "@/generated";
+import type { ReceivableResponse, PaymentResponse, PatientResponse } from "@/generated";
 import { formatCurrency } from "@/lib/formatters";
 import {
   StatusBadge,
@@ -44,10 +44,10 @@ interface ExpenseResponse {
   id: string;
   description: string;
   amount: number;
-  category: string;
-  paymentMethod: string;
+  category: ExpenseFormValues["category"];
+  paymentMethod: ExpenseFormValues["paymentMethod"];
   paidAt: string;
-  status: string;
+  status: ExpenseFormValues["status"];
   notes?: string;
 }
 
@@ -281,10 +281,10 @@ export function FinancialOverview({
     setEditingExpense(expense);
     setExpenseFormValue("description", expense.description);
     setExpenseFormValue("amount", expense.amount);
-    setExpenseFormValue("category", expense.category as any);
-    setExpenseFormValue("paymentMethod", expense.paymentMethod as any);
+    setExpenseFormValue("category", expense.category);
+    setExpenseFormValue("paymentMethod", expense.paymentMethod);
     setExpenseFormValue("paidAt", expense.paidAt ? new Date(expense.paidAt).toISOString().slice(0, 16) : "");
-    setExpenseFormValue("status", expense.status as any);
+    setExpenseFormValue("status", expense.status);
     setExpenseFormValue("notes", expense.notes ?? "");
     setShowExpenseForm(true);
   };
@@ -777,5 +777,4 @@ export function FinancialOverview({
     </>
   );
 }
-
 

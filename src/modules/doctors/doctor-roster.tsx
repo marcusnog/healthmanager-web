@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, specialtiesList } from "@/services/api";
+import type { SpecialtyResponse } from "@/services/api";
 import type { DoctorResponse } from "@/generated";
 import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -130,7 +131,7 @@ export function DoctorRoster({
               <label className="mb-2 block text-sm font-semibold">Especialidades</label>
               <div className="flex flex-wrap gap-2">
                 {allSpecialties.length === 0 && <p className="text-sm text-(--muted)">Nenhuma especialidade cadastrada. Crie em Configuracoes.</p>}
-                {allSpecialties.map((s: any) => (
+                {allSpecialties.map((s) => (
                   <label key={s.id} className="flex items-center gap-1.5 text-sm cursor-pointer rounded border border-(--border) px-2.5 py-1.5 hover:bg-(--surface)">
                     <input type="checkbox" checked={createSpecialtyIds.includes(s.id)} onChange={() => setCreateSpecialtyIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} />
                     {s.name}
@@ -253,7 +254,7 @@ function DoctorEditForm({
   onCancel,
 }: {
   doctor: DoctorResponse;
-  allSpecialties: any[];
+  allSpecialties: SpecialtyResponse[];
   onSaved: (message: string) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -313,7 +314,7 @@ function DoctorEditForm({
         <label className="mb-2 block text-sm font-semibold">Especialidades</label>
         <div className="flex flex-wrap gap-2">
           {allSpecialties.length === 0 && <p className="text-sm text-(--muted)">Nenhuma especialidade cadastrada.</p>}
-          {allSpecialties.map((s: any) => (
+          {allSpecialties.map((s) => (
             <label key={s.id} className="flex items-center gap-1.5 text-sm cursor-pointer rounded border border-(--border) px-2.5 py-1.5 hover:bg-(--surface)">
               <input type="checkbox" checked={specialtyIds.includes(s.id)} onChange={() => setSpecialtyIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} />
               {s.name}
