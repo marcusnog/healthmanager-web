@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { AppointmentResponse } from '../models/AppointmentResponse';
 import type { AuthResponse } from '../models/AuthResponse';
+import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
@@ -95,6 +96,22 @@ export class DefaultService {
             url: '/auth/change-password',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param cep
+     * @returns CepAddressResponse Endereco encontrado via ViaCEP
+     * @throws ApiError
+     */
+    public static addressFindByCep(
+        cep: string,
+    ): CancelablePromise<CepAddressResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/address/cep/{cep}',
+            path: {
+                'cep': cep,
+            },
         });
     }
     /**
@@ -340,7 +357,7 @@ export class DefaultService {
         requestBody: UpdateDoctorRequest,
     ): CancelablePromise<DoctorResponse> {
         return __request(OpenAPI, {
-            method: 'PUT',
+            method: 'PATCH',
             url: '/doctors/{id}',
             path: {
                 'id': id,

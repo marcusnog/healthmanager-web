@@ -7,5 +7,6 @@ export type UpdateDoctorRequest = {
     phone?: string;
     email?: string;
     isActive: boolean;
-    specialtyIds?: string[];
+    specialtyIds?: Array<string>;
 };
+

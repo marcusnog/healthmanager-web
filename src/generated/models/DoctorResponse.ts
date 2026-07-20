@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SpecialtyItem } from './SpecialtyItem';
 export type DoctorResponse = {
     id?: string;
     name?: string;
@@ -9,5 +10,6 @@ export type DoctorResponse = {
     phone?: string;
     email?: string;
     isActive?: boolean;
-    specialties?: { id: string; name: string }[];
+    specialties?: Array<SpecialtyItem>;
 };
+

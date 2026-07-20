@@ -17,16 +17,6 @@ import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
-import type {
-  DashboardSummaryResponse,
-  PagedPatientResponse,
-  PagedAppointmentResponse,
-  PagedReceivableResponse,
-  PatientResponse,
-  AppointmentResponse,
-  ReceivableResponse,
-  DoctorResponse,
-} from "@/generated";
 import type { SessionState } from "@/types/app";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -174,12 +164,6 @@ const DOCTOR_SECTION_TITLE: Record<string, { title: string; subtitle: string }> 
 const PATIENTS_PAGE_SIZE = 10;
 const APPOINTMENTS_PAGE_SIZE = 10;
 const RECEIVABLES_PAGE_SIZE = 5;
-const EMPTY_PAGE = { items: [] as any[], page: 1, pageSize: 20, total: 0 };
-
-function filterAppointmentsForDate(appointments: AppointmentResponse[], date: string) {
-  return appointments.filter((a) => a.startAt?.slice(0, 10) === date);
-}
-
 async function guardedQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
@@ -240,11 +224,6 @@ export function CrmWorkspace() {
   }, []);
 
   useEffect(() => {
-    const storedSession = readStoredSessionState();
-    if (storedSession) setSession(storedSession);
-  }, []);
-
-  useEffect(() => {
     if (!session) return;
     const interval = setInterval(async () => {
       const token = await getValidAccessToken();
@@ -302,8 +281,8 @@ export function CrmWorkspace() {
 
   const paymentsQuery = useQuery({
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
-        queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), EMPTY_PAGE),
-    placeholderData: EMPTY_PAGE,
+        queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
   const appointmentsQuery = useQuery({
@@ -326,21 +305,21 @@ export function CrmWorkspace() {
 
   const expensesQuery = useQuery({
     queryKey: ["expenses", expensePage, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo],
-        queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), EMPTY_PAGE),
-    placeholderData: EMPTY_PAGE,
+        queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
 
   const healthInsQuery = useQuery({
     queryKey: ["healthInsurances", hiSearch, hiPage],
-    queryFn: () => guardedQuery(() => healthInsurancesList(hiPage, 20, hiSearch || undefined), EMPTY_PAGE),
-    placeholderData: EMPTY_PAGE,
+    queryFn: () => guardedQuery(() => healthInsurancesList(hiPage, 20, hiSearch || undefined), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
   const specialtiesQuery = useQuery({
     queryKey: ["specialties", specSearch, specPage],
-    queryFn: () => guardedQuery(() => specialtiesList(specPage, 20, specSearch || undefined), EMPTY_PAGE),
-    placeholderData: EMPTY_PAGE,
+    queryFn: () => guardedQuery(() => specialtiesList(specPage, 20, specSearch || undefined), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
   const availabilitiesQuery = useQuery({
@@ -594,7 +573,7 @@ export function CrmWorkspace() {
             isLoading={specialtiesQuery.isLoading}
             onSearchChange={(v) => { setSpecSearch(v); setSpecPage(1); }}
             onPageChange={setSpecPage}
-            onEditDoctor={(doctorId) => { setActiveSection("medicos"); }}
+            onEditDoctor={() => { setActiveSection("medicos"); }}
           />
         );
       case "agenda-medicos":

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PatientDetails } from './PatientDetails';
 export type PatientResponse = {
     id?: string;
     name?: string;
@@ -14,4 +15,6 @@ export type PatientResponse = {
     healthInsuranceName?: string;
     notes?: string;
     patientAccessToken?: string;
+    details?: PatientDetails;
 };
+

@@ -7,5 +7,6 @@ export type CreateDoctorRequest = {
     crm: string;
     phone?: string;
     email?: string;
-    specialtyIds?: string[];
+    specialtyIds?: Array<string>;
 };
+

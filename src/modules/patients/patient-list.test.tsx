@@ -10,6 +10,7 @@ const {
   patientsDocumentsUpload,
   patientsDocumentsDownload,
   patientsUpdate,
+  addressFindByCep,
   healthInsurancesList,
 } = vi.hoisted(() => ({
   patientsCreate: vi.fn(),
@@ -18,6 +19,7 @@ const {
   patientsDocumentsUpload: vi.fn(),
   patientsDocumentsDownload: vi.fn(),
   patientsUpdate: vi.fn(),
+  addressFindByCep: vi.fn(),
   healthInsurancesList: vi.fn().mockResolvedValue({ items: [{ id: "hi-1", name: "Particular Premium" }], page: 1, pageSize: 200, total: 1 }),
 }));
 
@@ -29,6 +31,7 @@ vi.mock("@/services/api", () => ({
     patientsDocumentsUpload,
     patientsDocumentsDownload,
     patientsUpdate,
+    addressFindByCep,
   },
   healthInsurancesList,
 }));
@@ -244,18 +247,34 @@ describe("PatientList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
 
     await waitFor(() =>
-      expect(patientsUpdate).toHaveBeenCalledWith("patient-1", {
+      expect(patientsUpdate).toHaveBeenCalledWith("patient-1", expect.objectContaining({
         name: "Ana Martins Atualizada",
         phone: "11988887777",
         email: "ana.atualizada@email.com",
         healthInsuranceId: undefined,
         notes: "Observacao ajustada.",
-      }),
+      })),
     );
 
     expect(
       await screen.findByText("Ana Martins Atualizada atualizado com sucesso."),
     ).toBeVisible();
+  });
+
+  it("fills address fields after looking up a CEP", async () => {
+    addressFindByCep.mockResolvedValueOnce({
+      zipCode: "01001000", street: "Praca da Se", neighborhood: "Se",
+      city: "Sao Paulo", state: "SP",
+    });
+    renderWithProviders(<PatientList {...baseProps} patients={[]} total={0} />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo paciente" }));
+    fireEvent.change(screen.getByLabelText("CEP"), { target: { value: "01001000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Buscar endereco" }));
+    await waitFor(() => expect(addressFindByCep).toHaveBeenCalledWith("01001000"));
+    expect(screen.getByLabelText("Logradouro")).toHaveValue("Praca da Se");
+    expect(screen.getByLabelText("Bairro")).toHaveValue("Se");
+    expect(screen.getByLabelText("Cidade")).toHaveValue("Sao Paulo");
+    expect(screen.getByLabelText("Estado")).toHaveValue("SP");
   });
 
   it("propagates search and pagination interactions to the parent workspace", async () => {

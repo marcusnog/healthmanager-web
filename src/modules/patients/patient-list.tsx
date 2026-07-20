@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, healthInsurancesList } from "@/services/api";
+import type { HealthInsuranceResponse } from "@/services/api";
 import type { PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -30,6 +31,18 @@ const schema = z.object({
   birthDate: z.string().optional(),
   healthInsuranceId: z.string().optional(),
   notes: z.string().optional(),
+  details: z.object({
+    socialName: z.string().optional(), rg: z.string().optional(), sex: z.string().optional(),
+    secondaryPhone: z.string().optional(), commercialPhone: z.string().optional(), contactName: z.string().optional(),
+    medicalRecordNumber: z.string().optional(), healthInsuranceNumber: z.string().optional(), cns: z.string().optional(),
+    isVip: z.boolean(), excludeFromMarketing: z.boolean(), receiveDirectMail: z.boolean(), tags: z.string().optional(),
+    zipCode: z.string().optional(), street: z.string().optional(), complement: z.string().optional(),
+    neighborhood: z.string().optional(), city: z.string().optional(), state: z.string().optional(), region: z.string().optional(),
+    company: z.string().optional(), reference: z.string().optional(), acquisitionSource: z.string().optional(), referredBy: z.string().optional(),
+    maritalStatus: z.string().optional(), education: z.string().optional(), profession: z.string().optional(), religion: z.string().optional(),
+    fatherName: z.string().optional(), motherName: z.string().optional(), companionName: z.string().optional(),
+    childrenCount: z.string().optional(), spouseName: z.string().optional(),
+  }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -38,16 +51,98 @@ const documentSchema = z.object({
   file: z.instanceof(File, { message: "Selecione um arquivo valido." }),
 });
 
-const patientUpdateSchema = z.object({
-  name: z.string().min(3, "Informe o nome do paciente."),
-  phone: z.string().min(10, "Informe um telefone valido."),
-  email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
-  healthInsuranceId: z.string().optional(),
-  notes: z.string().optional(),
-});
+const patientUpdateSchema = schema.omit({ cpf: true, birthDate: true });
 
 type DocumentFormValues = z.infer<typeof documentSchema>;
 type PatientUpdateValues = z.infer<typeof patientUpdateSchema>;
+
+function emptyDetails() {
+  return {
+    socialName: "", rg: "", sex: "", secondaryPhone: "", commercialPhone: "", contactName: "",
+    medicalRecordNumber: "", healthInsuranceNumber: "", cns: "", isVip: false,
+    excludeFromMarketing: false, receiveDirectMail: false, tags: "", zipCode: "", street: "",
+    complement: "", neighborhood: "", city: "", state: "", region: "", company: "", reference: "",
+    acquisitionSource: "", referredBy: "", maritalStatus: "", education: "", profession: "", religion: "",
+    fatherName: "", motherName: "", companionName: "", childrenCount: "", spouseName: "",
+  };
+}
+
+function normalizeDetails(details: FormValues["details"]) {
+  return {
+    ...details,
+    secondaryPhone: details.secondaryPhone?.replace(/\D/g, "") || undefined,
+    commercialPhone: details.commercialPhone?.replace(/\D/g, "") || undefined,
+    zipCode: details.zipCode?.replace(/\D/g, "") || undefined,
+    childrenCount: details.childrenCount ? Number(details.childrenCount) : undefined,
+  };
+}
+
+// React Hook Form exposes different generic signatures for create and edit while both share these nested fields.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PatientDetailsFields({ register, getValues, setValue }: any) {
+  const [cepFeedback, setCepFeedback] = useState<string | null>(null);
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+  const groups = [
+    ["Identificacao e convenio", [["details.socialName", "Nome social"], ["details.rg", "RG"], ["details.sex", "Sexo"], ["details.medicalRecordNumber", "Numero do prontuario"], ["details.healthInsuranceNumber", "Matricula do convenio"], ["details.cns", "Numero CNS"], ["details.tags", "Tags"]]],
+    ["Contatos", [["details.secondaryPhone", "2º telefone residencial"], ["details.commercialPhone", "Telefone comercial"], ["details.contactName", "Pessoa de contato"]]],
+    ["Dados complementares", [["details.company", "Empresa"], ["details.reference", "Referencia"], ["details.acquisitionSource", "Conheceu por"], ["details.referredBy", "Indicado por"], ["details.maritalStatus", "Estado civil"], ["details.education", "Escolaridade"], ["details.profession", "Profissao"], ["details.religion", "Religiao"], ["details.fatherName", "Pai"], ["details.motherName", "Mae"], ["details.companionName", "Acompanhante"], ["details.childrenCount", "Filhos"], ["details.spouseName", "Conjuge"]]],
+  ] as const;
+
+  async function lookupCep() {
+    const cep = String(getValues("details.zipCode") ?? "").replace(/\D/g, "");
+    if (cep.length !== 8) { setCepFeedback("Informe um CEP com 8 digitos."); return; }
+    setIsLookingUpCep(true); setCepFeedback(null);
+    try {
+      const address = await DefaultService.addressFindByCep(cep);
+      setValue("details.street", address.street ?? "");
+      setValue("details.complement", address.complement ?? "");
+      setValue("details.neighborhood", address.neighborhood ?? "");
+      setValue("details.city", address.city ?? "");
+      setValue("details.state", address.state ?? "");
+      setCepFeedback("Endereco encontrado.");
+    } catch {
+      setCepFeedback("Nao foi possivel buscar este CEP.");
+    } finally { setIsLookingUpCep(false); }
+  }
+
+  return (
+    <>
+      {groups.slice(0, 1).map(([title, fields]) => (
+        <fieldset className="md:col-span-2 grid gap-4 border-t border-[var(--border)] pt-4 md:grid-cols-2" key={title}>
+          <legend className="label px-2">{title}</legend>
+          {fields.map(([name, label]) => <Field key={name} label={label}><input className="input-field" {...register(name)} /></Field>)}
+          <div className="md:col-span-2 flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register("details.isVip")} /> VIP</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register("details.excludeFromMarketing")} /> Excluir do marketing</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register("details.receiveDirectMail")} /> Mala-direta</label>
+          </div>
+        </fieldset>
+      ))}
+      {groups.slice(1, 2).map(([title, fields]) => (
+        <fieldset className="md:col-span-2 grid gap-4 border-t border-[var(--border)] pt-4 md:grid-cols-2" key={title}>
+          <legend className="label px-2">{title}</legend>
+          {fields.map(([name, label]) => <Field key={name} label={label}><input className="input-field" {...register(name)} /></Field>)}
+        </fieldset>
+      ))}
+      <fieldset className="md:col-span-2 grid gap-4 border-t border-[var(--border)] pt-4 md:grid-cols-2">
+        <legend className="label px-2">Endereco</legend>
+        <Field label="CEP"><div className="flex gap-2"><input className="input-field" placeholder="00000-000" {...register("details.zipCode")} /><button className="btn btn-ghost btn-sm shrink-0" disabled={isLookingUpCep} onClick={() => void lookupCep()} type="button">{isLookingUpCep ? "Buscando..." : "Buscar endereco"}</button></div>{cepFeedback ? <p className="mt-1 text-xs text-[var(--muted)]">{cepFeedback}</p> : null}</Field>
+        <Field label="Logradouro"><input className="input-field" {...register("details.street")} /></Field>
+        <Field label="Complemento"><input className="input-field" {...register("details.complement")} /></Field>
+        <Field label="Bairro"><input className="input-field" {...register("details.neighborhood")} /></Field>
+        <Field label="Cidade"><input className="input-field" {...register("details.city")} /></Field>
+        <Field label="Estado"><input className="input-field" maxLength={2} {...register("details.state")} /></Field>
+        <Field label="Regiao"><input className="input-field" {...register("details.region")} /></Field>
+      </fieldset>
+      {groups.slice(2).map(([title, fields]) => (
+        <fieldset className="md:col-span-2 grid gap-4 border-t border-[var(--border)] pt-4 md:grid-cols-2" key={title}>
+          <legend className="label px-2">{title}</legend>
+          {fields.map(([name, label]) => <Field key={name} label={label}><input className="input-field" min={name === "details.childrenCount" ? 0 : undefined} type={name === "details.childrenCount" ? "number" : "text"} {...register(name)} /></Field>)}
+        </fieldset>
+      ))}
+    </>
+  );
+}
 
 export function PatientList({
   patients,
@@ -96,6 +191,8 @@ export function PatientList({
     register,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -107,6 +204,7 @@ export function PatientList({
       birthDate: "",
       healthInsuranceId: "",
       notes: "",
+      details: emptyDetails(),
     },
   });
 
@@ -127,6 +225,7 @@ export function PatientList({
         birthDate: values.birthDate || undefined,
         healthInsuranceId: values.healthInsuranceId || undefined,
         notes: values.notes || undefined,
+        details: normalizeDetails(values.details),
       }),
     onSuccess: async () => {
       setFeedback("Paciente criado com sucesso.");
@@ -190,9 +289,10 @@ export function PatientList({
             <Field error={errors.healthInsuranceId?.message} label="Convenio">
               <select className="input-field" {...register("healthInsuranceId")}>
                 <option value="">Sem convenio</option>
-                {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {healthPlans.map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </Field>
+            <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
             <Field
               className="md:col-span-2"
               error={errors.notes?.message}
@@ -246,7 +346,6 @@ export function PatientList({
           <PatientDocumentsPanel
             patientAccessToken={activePatient.patientAccessToken ?? ""}
             patientId={activePatient.id ?? ""}
-            patientName={activePatient.name ?? "Paciente"}
           />
         </Modal>
       ) : null}
@@ -455,6 +554,8 @@ function PatientEditForm({
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<PatientUpdateValues>({
     resolver: zodResolver(patientUpdateSchema),
@@ -464,6 +565,11 @@ function PatientEditForm({
       email: patient.email ?? "",
       healthInsuranceId: patient.healthInsuranceId ?? "",
       notes: patient.notes ?? "",
+      details: {
+        ...emptyDetails(),
+        ...patient.details,
+        childrenCount: patient.details?.childrenCount == null ? "" : String(patient.details.childrenCount),
+      },
     },
   });
 
@@ -482,6 +588,7 @@ function PatientEditForm({
         email: values.email || undefined,
         healthInsuranceId: values.healthInsuranceId || undefined,
         notes: values.notes || undefined,
+        details: normalizeDetails(values.details),
       }),
     onSuccess: async (updatedPatient) => {
       setFeedback("Paciente atualizado com sucesso.");
@@ -513,9 +620,10 @@ function PatientEditForm({
       <Field error={errors.healthInsuranceId?.message} label="Convenio">
         <select className="input-field" {...register("healthInsuranceId")}>
           <option value="">Sem convenio</option>
-          {healthPlans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {healthPlans.map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
+      <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
       <Field
         className="md:col-span-2"
         error={errors.notes?.message}
@@ -548,11 +656,9 @@ function PatientEditForm({
 
 function PatientDocumentsPanel({
   patientId,
-  patientName,
   patientAccessToken,
 }: {
   patientId: string;
-  patientName: string;
   patientAccessToken: string;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);
