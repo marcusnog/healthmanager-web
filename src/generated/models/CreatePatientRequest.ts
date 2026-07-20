@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PatientDetails } from './PatientDetails';
 export type CreatePatientRequest = {
     name: string;
     cpf: string;
@@ -11,4 +12,6 @@ export type CreatePatientRequest = {
     healthInsurance?: string;
     healthInsuranceId?: string;
     notes?: string;
+    details?: PatientDetails;
 };
+
