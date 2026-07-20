@@ -18,7 +18,7 @@ export function Modal({
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  size?: "md" | "lg";
+  size?: "md" | "lg" | "xl";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -32,7 +32,7 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <dialog ref={ref} className={`modal-panel ${size === "lg" ? "modal-panel-lg" : "modal-panel-md"}`}>
+    <dialog ref={ref} className={`modal-panel modal-panel-${size}`}>
       <div className="modal-header">
         <h2 className="modal-title">{title}</h2>
         <button
