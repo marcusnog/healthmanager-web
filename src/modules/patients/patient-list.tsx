@@ -269,7 +269,7 @@ export function PatientList({
   return (
     <>
       {isFormOpen ? (
-        <Modal title="Novo paciente" onClose={() => setIsFormOpen(false)}>
+        <Modal title="Novo paciente" onClose={() => setIsFormOpen(false)} size="xl">
           <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
             <Field error={errors.name?.message} label="Nome">
               <input className="input-field" {...register("name")} />
@@ -321,7 +321,7 @@ export function PatientList({
       ) : null}
 
       {editingPatient ? (
-        <Modal title="Editar paciente" onClose={() => setEditingPatient(null)}>
+        <Modal title="Editar paciente" onClose={() => setEditingPatient(null)} size="xl">
           <PatientEditForm
             patient={editingPatient}
             onSaved={async (message) => {
