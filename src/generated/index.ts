@@ -8,6 +8,8 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AppointmentResponse } from './models/AppointmentResponse';
+export type { AppointmentTypeRequest } from './models/AppointmentTypeRequest';
+export type { AppointmentTypeResponse } from './models/AppointmentTypeResponse';
 export type { AuthResponse } from './models/AuthResponse';
 export type { CepAddressResponse } from './models/CepAddressResponse';
 export type { ChangePasswordRequest } from './models/ChangePasswordRequest';
@@ -21,11 +23,12 @@ export type { DashboardSummaryResponse } from './models/DashboardSummaryResponse
 export type { DoctorResponse } from './models/DoctorResponse';
 export type { LoginRequest } from './models/LoginRequest';
 export type { PagedAppointmentResponse } from './models/PagedAppointmentResponse';
+export type { PagedAppointmentTypeResponse } from './models/PagedAppointmentTypeResponse';
 export type { PagedDoctorResponse } from './models/PagedDoctorResponse';
 export type { PagedPatientResponse } from './models/PagedPatientResponse';
 export type { PagedPaymentResponse } from './models/PagedPaymentResponse';
 export type { PagedReceivableResponse } from './models/PagedReceivableResponse';
-export type { PatientDetails } from './models/PatientDetails';
+export { PatientDetails } from './models/PatientDetails';
 export type { PatientDocumentResponse } from './models/PatientDocumentResponse';
 export type { PatientPortalAppointmentResponse } from './models/PatientPortalAppointmentResponse';
 export type { PatientPortalAuthResponse } from './models/PatientPortalAuthResponse';

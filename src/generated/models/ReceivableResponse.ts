@@ -12,5 +12,11 @@ export type ReceivableResponse = {
     dueDate?: string;
     patientId?: string;
     patientName?: string;
+    description?: string | null;
+    appointmentStartAt?: string | null;
+    appointmentType?: string | null;
+    appointmentStatus?: string | null;
+    doctorId?: string | null;
+    doctorName?: string | null;
 };
 

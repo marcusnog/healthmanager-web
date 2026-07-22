@@ -4,14 +4,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, expenseSave, expenseDelete } from "@/services/api";
+import { DefaultService, expenseSave, expenseDelete, type ExpenseCategoryResponse } from "@/services/api";
 import type { ReceivableResponse, PaymentResponse, PatientResponse } from "@/generated";
 import { formatCurrency } from "@/lib/formatters";
 import {
   StatusBadge,
+  resolveAppointmentStatus,
   resolveReceivableStatus,
   resolveExpenseStatus,
-  EXPENSE_CATEGORY_LABELS,
 } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
@@ -28,7 +28,7 @@ const paymentSchema = z.object({
 const expenseFormSchema = z.object({
   description: z.string().min(1, "Informe a descricao."),
   amount: z.coerce.number().positive("Informe um valor valido."),
-  category: z.enum(["Supplies", "Equipment", "Salary", "Marketing", "Utilities", "Rent", "Other"]),
+  categoryId: z.string().uuid("Selecione uma categoria."),
   paymentMethod: z.enum(["Cash", "Pix", "CreditCard", "DebitCard", "Insurance"]),
   paidAt: z.string().min(1, "Informe a data."),
   status: z.enum(["Paid", "Pending", "Cancelled"]),
@@ -44,7 +44,8 @@ interface ExpenseResponse {
   id: string;
   description: string;
   amount: number;
-  category: ExpenseFormValues["category"];
+  categoryId: string;
+  categoryName: string;
   paymentMethod: ExpenseFormValues["paymentMethod"];
   paidAt: string;
   status: ExpenseFormValues["status"];
@@ -69,17 +70,6 @@ const EXPENSE_STATUS_FILTERS = [
   { key: "Paid" as const, label: "Pago" },
   { key: "Pending" as const, label: "Pendente" },
   { key: "Cancelled" as const, label: "Cancelado" },
-];
-
-const EXPENSE_CATEGORY_FILTERS = [
-  { key: undefined, label: "Todas" },
-  { key: "Supplies", label: "Insumos" },
-  { key: "Equipment", label: "Equipamentos" },
-  { key: "Salary", label: "Salarios" },
-  { key: "Marketing", label: "Marketing" },
-  { key: "Utilities", label: "Contas" },
-  { key: "Rent", label: "Aluguel" },
-  { key: "Other", label: "Outros" },
 ];
 
 export function FinancialOverview({
@@ -117,6 +107,8 @@ export function FinancialOverview({
   onExpenseDateFromChange,
   onExpenseDateToChange,
   summary,
+  expenseCategories,
+  onManageExpenseCategories,
 }: {
   receivables: ReceivableResponse[];
   page: number;
@@ -152,6 +144,8 @@ export function FinancialOverview({
   onExpenseDateFromChange: (value: string | undefined) => void;
   onExpenseDateToChange: (value: string | undefined) => void;
   summary: FinancialSummary;
+  expenseCategories: ExpenseCategoryResponse[];
+  onManageExpenseCategories: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("receivables");
   const [showPayments, setShowPayments] = useState(false);
@@ -189,7 +183,7 @@ export function FinancialOverview({
   } = useForm<ExpenseFormInput, undefined, ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
-      description: "", amount: 50, category: "Other",
+      description: "", amount: 50, categoryId: "",
       paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16),
       status: "Paid", notes: "",
     },
@@ -229,7 +223,7 @@ export function FinancialOverview({
   const saveExpenseMutation = useMutation({
     mutationFn: async (values: ExpenseFormValues & { id?: string }) => {
       const body = {
-        description: values.description, amount: values.amount, category: values.category,
+        description: values.description, amount: values.amount, categoryId: values.categoryId,
         paymentMethod: values.paymentMethod, paidAt: new Date(values.paidAt).toISOString(),
         status: values.status, notes: values.notes || undefined,
       };
@@ -270,7 +264,7 @@ export function FinancialOverview({
   const openNewExpense = () => {
     setEditingExpense(null);
     resetExpenseForm({
-      description: "", amount: 50, category: "Other",
+      description: "", amount: 50, categoryId: expenseCategories[0]?.id ?? "",
       paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16),
       status: "Paid", notes: "",
     });
@@ -281,7 +275,7 @@ export function FinancialOverview({
     setEditingExpense(expense);
     setExpenseFormValue("description", expense.description);
     setExpenseFormValue("amount", expense.amount);
-    setExpenseFormValue("category", expense.category);
+    setExpenseFormValue("categoryId", expense.categoryId);
     setExpenseFormValue("paymentMethod", expense.paymentMethod);
     setExpenseFormValue("paidAt", expense.paidAt ? new Date(expense.paidAt).toISOString().slice(0, 16) : "");
     setExpenseFormValue("status", expense.status);
@@ -341,16 +335,12 @@ export function FinancialOverview({
             <Field error={expenseFormErrors.amount?.message} label="Valor">
               <input className="input-field" min={0.01} step="0.01" type="number" {...registerExpenseForm("amount")} />
             </Field>
-            <Field error={expenseFormErrors.category?.message} label="Categoria">
-              <select className="input-field" {...registerExpenseForm("category")}>
-                <option value="Supplies">Insumos</option>
-                <option value="Equipment">Equipamentos</option>
-                <option value="Salary">Salarios</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Utilities">Contas (agua, luz, internet)</option>
-                <option value="Rent">Aluguel</option>
-                <option value="Other">Outros</option>
+            <Field error={expenseFormErrors.categoryId?.message} label="Categoria">
+              <select className="input-field" {...registerExpenseForm("categoryId")}>
+                <option value="">Selecione...</option>
+                {expenseCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
+              <button className="mt-1 text-xs font-semibold text-[var(--brand)]" onClick={() => { setShowExpenseForm(false); onManageExpenseCategories(); }} type="button">Cadastrar categoria</button>
             </Field>
             <Field error={expenseFormErrors.paymentMethod?.message} label="Forma de pagamento">
               <select className="input-field" {...registerExpenseForm("paymentMethod")}>
@@ -567,6 +557,7 @@ export function FinancialOverview({
                 <thead>
                   <tr>
                     <th>Paciente</th>
+                    <th>Agenda</th>
                     <th className="numeric">Original</th>
                     <th className="numeric">Recebido</th>
                     <th className="numeric">Em aberto</th>
@@ -586,6 +577,18 @@ export function FinancialOverview({
                     return (
                       <tr key={receivable.id ?? receivable.appointmentId ?? receivable.dueDate}>
                         <td>{receivable.patientName ?? "-"}</td>
+                        <td>
+                          {receivable.appointmentId ? (
+                            <div>
+                              <p className="font-semibold">{receivable.appointmentType ?? receivable.description ?? "Consulta"}</p>
+                              <p className="text-xs text-[var(--muted)]">
+                                {receivable.appointmentStartAt ? new Date(receivable.appointmentStartAt).toLocaleString("pt-BR") : "-"}
+                                {receivable.doctorName ? ` · ${receivable.doctorName}` : ""}
+                              </p>
+                              <StatusBadge variant={resolveAppointmentStatus(receivable.appointmentStatus ?? undefined)} />
+                            </div>
+                          ) : receivable.description ?? "Lancamento manual"}
+                        </td>
                         <td className="numeric">{formatCurrency(original)}</td>
                         <td className="numeric">{formatCurrency(received)}</td>
                         <td className="numeric">{formatCurrency(outstanding)}</td>
@@ -595,7 +598,7 @@ export function FinancialOverview({
                         <td>
                           <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); onPaymentReceivableIdChange(receivable.id); setShowPayments(true); }} type="button">Pagamentos</button>
-                            {receivable.status !== "Paid" ? (
+                            {receivable.status === "Pending" || receivable.status === "Partial" ? (
                               <button className="btn btn-ghost btn-sm" onClick={() => startQuickPayment(receivable)} type="button">Registrar pagamento</button>
                             ) : null}
                           </div>
@@ -607,6 +610,7 @@ export function FinancialOverview({
                 <tfoot>
                   <tr>
                     <td>Total</td>
+                    <td />
                     <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.originalAmount ?? 0), 0))}</td>
                     <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.receivedAmount ?? 0), 0))}</td>
                     <td className="numeric">{formatCurrency(receivables.reduce((s, r) => s + (r.outstandingAmount ?? 0), 0))}</td>
@@ -643,8 +647,8 @@ export function FinancialOverview({
 
           <div className="toolbar flex flex-col gap-3">
             <div className="toolbar-inline flex-wrap">
-              {EXPENSE_CATEGORY_FILTERS.map(({ key, label }) => (
-                <button key={label} className={cn("btn btn-sm", expenseCategory === key ? "btn-brand-outline" : "btn-ghost")} onClick={() => onExpenseCategoryChange(key)} type="button">{label}</button>
+              {[{ id: undefined, name: "Todas" }, ...expenseCategories].map(({ id, name }) => (
+                <button key={id ?? "all"} className={cn("btn btn-sm", expenseCategory === id ? "btn-brand-outline" : "btn-ghost")} onClick={() => onExpenseCategoryChange(id)} type="button">{name}</button>
               ))}
             </div>
             <div className="toolbar-inline flex-wrap">
@@ -694,7 +698,7 @@ export function FinancialOverview({
                       <td className="max-w-[200px] truncate" title={expense.description}>
                         {expense.description}
                       </td>
-                      <td>{EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category}</td>
+                      <td>{expense.categoryName}</td>
                       <td className="numeric">{formatCurrency(expense.amount)}</td>
                       <td>{expense.paymentMethod}</td>
                       <td>{new Date(expense.paidAt).toLocaleDateString("pt-BR")}</td>
@@ -777,4 +781,3 @@ export function FinancialOverview({
     </>
   );
 }
-

@@ -7,7 +7,7 @@ export type UpdateAppointmentRequest = {
     startAt?: string;
     durationMinutes?: number;
     notes?: string;
-    type?: string;
+    appointmentTypeId?: string;
     amount?: number;
 };
 

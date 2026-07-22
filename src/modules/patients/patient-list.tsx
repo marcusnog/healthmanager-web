@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, healthInsurancesList } from "@/services/api";
 import type { HealthInsuranceResponse } from "@/services/api";
-import type { PatientDocumentResponse, PatientResponse } from "@/generated";
+import type { PatientDetails, PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
@@ -32,7 +32,8 @@ const schema = z.object({
   healthInsuranceId: z.string().optional(),
   notes: z.string().optional(),
   details: z.object({
-    socialName: z.string().optional(), rg: z.string().optional(), sex: z.string().optional(),
+    socialName: z.string().optional(), rg: z.string().optional(),
+    sex: z.union([z.enum(["Masculino", "Feminino", "Prefiro não informar"]), z.literal("")]).optional(),
     secondaryPhone: z.string().optional(), commercialPhone: z.string().optional(), contactName: z.string().optional(),
     medicalRecordNumber: z.string().optional(), healthInsuranceNumber: z.string().optional(), cns: z.string().optional(),
     isVip: z.boolean(), excludeFromMarketing: z.boolean(), receiveDirectMail: z.boolean(), tags: z.string().optional(),
@@ -56,7 +57,7 @@ const patientUpdateSchema = schema.omit({ cpf: true, birthDate: true });
 type DocumentFormValues = z.infer<typeof documentSchema>;
 type PatientUpdateValues = z.infer<typeof patientUpdateSchema>;
 
-function emptyDetails() {
+function emptyDetails(): FormValues["details"] {
   return {
     socialName: "", rg: "", sex: "", secondaryPhone: "", commercialPhone: "", contactName: "",
     medicalRecordNumber: "", healthInsuranceNumber: "", cns: "", isVip: false,
@@ -70,11 +71,20 @@ function emptyDetails() {
 function normalizeDetails(details: FormValues["details"]) {
   return {
     ...details,
+    sex: (details.sex || undefined) as PatientDetails["sex"],
     secondaryPhone: details.secondaryPhone?.replace(/\D/g, "") || undefined,
     commercialPhone: details.commercialPhone?.replace(/\D/g, "") || undefined,
     zipCode: details.zipCode?.replace(/\D/g, "") || undefined,
     childrenCount: details.childrenCount ? Number(details.childrenCount) : undefined,
   };
+}
+
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "body" in error) {
+    const detail = (error as { body?: { detail?: unknown } }).body?.detail;
+    if (typeof detail === "string" && detail.length > 0) return detail;
+  }
+  return fallback;
 }
 
 // React Hook Form exposes different generic signatures for create and edit while both share these nested fields.
@@ -110,7 +120,18 @@ function PatientDetailsFields({ register, getValues, setValue }: any) {
       {groups.slice(0, 1).map(([title, fields]) => (
         <fieldset className="md:col-span-2 grid gap-4 border-t border-[var(--border)] pt-4 md:grid-cols-2" key={title}>
           <legend className="label px-2">{title}</legend>
-          {fields.map(([name, label]) => <Field key={name} label={label}><input className="input-field" {...register(name)} /></Field>)}
+          {fields.map(([name, label]) => (
+            <Field key={name} label={label}>
+              {name === "details.sex" ? (
+                <select className="input-field" {...register(name)}>
+                  <option value="">Selecione</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Prefiro não informar">Prefiro não informar</option>
+                </select>
+              ) : <input className="input-field" {...register(name)} />}
+            </Field>
+          ))}
           <div className="md:col-span-2 flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register("details.isVip")} /> VIP</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register("details.excludeFromMarketing")} /> Excluir do marketing</label>
@@ -236,14 +257,14 @@ export function PatientList({
         queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
       ]);
     },
-    onError: () => {
-      setFeedback("Nao foi possivel criar o paciente agora.");
+    onError: (error) => {
+      setFeedback(apiErrorMessage(error, "Nao foi possivel criar o paciente agora."));
     },
   });
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = handleSubmit((values) => {
     setFeedback(null);
-    await createPatient.mutateAsync(values);
+    createPatient.mutate(values);
   });
 
   const deletePatient = useMutation({
