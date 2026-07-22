@@ -5,7 +5,7 @@
 export type PatientDetails = {
     socialName?: string;
     rg?: string;
-    sex?: string;
+    sex?: PatientDetails.sex;
     secondaryPhone?: string;
     commercialPhone?: string;
     contactName?: string;
@@ -37,4 +37,11 @@ export type PatientDetails = {
     childrenCount?: number;
     spouseName?: string;
 };
+export namespace PatientDetails {
+    export enum sex {
+        MASCULINO = 'Masculino',
+        FEMININO = 'Feminino',
+        PREFIRO_N_O_INFORMAR = 'Prefiro não informar',
+    }
+}
 

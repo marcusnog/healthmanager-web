@@ -277,6 +277,20 @@ describe("PatientList", () => {
     expect(screen.getByLabelText("Estado")).toHaveValue("SP");
   });
 
+  it("shows the API reason when patient creation is rejected", async () => {
+    patientsCreate.mockRejectedValueOnce({
+      body: { detail: "Paciente ja cadastrado para esta clinica." },
+    });
+    renderWithProviders(<PatientList {...baseProps} patients={[]} total={0} />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo paciente" }));
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Maria Silva" } });
+    fireEvent.change(screen.getByLabelText("CPF"), { target: { value: "93541134780" } });
+    fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "11999998888" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar paciente" }));
+
+    expect(await screen.findByText("Paciente ja cadastrado para esta clinica.")).toBeVisible();
+  });
+
   it("propagates search and pagination interactions to the parent workspace", async () => {
     renderWithProviders(
       <PatientList

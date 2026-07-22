@@ -8,7 +8,7 @@ export type CreateAppointmentRequest = {
     startAt: string;
     durationMinutes?: number;
     notes?: string;
-    type?: string;
+    appointmentTypeId: string;
     amount?: number;
 };
 

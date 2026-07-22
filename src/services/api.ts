@@ -13,6 +13,7 @@ export interface SpecialtyResponse {
   name: string;
   doctors: Array<{ id: string; name: string; crm: string }>;
 }
+export interface ExpenseCategoryResponse { id: string; name: string; }
 
 interface PagedApiResponse<T> {
   items: T[];
@@ -74,7 +75,7 @@ export async function expensesList(
 export async function expenseSave(id: string | undefined, body: {
   description: string;
   amount: number;
-  category: string;
+  categoryId: string;
   paymentMethod: string;
   paidAt?: string;
   status?: string;
@@ -84,6 +85,24 @@ export async function expenseSave(id: string | undefined, body: {
   const url = id ? `/financial/expenses/${id}` : `/financial/expenses`;
   const response = await apiFetch(url, { method, body: JSON.stringify(body) });
   return response.json();
+}
+
+export async function expenseCategoriesList(page = 1, pageSize = 100, search?: string) {
+  const params = new URLSearchParams({ Page: String(page), PageSize: String(pageSize) });
+  if (search) params.set("Search", search);
+  const response = await apiFetch(`/expense-categories?${params}`);
+  return response.json() as Promise<PagedApiResponse<ExpenseCategoryResponse>>;
+}
+export async function expenseCategoryCreate(name: string) {
+  const response = await apiFetch("/expense-categories", { method: "POST", body: JSON.stringify({ name }) });
+  return response.json();
+}
+export async function expenseCategoryUpdate(id: string, name: string) {
+  const response = await apiFetch(`/expense-categories/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ name }) });
+  return response.json();
+}
+export async function expenseCategoryDelete(id: string) {
+  await apiFetch(`/expense-categories/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function expenseDelete(id: string) {

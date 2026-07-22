@@ -3,6 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AppointmentResponse } from '../models/AppointmentResponse';
+import type { AppointmentTypeRequest } from '../models/AppointmentTypeRequest';
+import type { AppointmentTypeResponse } from '../models/AppointmentTypeResponse';
 import type { AuthResponse } from '../models/AuthResponse';
 import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
@@ -16,6 +18,7 @@ import type { DashboardSummaryResponse } from '../models/DashboardSummaryRespons
 import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
+import type { PagedAppointmentTypeResponse } from '../models/PagedAppointmentTypeResponse';
 import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
 import type { PagedPatientResponse } from '../models/PagedPatientResponse';
 import type { PagedPaymentResponse } from '../models/PagedPaymentResponse';
@@ -522,13 +525,86 @@ export class DefaultService {
         requestBody: UpdateAppointmentRequest,
     ): CancelablePromise<AppointmentResponse> {
         return __request(OpenAPI, {
-            method: 'PATCH',
+            method: 'PUT',
             url: '/appointments/{id}',
             path: {
                 'id': id,
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param search
+     * @returns PagedAppointmentTypeResponse OK
+     * @throws ApiError
+     */
+    public static appointmentTypesList(
+        page: number = 1,
+        pageSize: number = 20,
+        search?: string,
+    ): CancelablePromise<PagedAppointmentTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/appointment-types',
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+                'search': search,
+            },
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns AppointmentTypeResponse Created
+     * @throws ApiError
+     */
+    public static appointmentTypesCreate(
+        requestBody: AppointmentTypeRequest,
+    ): CancelablePromise<AppointmentTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointment-types',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns AppointmentTypeResponse OK
+     * @throws ApiError
+     */
+    public static appointmentTypesUpdate(
+        id: string,
+        requestBody: AppointmentTypeRequest,
+    ): CancelablePromise<AppointmentTypeResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/appointment-types/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static appointmentTypesDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/appointment-types/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**

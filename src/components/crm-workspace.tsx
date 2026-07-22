@@ -9,13 +9,15 @@ import { DashboardRightRail } from "@/modules/dashboard/dashboard-right-rail";
 import { DoctorRoster } from "@/modules/doctors/doctor-roster";
 import { PatientList } from "@/modules/patients/patient-list";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
+import { AppointmentTypeList } from "@/modules/scheduling/appointment-type-list";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
+import { ExpenseCategoryList } from "@/modules/financial/expense-category-list";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { HealthInsuranceList } from "@/modules/health-insurances/health-insurance-list";
 import { SpecialtyList } from "@/modules/specialties/specialty-list";
 import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { Avatar } from "@/components/ui/avatar";
-import { DefaultService, expensesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
+import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
 import type { SessionState } from "@/types/app";
 
@@ -24,8 +26,10 @@ import type { SessionState } from "@/types/app";
 type Section =
   | "dashboard"
   | "agenda"
+  | "tipos-consulta"
   | "pacientes"
   | "financeiro"
+  | "categorias-despesa"
   | "medicos"
   | "convenios"
   | "especialidades"
@@ -128,8 +132,10 @@ function CrossIcon() {
 const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
   { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
+  { section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
   { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
+  { section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa" },
   { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
   { section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
   { section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
@@ -144,8 +150,10 @@ const DOCTOR_NAV = NAV.filter((n) =>
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
   agenda:         { title: "Agenda",           subtitle: "Consultas, confirmações e cancelamentos" },
+  "tipos-consulta": { title: "Tipos de consulta", subtitle: "Cadastro dos tipos usados no agendamento" },
   pacientes:      { title: "Pacientes",        subtitle: "Cadastro, busca e documentos" },
   financeiro:     { title: "Financeiro",       subtitle: "Receitas, despesas e saldo" },
+  "categorias-despesa": { title: "Categorias de despesa", subtitle: "Cadastro das categorias financeiras" },
   medicos:        { title: "Médicos",          subtitle: "Equipe médica e disponibilidade" },
   convenios:      { title: "Convênios",        subtitle: "Cadastro de convênios e contatos" },
   especialidades: { title: "Especialidades",   subtitle: "Especialidades e vínculo com médicos" },
@@ -309,6 +317,18 @@ export function CrmWorkspace() {
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
+  const expenseCategoriesQuery = useQuery({
+    queryKey: ["expense-categories"],
+    queryFn: () => guardedQuery(() => expenseCategoriesList(), { items: [], page: 1, pageSize: 100, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
+    enabled: authenticated,
+  });
+  const appointmentTypesQuery = useQuery({
+    queryKey: ["appointment-types"],
+    queryFn: () => guardedQuery(() => DefaultService.appointmentTypesList(1, 100), { items: [], page: 1, pageSize: 100, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
+    enabled: authenticated,
+  });
 
   const healthInsQuery = useQuery({
     queryKey: ["healthInsurances", hiSearch, hiPage],
@@ -403,6 +423,7 @@ export function CrmWorkspace() {
     appointmentDoctorId: resolvedAppointmentDoctorId,
     appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? [],
+    appointmentTypes: appointmentTypesQuery.data?.items ?? [],
     doctors: doctorsData.items ?? [],
     isLoading: appointmentsQuery.isLoading,
     onAppointmentDateChange: handleAppointmentDateChange,
@@ -450,6 +471,8 @@ export function CrmWorkspace() {
     onExpenseDateFromChange: handleExpenseDateFromChange,
     onExpenseDateToChange: handleExpenseDateToChange,
     summary: financialSummaryQuery.data ?? { totalReceived: 0, totalExpenses: 0, balance: 0 },
+    expenseCategories: expenseCategoriesQuery.data?.items ?? [],
+    onManageExpenseCategories: () => setActiveSection("categorias-despesa" as Section),
   };
 
   /* ─── Login screen ──────────────────────────────────────────── */
@@ -532,10 +555,14 @@ export function CrmWorkspace() {
         );
       case "agenda":
         return <AppointmentBoard {...appointmentBoardProps} />;
+      case "tipos-consulta":
+        return <AppointmentTypeList items={appointmentTypesQuery.data?.items ?? []} isLoading={appointmentTypesQuery.isLoading} />;
       case "pacientes":
         return <PatientList {...patientListProps} />;
       case "financeiro":
         return <FinancialOverview {...financialOverviewProps} />;
+      case "categorias-despesa":
+        return <ExpenseCategoryList items={expenseCategoriesQuery.data?.items ?? []} isLoading={expenseCategoriesQuery.isLoading} />;
       case "medicos":
         return (
           <DoctorRoster

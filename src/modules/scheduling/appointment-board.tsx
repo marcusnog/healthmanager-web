@@ -14,6 +14,7 @@ import { Field } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import type {
   AppointmentResponse,
+  AppointmentTypeResponse,
   DoctorResponse,
   PatientResponse,
 } from "@/generated";
@@ -23,7 +24,7 @@ const schema = z.object({
   doctorId: z.string().min(1, "Selecione um medico."),
   startAt: z.string().min(1, "Informe a data e horario."),
   durationMinutes: z.coerce.number().min(15).max(180),
-  type: z.string().min(3, "Informe o tipo da consulta."),
+  appointmentTypeId: z.string().min(1, "Selecione o tipo da consulta."),
   amount: z.coerce.number().min(1, "Informe o valor da consulta."),
   notes: z.string().optional(),
 });
@@ -35,6 +36,21 @@ function shiftDate(value: string, amount: number) {
   const d = new Date(value);
   d.setDate(d.getDate() + amount);
   return d.toISOString().slice(0, 10);
+}
+
+function toLocalDateTime(value: string) {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "body" in error) {
+    const detail = (error as { body?: { detail?: unknown } }).body?.detail;
+    if (typeof detail === "string" && detail.length > 0) return detail;
+  }
+  return fallback;
 }
 
 function statusBorderClass(status?: string) {
@@ -75,6 +91,7 @@ export function AppointmentBoard({
   appointments,
   patients,
   doctors,
+  appointmentTypes = [],
   appointmentDate,
   appointmentViewMode = "day",
   appointmentDateFrom,
@@ -94,6 +111,7 @@ export function AppointmentBoard({
   appointments: AppointmentResponse[];
   patients: PatientResponse[];
   doctors: DoctorResponse[];
+  appointmentTypes?: AppointmentTypeResponse[];
   appointmentDate: string;
   appointmentViewMode?: "day" | "week";
   appointmentDateFrom?: string;
@@ -142,7 +160,7 @@ export function AppointmentBoard({
       doctorId: doctors[0]?.id ?? "",
       startAt: defaultStartAt,
       durationMinutes: 30,
-      type: "Retorno",
+      appointmentTypeId: appointmentTypes[0]?.id ?? "",
       amount: 180,
       notes: "",
     },
@@ -155,7 +173,7 @@ export function AppointmentBoard({
         doctorId: values.doctorId,
         startAt: new Date(values.startAt).toISOString(),
         durationMinutes: values.durationMinutes,
-        type: values.type,
+        appointmentTypeId: values.appointmentTypeId,
         amount: values.amount,
         notes: values.notes || undefined,
       }),
@@ -166,7 +184,7 @@ export function AppointmentBoard({
         doctorId: doctors[0]?.id ?? "",
         startAt: defaultStartAt,
         durationMinutes: 30,
-        type: "Retorno",
+        appointmentTypeId: appointmentTypes[0]?.id ?? "",
         amount: 180,
         notes: "",
       });
@@ -177,8 +195,8 @@ export function AppointmentBoard({
         queryClient.invalidateQueries({ queryKey: ["receivables"] }),
       ]);
     },
-    onError: () => {
-      setFeedback("Nao foi possivel agendar a consulta agora.");
+    onError: (error) => {
+      setFeedback(apiErrorMessage(error, "Nao foi possivel agendar a consulta agora."));
     },
   });
 
@@ -292,7 +310,7 @@ export function AppointmentBoard({
         startAt?: string;
         durationMinutes?: number;
         notes?: string;
-        type?: string;
+        appointmentTypeId?: string;
         amount?: number;
       };
     }) => DefaultService.appointmentsUpdate(appointmentId, values),
@@ -304,9 +322,6 @@ export function AppointmentBoard({
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
         queryClient.invalidateQueries({ queryKey: ["receivables"] }),
       ]);
-    },
-    onError: () => {
-      setFeedback("Nao foi possivel atualizar a consulta agora.");
     },
   });
 
@@ -353,8 +368,11 @@ export function AppointmentBoard({
                 {...register("durationMinutes")}
               />
             </Field>
-            <Field error={errors.type?.message} label="Tipo">
-              <input className="input-field" {...register("type")} />
+            <Field error={errors.appointmentTypeId?.message} label="Tipo">
+              <select className="input-field" {...register("appointmentTypeId")}>
+                <option value="">Selecione</option>
+                {appointmentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+              </select>
             </Field>
             <Field error={errors.amount?.message} label="Valor">
               <input
@@ -393,6 +411,7 @@ export function AppointmentBoard({
           <AppointmentEditForm
             appointment={editingAppointment}
             doctors={doctors}
+            appointmentTypes={appointmentTypes}
             onSaved={async (values) => {
               if (!editingAppointment.id) return;
               setFeedback(null);
@@ -530,6 +549,7 @@ export function AppointmentBoard({
             weekDays={getWeekDays(appointmentDateFrom)}
             todayDate={todayDate}
             isLoading={isLoading}
+            onEdit={setEditingAppointment}
             onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }}
           />
         ) : (
@@ -694,12 +714,14 @@ export function AppointmentBoard({
 function AppointmentEditForm({
   appointment,
   doctors,
+  appointmentTypes,
   onSaved,
   onCancel,
 }: {
   appointment: AppointmentResponse;
   doctors: DoctorResponse[];
-  onSaved: (values: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; type?: string; amount?: number }) => Promise<void>;
+  appointmentTypes: AppointmentTypeResponse[];
+  onSaved: (values: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; appointmentTypeId?: string; amount?: number }) => Promise<void>;
   onCancel: () => void;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -711,12 +733,12 @@ function AppointmentEditForm({
     defaultValues: {
       doctorId: appointment.doctorId ?? doctors[0]?.id ?? "",
       startAt: appointment.startAt
-        ? appointment.startAt.slice(0, 16)
+        ? toLocalDateTime(appointment.startAt)
         : new Date().toISOString().slice(0, 16),
       durationMinutes: appointment.endAt && appointment.startAt
         ? Math.round((new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) / 60000)
         : 30,
-      type: appointment.type ?? "Retorno",
+      appointmentTypeId: appointment.appointmentTypeId ?? appointmentTypes[0]?.id ?? "",
       amount: appointment.amount ?? 0,
       notes: appointment.notes ?? "",
     },
@@ -724,9 +746,9 @@ function AppointmentEditForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
-    const patch: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; type?: string; amount?: number } = {};
+    const patch: { doctorId?: string; startAt?: string; durationMinutes?: number; notes?: string; appointmentTypeId?: string; amount?: number } = {};
     if (values.doctorId !== appointment.doctorId) patch.doctorId = values.doctorId;
-    if (values.type !== appointment.type) patch.type = values.type;
+    if (values.appointmentTypeId && values.appointmentTypeId !== appointment.appointmentTypeId) patch.appointmentTypeId = values.appointmentTypeId;
     if (Number(values.amount) !== appointment.amount) patch.amount = Number(values.amount);
     if (values.notes !== (appointment.notes ?? "")) patch.notes = values.notes || undefined;
 
@@ -737,13 +759,19 @@ function AppointmentEditForm({
     if (minutes !== originalMinutes) patch.durationMinutes = minutes;
 
     const newStart = new Date(values.startAt).toISOString();
-    if (newStart !== appointment.startAt) patch.startAt = newStart;
+    if (new Date(newStart).getTime() !== new Date(appointment.startAt ?? 0).getTime()) {
+      patch.startAt = newStart;
+    }
 
     if (Object.keys(patch).length === 0) {
       onCancel();
       return;
     }
-    await onSaved(patch);
+    try {
+      await onSaved(patch);
+    } catch (error) {
+      setFeedback(apiErrorMessage(error, "Nao foi possivel atualizar a consulta agora."));
+    }
   });
 
   return (
@@ -764,8 +792,10 @@ function AppointmentEditForm({
       <Field error={errors.durationMinutes?.message} label="Duracao (min)">
         <input className="input-field" min={15} step={15} type="number" {...register("durationMinutes")} />
       </Field>
-      <Field error={errors.type?.message} label="Tipo">
-        <input className="input-field" {...register("type")} />
+      <Field error={errors.appointmentTypeId?.message} label="Tipo">
+        <select className="input-field" {...register("appointmentTypeId")}>
+          {appointmentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+        </select>
       </Field>
       <Field error={errors.amount?.message} label="Valor">
         <input className="input-field" min={1} step="0.01" type="number" {...register("amount")} />
@@ -793,6 +823,7 @@ function WeekGrid({
   weekDays,
   todayDate,
   isLoading,
+  onEdit,
   onDayClick,
 }: {
   appointments: AppointmentResponse[];
@@ -801,6 +832,7 @@ function WeekGrid({
   weekDays: string[];
   todayDate: string;
   isLoading: boolean;
+  onEdit: (appointment: AppointmentResponse) => void;
   onDayClick: (day: string) => void;
 }) {
   const dayAppointments = useMemo(() => {
@@ -875,7 +907,20 @@ function WeekGrid({
                     <div className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
                       {patient?.name ?? "—"}
                     </div>
+                    <div className="truncate text-[var(--muted)]">
+                      {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
+                    </div>
                     <StatusBadge variant={statusVariant} />
+                    {!isCancelled ? (
+                      <button
+                        aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
+                        className="mt-1 text-[var(--brand)] underline"
+                        onClick={() => onEdit(apt)}
+                        type="button"
+                      >
+                        Editar
+                      </button>
+                    ) : null}
                   </div>
                 );
               })}

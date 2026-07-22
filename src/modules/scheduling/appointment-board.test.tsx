@@ -3,11 +3,12 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
     appointmentsCreate: vi.fn(),
+    appointmentsUpdate: vi.fn(),
   }));
 
 vi.mock("@/services/api", () => ({
@@ -15,6 +16,7 @@ vi.mock("@/services/api", () => ({
     appointmentsCancel,
     appointmentsConfirm,
     appointmentsCreate,
+    appointmentsUpdate,
   },
 }));
 
@@ -23,6 +25,10 @@ describe("AppointmentBoard", () => {
     appointmentDate: "2026-05-07",
     appointmentDoctorId: undefined,
     appointmentStatus: undefined as "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | undefined,
+    appointmentTypes: [
+      { id: "type-return", name: "Retorno" },
+      { id: "type-first", name: "Primeira consulta" },
+    ],
     doctors: [
       {
         id: "doctor-1",
@@ -59,6 +65,7 @@ describe("AppointmentBoard", () => {
     appointmentsCancel.mockReset();
     appointmentsConfirm.mockReset();
     appointmentsCreate.mockReset();
+    appointmentsUpdate.mockReset();
     baseProps.onAppointmentDateChange.mockReset();
   });
 
@@ -172,5 +179,88 @@ describe("AppointmentBoard", () => {
     expect(
       screen.getByText("Nenhuma consulta encontrada para a data selecionada."),
     ).toBeVisible();
+  });
+
+  it("shows the doctor and opens editing from the weekly view", () => {
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointmentDateFrom="2026-05-04"
+        appointmentDateTo="2026-05-10"
+        appointmentViewMode="week"
+        appointments={[{
+          id: "appointment-1",
+          patientId: "patient-1",
+          doctorId: "doctor-1",
+          startAt: "2026-05-07T11:00:00Z",
+          endAt: "2026-05-07T11:30:00Z",
+          status: "Scheduled",
+          appointmentTypeId: "type-return",
+          type: "Retorno",
+          amount: 180,
+        }]}
+      />,
+    );
+
+    expect(screen.getAllByText("Dra. Luciana Costa")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Editar consulta de Marina Souza" }));
+    expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+  });
+
+  it("keeps the edit modal open and shows the scheduling conflict", async () => {
+    appointmentsUpdate.mockRejectedValueOnce({
+      body: { detail: "Conflito de horario para o medico selecionado." },
+    });
+
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointments={[{
+          id: "appointment-1",
+          patientId: "patient-1",
+          doctorId: "doctor-1",
+          startAt: "2026-05-07T11:00:00Z",
+          endAt: "2026-05-07T11:30:00Z",
+          status: "Scheduled",
+          type: "Retorno",
+          amount: 180,
+        }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Inicio"), { target: { value: "2026-05-08T11:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+
+    expect(await screen.findByText("Conflito de horario para o medico selecionado.")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+  });
+
+  it("does not shift the appointment time when another field is edited", async () => {
+    appointmentsUpdate.mockResolvedValueOnce({});
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointments={[{
+          id: "appointment-1",
+          patientId: "patient-1",
+          doctorId: "doctor-1",
+          startAt: "2026-05-07T11:00:00Z",
+          endAt: "2026-05-07T11:30:00Z",
+          status: "Scheduled",
+          type: "Retorno",
+          amount: 180,
+        }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Tipo"), { target: { value: "type-first" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+
+    await waitFor(() => expect(appointmentsUpdate).toHaveBeenCalledWith(
+      "appointment-1",
+      { appointmentTypeId: "type-first" },
+    ));
   });
 });
