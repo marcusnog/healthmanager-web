@@ -12,12 +12,14 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { Field } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { apiErrorMessage } from "@/lib/api-error";
 import type {
   AppointmentResponse,
   AppointmentTypeResponse,
   DoctorResponse,
   PatientResponse,
 } from "@/generated";
+import { ClinicalRecordModal } from "./clinical-record-modal";
 
 const schema = z.object({
   patientId: z.string().min(1, "Selecione um paciente."),
@@ -43,14 +45,6 @@ function toLocalDateTime(value: string) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
     .toISOString()
     .slice(0, 16);
-}
-
-function apiErrorMessage(error: unknown, fallback: string) {
-  if (error && typeof error === "object" && "body" in error) {
-    const detail = (error as { body?: { detail?: unknown } }).body?.detail;
-    if (typeof detail === "string" && detail.length > 0) return detail;
-  }
-  return fallback;
 }
 
 function statusBorderClass(status?: string) {
@@ -130,6 +124,7 @@ export function AppointmentBoard({
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
+  const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [processingAppointmentId, setProcessingAppointmentId] = useState<
     string | null
@@ -425,6 +420,13 @@ export function AppointmentBoard({
         </Modal>
       ) : null}
 
+      {clinicalRecordAppointment ? (
+        <ClinicalRecordModal
+          appointment={clinicalRecordAppointment}
+          onClose={() => setClinicalRecordAppointment(null)}
+        />
+      ) : null}
+
       <section className="panel p-5 md:p-6">
         <div className="section-heading">
           <div>
@@ -601,6 +603,16 @@ export function AppointmentBoard({
                         type="button"
                       >
                         Editar
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setFeedback(null);
+                          setClinicalRecordAppointment(appointment);
+                        }}
+                        type="button"
+                      >
+                        Prontuario
                       </button>
                       {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
                         <button

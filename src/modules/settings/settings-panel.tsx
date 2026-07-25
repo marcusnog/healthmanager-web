@@ -1,73 +1,88 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field } from "@/components/ui/field";
 import { DefaultService } from "@/services/api";
+import type { TenantSettingsResponse } from "@/generated";
 
-const SETTINGS = [
-  {
-    title: "Expediente",
-    description:
-      "08:00 as 18:00 com slot padrao de 30 minutos, validacao de conflito e navegacao diaria da agenda.",
-    eyebrow: "Operacao",
-  },
-  {
-    title: "WhatsApp",
-    description:
-      "Fluxo pronto para Meta Cloud API com confirmacao automatica, lembretes e retorno por webhook.",
-    eyebrow: "Automacao",
-  },
-  {
-    title: "Permissoes",
-    description:
-      "Perfis separados para Admin, Secretaria e Medico, com tenant isolation por clinica.",
-    eyebrow: "Seguranca",
-  },
-  {
-    title: "Documentos",
-    description:
-      "Upload, download e soft delete para PDF, JPG e PNG com suporte a storage privado.",
-    eyebrow: "Prontidao",
-  },
-];
-
-export function SettingsPanel() {
+export function SettingsPanel({ role }: { role: string }) {
   return (
     <section className="panel rounded-lg p-6">
-      <div className="section-heading">
-        <div>
-          <p className="label">Configuracoes</p>
-          <h3 className="mt-2 text-2xl font-semibold">
-            Configuracoes operacionais do tenant
-          </h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Esta area resume os pilares operacionais do MVP e o que ja
-            esta preparado para crescer sem overengineering.
-          </p>
-        </div>
-        <div className="highlight-card max-w-sm">
-          <p className="label">MVP pronto para escalar</p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            Tenant por clinica, outbox, worker interno, documentos e trilha de
-            auditoria no mesmo fluxo do produto.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {SETTINGS.map((setting) => (
-          <SettingCard
-            key={setting.title}
-            description={setting.description}
-            eyebrow={setting.eyebrow}
-            title={setting.title}
-          />
-        ))}
-      </div>
-
+      <TenantSettingsForm canEdit={role === "Admin"} />
       <ChangePasswordForm />
     </section>
   );
 }
+function TenantSettingsForm({ canEdit }: { canEdit: boolean }) {
+  const [settings, setSettings] = useState<TenantSettingsResponse | null>(null);
+  const [start, setStart] = useState("08:00");
+  const [end, setEnd] = useState("18:00");
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    DefaultService.tenantSettingsGet()
+      .then((value) => {
+        setSettings(value);
+        const hours = JSON.parse(value.businessHoursJson ?? "{}") as { start?: string; end?: string };
+        setStart(hours.start ?? "08:00");
+        setEnd(hours.end ?? "18:00");
+      })
+      .catch((error: unknown) => setStatus(error instanceof Error ? error.message : "Erro ao carregar configuracoes."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!settings?.name || !settings.timezone) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const updated = await DefaultService.tenantSettingsUpdate({
+        name: settings.name,
+        timezone: settings.timezone,
+        businessHoursJson: JSON.stringify({ start, end }),
+        cnpj: settings.cnpj,
+        email: settings.email,
+        phone: settings.phone,
+        address: settings.address,
+      });
+      setSettings(updated);
+      setStatus("Configuracoes salvas.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Erro ao salvar configuracoes.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const set = (field: keyof TenantSettingsResponse, value: string) =>
+    setSettings((current) => current ? { ...current, [field]: value } : current);
+
+  return (
+    <div>
+      <p className="label">Tenant</p>
+      <h3 className="mt-2 text-2xl font-semibold">Configuracoes da clinica</h3>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        {canEdit ? "Estas informacoes valem para toda a clinica." : "Somente administradores podem alterar estas informacoes."}
+      </p>
+      {settings && (
+        <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <Field label="Nome"><input className="field-input" disabled={!canEdit} required value={settings.name ?? ""} onChange={(e) => set("name", e.target.value)} /></Field>
+          <Field label="Identificador"><input className="field-input" disabled value={settings.slug ?? ""} /></Field>
+          <Field label="CNPJ"><input className="field-input" disabled={!canEdit} value={settings.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} /></Field>
+          <Field label="E-mail"><input className="field-input" disabled={!canEdit} type="email" value={settings.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
+          <Field label="Telefone"><input className="field-input" disabled={!canEdit} value={settings.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
+          <Field label="Fuso horario"><input className="field-input" disabled={!canEdit} required value={settings.timezone ?? ""} onChange={(e) => set("timezone", e.target.value)} /></Field>
+          <Field label="Inicio do expediente"><input className="field-input" disabled={!canEdit} type="time" required value={start} onChange={(e) => setStart(e.target.value)} /></Field>
+          <Field label="Fim do expediente"><input className="field-input" disabled={!canEdit} type="time" required value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
+          <div className="md:col-span-2"><Field label="Endereco"><input className="field-input" disabled={!canEdit} value={settings.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field></div>
+          {status && <p className="text-sm text-[var(--muted)]">{status}</p>}
+          {canEdit && <button className="btn btn-primary justify-self-start md:col-span-2" disabled={loading} type="submit">{loading ? "Salvando..." : "Salvar configuracoes"}</button>}
+        </form>
+      )}
+      {!settings && <p className="mt-6 text-sm text-[var(--muted)]">{loading ? "Carregando..." : status}</p>}
+    </div>
+  );
+}
 function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -143,25 +158,5 @@ function ChangePasswordForm() {
         </button>
       </form>
     </div>
-  );
-}
-
-function SettingCard({
-  title,
-  description,
-  eyebrow,
-}: {
-  title: string;
-  description: string;
-  eyebrow: string;
-}) {
-  return (
-    <article className="section-card section-card-compact">
-      <p className="label">{eyebrow}</p>
-      <h4 className="mt-3 text-xl font-semibold">{title}</h4>
-      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-        {description}
-      </p>
-    </article>
   );
 }
