@@ -129,7 +129,7 @@ function PatientDetailsFields({ register, getValues, setValue }: any) {
                   <option value="Feminino">Feminino</option>
                   <option value="Prefiro não informar">Prefiro não informar</option>
                 </select>
-              ) : <input className="input-field" {...register(name)} />}
+              ) : <input className="input-field" disabled={name === "details.medicalRecordNumber"} placeholder={name === "details.medicalRecordNumber" ? "Gerado automaticamente" : undefined} {...register(name)} />}
             </Field>
           ))}
           <div className="md:col-span-2 flex flex-wrap gap-4">
