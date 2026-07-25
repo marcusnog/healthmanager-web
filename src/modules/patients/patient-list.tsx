@@ -196,6 +196,7 @@ export function PatientList({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<PatientResponse | null>(null);
   const [activePatient, setActivePatient] = useState<PatientResponse | null>(null);
+  const [clinicalRecordsPatient, setClinicalRecordsPatient] = useState<PatientResponse | null>(null);
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -364,6 +365,14 @@ export function PatientList({
         </Modal>
       ) : null}
 
+      {clinicalRecordsPatient ? (
+        <PatientClinicalRecordsModal
+          patientId={clinicalRecordsPatient.id ?? ""}
+          patientName={clinicalRecordsPatient.name ?? "Paciente"}
+          onClose={() => setClinicalRecordsPatient(null)}
+        />
+      ) : null}
+
       <section className="panel rounded-lg p-5 md:p-6">
         <div className="section-heading">
           <div>
@@ -520,6 +529,13 @@ export function PatientList({
                       type="button"
                     >
                       Documentos
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setClinicalRecordsPatient(patient)}
+                      type="button"
+                    >
+                      Prontuarios
                     </button>
                     <button
                       className="btn btn-danger btn-sm"
@@ -951,6 +967,59 @@ function DocumentCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function PatientClinicalRecordsModal({
+  patientId,
+  patientName,
+  onClose,
+}: {
+  patientId: string;
+  patientName: string;
+  onClose: () => void;
+}) {
+  const { data: records, isLoading } = useQuery({
+    queryKey: ["clinical-records", patientId],
+    queryFn: () => DefaultService.clinicalRecordListByPatient(patientId),
+    enabled: !!patientId,
+  });
+
+  return (
+    <Modal title={`Prontuarios — ${patientName}`} onClose={onClose} size="lg">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12"><span className="spinner" /></div>
+      ) : !records?.length ? (
+        <div className="empty-state py-8">
+          <p className="text-sm font-semibold">Nenhum prontuario registrado para este paciente.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {records.map((r) => (
+            <article key={r.id} className="rounded-md border border-[var(--border)] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Consulta #{r.appointmentId?.slice(0, 8) ?? "-"}
+                </span>
+                <span className={cn("meta-chip", r.status === "Finalized" ? "meta-chip--confirmed" : "")}>
+                  {r.status === "Finalized" ? "Finalizado" : "Rascunho"}
+                </span>
+              </div>
+              {r.chiefComplaint ? <p className="text-sm mb-2"><strong>Queixa:</strong> {r.chiefComplaint}</p> : null}
+              {r.history ? <p className="text-sm mb-2"><strong>Historia:</strong> {r.history}</p> : null}
+              {r.physicalExam ? <p className="text-sm mb-2"><strong>Exame:</strong> {r.physicalExam}</p> : null}
+              {r.assessment ? <p className="text-sm mb-2"><strong>Avaliacao:</strong> {r.assessment}</p> : null}
+              {r.plan ? <p className="text-sm mb-2"><strong>Plano:</strong> {r.plan}</p> : null}
+              {r.finalizedAt ? (
+                <p className="text-xs text-[var(--muted)] mt-3">
+                  Finalizado em {new Date(r.finalizedAt).toLocaleString("pt-BR")}
+                </p>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      )}
+    </Modal>
   );
 }
 

@@ -535,7 +535,7 @@ export class DefaultService {
         requestBody: UpdateAppointmentRequest,
     ): CancelablePromise<AppointmentResponse> {
         return __request(OpenAPI, {
-            method: 'PUT',
+            method: 'PATCH',
             url: '/appointments/{id}',
             path: {
                 'id': id,
