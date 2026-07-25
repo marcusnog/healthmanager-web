@@ -223,6 +223,8 @@ export function CrmWorkspace() {
   const [specPage, setSpecPage] = useState(1);
   const [availPage, setAvailPage] = useState(1);
   const [availDoctorId, setAvailDoctorId] = useState<string | undefined>(undefined);
+  const [paymentIntentPage, setPaymentIntentPage] = useState(1);
+  const [paymentIntentStatus, setPaymentIntentStatus] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1025);
@@ -355,6 +357,13 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
 
+  const paymentIntentsQuery = useQuery({
+    queryKey: ["payment-intents", paymentIntentPage, paymentIntentStatus],
+    queryFn: () => guardedQuery(() => DefaultService.paymentIntentList(paymentIntentPage, 20, undefined, paymentIntentStatus), { items: [], page: 1, pageSize: 20, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
+    enabled: authenticated,
+  });
+
   useEffect(() => {
     const handler = () => {
       clearAuthSession();
@@ -392,6 +401,7 @@ export function CrmWorkspace() {
   function handleExpenseDateFromChange(value: string | undefined) { setExpenseDateFrom(value); setExpensePage(1); }
   function handleExpenseDateToChange(value: string | undefined) { setExpenseDateTo(value); setExpensePage(1); }
   function handleDoctorSearchChange(value: string) { setDoctorSearch(value); setDoctorPage(1); }
+  function handlePaymentIntentStatusChange(value: string | undefined) { setPaymentIntentStatus(value); setPaymentIntentPage(1); }
 
   const today = useMemo(() => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }), []);
   const summary = summaryQuery.data ?? { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 };
@@ -473,6 +483,12 @@ export function CrmWorkspace() {
     summary: financialSummaryQuery.data ?? { totalReceived: 0, totalExpenses: 0, balance: 0 },
     expenseCategories: expenseCategoriesQuery.data?.items ?? [],
     onManageExpenseCategories: () => setActiveSection("categorias-despesa" as Section),
+    paymentIntents: paymentIntentsQuery.data?.items ?? [],
+    paymentIntentPage: paymentIntentPage,
+    paymentIntentTotal: paymentIntentsQuery.data?.total ?? 0,
+    paymentIntentStatus: paymentIntentStatus,
+    onPaymentIntentPageChange: setPaymentIntentPage,
+    onPaymentIntentStatusChange: handlePaymentIntentStatusChange,
   };
 
   /* ─── Login screen ──────────────────────────────────────────── */
@@ -527,6 +543,7 @@ export function CrmWorkspace() {
       </div>
     );
   }
+  const sessionRole = session.role;
 
   /* ─── Section content ───────────────────────────────────────── */
 
@@ -618,7 +635,7 @@ export function CrmWorkspace() {
           />
         );
       case "configuracoes":
-        return <SettingsPanel />;
+        return <SettingsPanel role={sessionRole} />;
     }
   }
 

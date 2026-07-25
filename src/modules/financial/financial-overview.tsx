@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, expenseSave, expenseDelete, type ExpenseCategoryResponse } from "@/services/api";
 import type { ReceivableResponse, PaymentResponse, PatientResponse } from "@/generated";
+import type { PaymentIntentResponse } from "@/generated/models/PaymentIntentResponse";
+import type { PaymentIntentPagedResult } from "@/generated/models/PaymentIntentPagedResult";
 import { formatCurrency } from "@/lib/formatters";
 import {
   StatusBadge,
@@ -16,7 +18,7 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
-type Tab = "receivables" | "expenses" | "payments";
+type Tab = "receivables" | "expenses" | "payments" | "intents";
 
 const paymentSchema = z.object({
   amount: z.coerce.number().positive("Informe um valor valido."),
@@ -34,6 +36,14 @@ const expenseFormSchema = z.object({
   status: z.enum(["Paid", "Pending", "Cancelled"]),
   notes: z.string().optional(),
 });
+
+const createIntentSchema = z.object({
+  receivableId: z.string().min(1, "Selecione um recebivel."),
+  amount: z.number().positive("Informe um valor valido."),
+  idempotencyKey: z.string().min(1, "Informe a chave de idempotencia."),
+});
+
+type CreateIntentFormValues = z.infer<typeof createIntentSchema>;
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 type PaymentFormInput = z.input<typeof paymentSchema>;
@@ -109,6 +119,12 @@ export function FinancialOverview({
   summary,
   expenseCategories,
   onManageExpenseCategories,
+  paymentIntents,
+  paymentIntentPage,
+  paymentIntentTotal,
+  paymentIntentStatus,
+  onPaymentIntentPageChange,
+  onPaymentIntentStatusChange,
 }: {
   receivables: ReceivableResponse[];
   page: number;
@@ -146,11 +162,18 @@ export function FinancialOverview({
   summary: FinancialSummary;
   expenseCategories: ExpenseCategoryResponse[];
   onManageExpenseCategories: () => void;
+  paymentIntents: PaymentIntentResponse[];
+  paymentIntentPage: number;
+  paymentIntentTotal: number;
+  paymentIntentStatus: string | undefined;
+  onPaymentIntentPageChange: (page: number) => void;
+  onPaymentIntentStatusChange: (value: string | undefined) => void;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("receivables");
   const [showPayments, setShowPayments] = useState(false);
   const [showReceivableRegister, setShowReceivableRegister] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showIntentForm, setShowIntentForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseResponse | null>(null);
   const [registerMode, setRegisterMode] = useState<"patient" | "expense">("patient");
   const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
@@ -158,7 +181,7 @@ export function FinancialOverview({
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
-  const expenseTotalPages = Math.max(1, Math.ceil(expenseTotal / Math.max(20, 1)));
+  const expenseTotalPages = Math.max(1, Math.ceil(expenseTotal / 20));
 
   const patientReceivables = selectedPatientId
     ? receivables.filter((r) => r.patientId === selectedPatientId && r.status !== "Paid")
@@ -189,12 +212,23 @@ export function FinancialOverview({
     },
   });
 
+  const {
+    register: registerIntentForm,
+    handleSubmit: handleIntentFormSubmit,
+    reset: resetIntentForm,
+    formState: { errors: intentFormErrors },
+  } = useForm<CreateIntentFormValues>({
+    resolver: zodResolver(createIntentSchema),
+    defaultValues: { receivableId: "", amount: 50, idempotencyKey: "" },
+  });
+
   const invalidateFinancial = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ["receivables"] }),
     queryClient.invalidateQueries({ queryKey: ["payments"] }),
     queryClient.invalidateQueries({ queryKey: ["expenses"] }),
     queryClient.invalidateQueries({ queryKey: ["financial-summary"] }),
     queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+    queryClient.invalidateQueries({ queryKey: ["payment-intents"] }),
   ]);
 
   const registerPaymentMutation = useMutation({
@@ -253,6 +287,45 @@ export function FinancialOverview({
     await saveExpenseMutation.mutateAsync(values);
   });
 
+  const createIntentMutation = useMutation({
+    mutationFn: (values: CreateIntentFormValues) =>
+      DefaultService.paymentIntentCreate({
+        receivableId: values.receivableId,
+        amount: values.amount,
+        idempotencyKey: values.idempotencyKey,
+      }),
+    onSuccess: async () => {
+      setFeedback("Intencao de pagamento criada com sucesso.");
+      setShowIntentForm(false);
+      resetIntentForm();
+      await invalidateFinancial();
+    },
+    onError: () => setFeedback("Nao foi possivel criar a intencao de pagamento."),
+  });
+
+  const confirmIntentMutation = useMutation({
+    mutationFn: (id: string) => DefaultService.paymentIntentConfirm(id),
+    onSuccess: async () => {
+      setFeedback("Intencao confirmada com sucesso.");
+      await invalidateFinancial();
+    },
+    onError: () => setFeedback("Nao foi possivel confirmar a intencao."),
+  });
+
+  const cancelIntentMutation = useMutation({
+    mutationFn: (id: string) => DefaultService.paymentIntentCancel(id),
+    onSuccess: async () => {
+      setFeedback("Intencao cancelada com sucesso.");
+      await invalidateFinancial();
+    },
+    onError: () => setFeedback("Nao foi possivel cancelar a intencao."),
+  });
+
+  const onIntentFormSubmit = handleIntentFormSubmit(async (values) => {
+    setFeedback(null);
+    await createIntentMutation.mutateAsync(values);
+  });
+
   const startQuickPayment = (receivable: ReceivableResponse) => {
     setFeedback(null);
     setRegisterMode("patient");
@@ -287,6 +360,7 @@ export function FinancialOverview({
     { key: "receivables", label: "Recebiveis" },
     { key: "expenses", label: "Despesas" },
     { key: "payments", label: "Pagamentos" },
+    { key: "intents", label: "Intencoes" },
   ];
 
   return (
@@ -368,6 +442,36 @@ export function FinancialOverview({
               <button className="btn btn-ghost btn-sm" onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} type="button">Cancelar</button>
               <button className="btn btn-primary" disabled={saveExpenseMutation.isPending} type="submit">
                 {saveExpenseMutation.isPending ? <span className="spinner" /> : editingExpense ? "Atualizar" : "Registrar despesa"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {/* Create intent form modal */}
+      {showIntentForm ? (
+        <Modal title="Nova intencao de pagamento" onClose={() => { setShowIntentForm(false); resetIntentForm(); }}>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={onIntentFormSubmit}>
+            <Field error={intentFormErrors.receivableId?.message} label="Recebivel">
+              <select className="input-field" {...registerIntentForm("receivableId")}>
+                <option value="">Selecione...</option>
+                {receivables.filter(r => r.status !== "Paid").map(r => (
+                  <option key={r.id} value={r.id!}>
+                    {r.patientName ?? r.description ?? `#${r.id?.slice(0, 8)}`} — {formatCurrency(r.outstandingAmount ?? 0)} em aberto
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field error={intentFormErrors.amount?.message} label="Valor">
+              <input className="input-field" min={0.01} step="0.01" type="number" {...registerIntentForm("amount", { valueAsNumber: true })} />
+            </Field>
+            <Field className="md:col-span-2" error={intentFormErrors.idempotencyKey?.message} label="Chave de idempotencia">
+              <input className="input-field" {...registerIntentForm("idempotencyKey")} placeholder="Ex: pix-receb-001" />
+            </Field>
+            <div className="md:col-span-2 flex justify-end gap-3">
+              <button className="btn btn-ghost btn-sm" onClick={() => { setShowIntentForm(false); resetIntentForm(); }} type="button">Cancelar</button>
+              <button className="btn btn-primary" disabled={createIntentMutation.isPending} type="submit">
+                {createIntentMutation.isPending ? <span className="spinner" /> : "Criar intencao"}
               </button>
             </div>
           </form>
@@ -776,6 +880,101 @@ export function FinancialOverview({
               </table>
             </div>
           )}
+        </section>
+      ) : null}
+
+      {/* Tab content: Payment Intents */}
+      {activeTab === "intents" ? (
+        <section className="panel rounded-lg p-5 md:p-6">
+          <div className="section-heading">
+            <div>
+              <h3 className="text-base font-semibold text-[var(--ink)]">Intencoes de pagamento</h3>
+              <p className="text-sm text-[var(--muted)]">
+                {paymentIntentTotal} registro{paymentIntentTotal === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="toolbar-inline">
+              {feedback ? <p className="text-sm text-[var(--muted)]">{feedback}</p> : null}
+              <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setShowIntentForm(true); }} type="button">+ Nova intencao</button>
+            </div>
+          </div>
+
+          <div className="toolbar-inline flex-wrap mb-4">
+            {["Created", "Processing", "Confirmed", "Failed", "Cancelled"].map((s) => (
+              <button
+                key={s}
+                className={cn("btn btn-sm", paymentIntentStatus === s ? "btn-brand-outline" : "btn-ghost")}
+                onClick={() => onPaymentIntentStatusChange(paymentIntentStatus === s ? undefined : s)}
+                type="button"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {paymentIntents.length === 0 ? (
+            <div className="empty-state mt-5">
+              <p className="text-sm font-semibold">Nenhuma intencao de pagamento encontrada.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto mt-5">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Recebivel</th>
+                    <th className="numeric">Valor</th>
+                    <th>Status</th>
+                    <th>Chave</th>
+                    <th>Confirmado em</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentIntents.map((intent) => (
+                    <tr key={intent.id}>
+                      <td>{intent.receivableId ? `#${intent.receivableId.slice(0, 8)}` : "-"}</td>
+                      <td className="numeric">{formatCurrency(intent.amount ?? 0)}</td>
+                      <td>{intent.status}</td>
+                      <td className="max-w-[200px] truncate" title={intent.idempotencyKey}>{intent.idempotencyKey}</td>
+                      <td>{intent.confirmedAt ? new Date(intent.confirmedAt).toLocaleString("pt-BR") : "-"}</td>
+                      <td>
+                        <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
+                          {intent.status === "Created" || intent.status === "Processing" ? (
+                            <>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                disabled={confirmIntentMutation.isPending}
+                                onClick={() => intent.id && confirmIntentMutation.mutateAsync(intent.id)}
+                                type="button"
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-sm text-[var(--danger)]"
+                                disabled={cancelIntentMutation.isPending}
+                                onClick={() => intent.id && cancelIntentMutation.mutateAsync(intent.id)}
+                                type="button"
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="toolbar-inline mt-5 justify-between">
+            <button className="btn btn-ghost btn-sm" disabled={paymentIntentPage <= 1} onClick={() => onPaymentIntentPageChange(paymentIntentPage - 1)} type="button">Pagina anterior</button>
+            <span className="text-sm font-medium text-[var(--muted)]">
+              Pagina {paymentIntentPage} de {Math.max(1, Math.ceil(paymentIntentTotal / 20))}
+            </span>
+            <button className="btn btn-ghost btn-sm" disabled={paymentIntentPage >= Math.max(1, Math.ceil(paymentIntentTotal / 20))} onClick={() => onPaymentIntentPageChange(paymentIntentPage + 1)} type="button">Proxima pagina</button>
+          </div>
         </section>
       ) : null}
     </>

@@ -8,11 +8,16 @@ import type { AppointmentTypeResponse } from '../models/AppointmentTypeResponse'
 import type { AuthResponse } from '../models/AuthResponse';
 import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
+import type { ClinicalRecordAddendumResponse } from '../models/ClinicalRecordAddendumResponse';
+import type { ClinicalRecordResponse } from '../models/ClinicalRecordResponse';
+import type { CreateAddendumRequest } from '../models/CreateAddendumRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
+import type { CreateClinicalRecordRequest } from '../models/CreateClinicalRecordRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
 import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { CreatePatientDocumentRequest } from '../models/CreatePatientDocumentRequest';
 import type { CreatePatientRequest } from '../models/CreatePatientRequest';
+import type { CreatePaymentIntentRequest } from '../models/CreatePaymentIntentRequest';
 import type { CreatePaymentRequest } from '../models/CreatePaymentRequest';
 import type { DashboardSummaryResponse } from '../models/DashboardSummaryResponse';
 import type { DoctorResponse } from '../models/DoctorResponse';
@@ -30,12 +35,17 @@ import type { PatientPortalLoginRequest } from '../models/PatientPortalLoginRequ
 import type { PatientPortalProfileResponse } from '../models/PatientPortalProfileResponse';
 import type { PatientPortalReceivableResponse } from '../models/PatientPortalReceivableResponse';
 import type { PatientResponse } from '../models/PatientResponse';
+import type { PaymentIntentPagedResult } from '../models/PaymentIntentPagedResult';
+import type { PaymentIntentResponse } from '../models/PaymentIntentResponse';
 import type { PaymentResponse } from '../models/PaymentResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { TenantSettingsResponse } from '../models/TenantSettingsResponse';
 import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentRequest';
+import type { UpdateClinicalRecordRequest } from '../models/UpdateClinicalRecordRequest';
 import type { UpdateDoctorRequest } from '../models/UpdateDoctorRequest';
 import type { UpdatePatientRequest } from '../models/UpdatePatientRequest';
+import type { UpdateTenantSettingsRequest } from '../models/UpdateTenantSettingsRequest';
 import type { UploadPatientDocumentForm } from '../models/UploadPatientDocumentForm';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -762,6 +772,230 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/portal/documents',
+        });
+    }
+    /**
+     * @returns TenantSettingsResponse OK
+     * @throws ApiError
+     */
+    public static tenantSettingsGet(): CancelablePromise<TenantSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/tenant/settings',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns TenantSettingsResponse OK
+     * @throws ApiError
+     */
+    public static tenantSettingsUpdate(
+        requestBody: UpdateTenantSettingsRequest,
+    ): CancelablePromise<TenantSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/tenant/settings',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param appointmentId
+     * @returns ClinicalRecordResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordGet(
+        appointmentId: string,
+    ): CancelablePromise<ClinicalRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/appointments/{appointmentId}/clinical-record',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            errors: {
+                404: `Not Found`,
+            },
+        });
+    }
+    /**
+     * @param appointmentId
+     * @param requestBody
+     * @returns ClinicalRecordResponse Created
+     * @throws ApiError
+     */
+    public static clinicalRecordCreate(
+        appointmentId: string,
+        requestBody: CreateClinicalRecordRequest,
+    ): CancelablePromise<ClinicalRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{appointmentId}/clinical-record',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param appointmentId
+     * @param requestBody
+     * @returns ClinicalRecordResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordUpdate(
+        appointmentId: string,
+        requestBody: UpdateClinicalRecordRequest,
+    ): CancelablePromise<ClinicalRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/appointments/{appointmentId}/clinical-record',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param appointmentId
+     * @returns ClinicalRecordResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordFinalize(
+        appointmentId: string,
+    ): CancelablePromise<ClinicalRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{appointmentId}/clinical-record/finalize',
+            path: {
+                'appointmentId': appointmentId,
+            },
+        });
+    }
+    /**
+     * @param appointmentId
+     * @param requestBody
+     * @returns ClinicalRecordAddendumResponse Created
+     * @throws ApiError
+     */
+    public static clinicalRecordAddAddendum(
+        appointmentId: string,
+        requestBody: CreateAddendumRequest,
+    ): CancelablePromise<ClinicalRecordAddendumResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{appointmentId}/clinical-record/addendum',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param appointmentId
+     * @returns ClinicalRecordAddendumResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordListAddendums(
+        appointmentId: string,
+    ): CancelablePromise<Array<ClinicalRecordAddendumResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/appointments/{appointmentId}/clinical-record/addendums',
+            path: {
+                'appointmentId': appointmentId,
+            },
+        });
+    }
+    /**
+     * @param patientId
+     * @returns ClinicalRecordResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordListByPatient(
+        patientId: string,
+    ): CancelablePromise<Array<ClinicalRecordResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/patients/{patientId}/clinical-records',
+            path: {
+                'patientId': patientId,
+            },
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param receivableId
+     * @param status
+     * @returns PaymentIntentPagedResult OK
+     * @throws ApiError
+     */
+    public static paymentIntentList(
+        page: number = 1,
+        pageSize: number = 20,
+        receivableId?: string,
+        status?: string,
+    ): CancelablePromise<PaymentIntentPagedResult> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/payment-intents',
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+                'receivableId': receivableId,
+                'status': status,
+            },
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns PaymentIntentResponse Created
+     * @throws ApiError
+     */
+    public static paymentIntentCreate(
+        requestBody: CreatePaymentIntentRequest,
+    ): CancelablePromise<PaymentIntentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/payment-intents',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @returns PaymentIntentResponse OK
+     * @throws ApiError
+     */
+    public static paymentIntentConfirm(
+        id: string,
+    ): CancelablePromise<PaymentIntentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/payment-intents/{id}/confirm',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns PaymentIntentResponse OK
+     * @throws ApiError
+     */
+    public static paymentIntentCancel(
+        id: string,
+    ): CancelablePromise<PaymentIntentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/payment-intents/{id}/cancel',
+            path: {
+                'id': id,
+            },
         });
     }
 }

@@ -10,6 +10,7 @@ import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
+import { apiErrorMessage } from "@/lib/api-error";
 
 function isValidCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "");
@@ -77,14 +78,6 @@ function normalizeDetails(details: FormValues["details"]) {
     zipCode: details.zipCode?.replace(/\D/g, "") || undefined,
     childrenCount: details.childrenCount ? Number(details.childrenCount) : undefined,
   };
-}
-
-function apiErrorMessage(error: unknown, fallback: string) {
-  if (error && typeof error === "object" && "body" in error) {
-    const detail = (error as { body?: { detail?: unknown } }).body?.detail;
-    if (typeof detail === "string" && detail.length > 0) return detail;
-  }
-  return fallback;
 }
 
 // React Hook Form exposes different generic signatures for create and edit while both share these nested fields.
