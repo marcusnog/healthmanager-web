@@ -589,7 +589,14 @@ export function AppointmentBoard({
                           ) : null}
                         </div>
                       </div>
-                      <StatusBadge variant={statusVariant} />
+                      <div className="flex items-start gap-2">
+                        {appointment.source && appointment.source !== "Internal" && (
+                          <span className="inline-flex items-center rounded-full bg-[var(--brand-wash)] px-2 py-0.5 text-[10px] font-semibold text-[var(--brand)] whitespace-nowrap">
+                            {appointment.source}
+                          </span>
+                        )}
+                        <StatusBadge variant={statusVariant} />
+                      </div>
                     </div>
 
                     <div className="toolbar-inline mt-3">
@@ -922,7 +929,12 @@ function WeekGrid({
                     <div className="truncate text-[var(--muted)]">
                       {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
                     </div>
-                    <StatusBadge variant={statusVariant} />
+                    <div className="flex items-center gap-1">
+                      <StatusBadge variant={statusVariant} />
+                      {apt.source && apt.source !== "Internal" && (
+                        <span className="text-[9px] font-semibold text-[var(--brand)]">{apt.source}</span>
+                      )}
+                    </div>
                     {!isCancelled ? (
                       <button
                         aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}

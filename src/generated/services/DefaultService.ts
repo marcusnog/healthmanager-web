@@ -6,6 +6,8 @@ import type { AppointmentResponse } from '../models/AppointmentResponse';
 import type { AppointmentTypeRequest } from '../models/AppointmentTypeRequest';
 import type { AppointmentTypeResponse } from '../models/AppointmentTypeResponse';
 import type { AuthResponse } from '../models/AuthResponse';
+import type { BrandingRequest } from '../models/BrandingRequest';
+import type { BrandingResponse } from '../models/BrandingResponse';
 import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
 import type { ClinicalRecordAddendumResponse } from '../models/ClinicalRecordAddendumResponse';
@@ -22,6 +24,8 @@ import type { CreatePaymentRequest } from '../models/CreatePaymentRequest';
 import type { DashboardSummaryResponse } from '../models/DashboardSummaryResponse';
 import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
+import type { NotificationConfigRequest } from '../models/NotificationConfigRequest';
+import type { NotificationConfigResponse } from '../models/NotificationConfigResponse';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
 import type { PagedAppointmentTypeResponse } from '../models/PagedAppointmentTypeResponse';
 import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
@@ -35,11 +39,14 @@ import type { PatientPortalLoginRequest } from '../models/PatientPortalLoginRequ
 import type { PatientPortalProfileResponse } from '../models/PatientPortalProfileResponse';
 import type { PatientPortalReceivableResponse } from '../models/PatientPortalReceivableResponse';
 import type { PatientResponse } from '../models/PatientResponse';
+import type { PaymentGatewayConfigRequest } from '../models/PaymentGatewayConfigRequest';
+import type { PaymentGatewayConfigResponse } from '../models/PaymentGatewayConfigResponse';
 import type { PaymentIntentPagedResult } from '../models/PaymentIntentPagedResult';
 import type { PaymentIntentResponse } from '../models/PaymentIntentResponse';
 import type { PaymentResponse } from '../models/PaymentResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { TenantIntegrationResponse } from '../models/TenantIntegrationResponse';
 import type { TenantSettingsResponse } from '../models/TenantSettingsResponse';
 import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentRequest';
 import type { UpdateClinicalRecordRequest } from '../models/UpdateClinicalRecordRequest';
@@ -47,6 +54,8 @@ import type { UpdateDoctorRequest } from '../models/UpdateDoctorRequest';
 import type { UpdatePatientRequest } from '../models/UpdatePatientRequest';
 import type { UpdateTenantSettingsRequest } from '../models/UpdateTenantSettingsRequest';
 import type { UploadPatientDocumentForm } from '../models/UploadPatientDocumentForm';
+import type { WhatsAppConfigRequest } from '../models/WhatsAppConfigRequest';
+import type { WhatsAppConfigResponse } from '../models/WhatsAppConfigResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -995,6 +1004,104 @@ export class DefaultService {
             url: '/payment-intents/{id}/cancel',
             path: {
                 'id': id,
+            },
+        });
+    }
+    /**
+     * @returns TenantIntegrationResponse OK
+     * @throws ApiError
+     */
+    public static tenantIntegrationGet(): CancelablePromise<TenantIntegrationResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/tenant/integration',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns WhatsAppConfigResponse OK
+     * @throws ApiError
+     */
+    public static tenantIntegrationWhatsappUpsert(
+        requestBody: WhatsAppConfigRequest,
+    ): CancelablePromise<WhatsAppConfigResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/tenant/integration/whatsapp',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns PaymentGatewayConfigResponse OK
+     * @throws ApiError
+     */
+    public static tenantIntegrationPaymentGatewayUpsert(
+        requestBody: PaymentGatewayConfigRequest,
+    ): CancelablePromise<PaymentGatewayConfigResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/tenant/integration/payment-gateway',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns NotificationConfigResponse OK
+     * @throws ApiError
+     */
+    public static tenantIntegrationNotificationUpsert(
+        requestBody: NotificationConfigRequest,
+    ): CancelablePromise<NotificationConfigResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/tenant/integration/notification',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns BrandingResponse OK
+     * @throws ApiError
+     */
+    public static tenantIntegrationBrandingUpsert(
+        requestBody: BrandingRequest,
+    ): CancelablePromise<BrandingResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/tenant/integration/branding',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param provider
+     * @param xClinicId
+     * @param requestBody
+     * @returns any OK
+     * @throws ApiError
+     */
+    public static webhookPaymentReceive(
+        provider: string,
+        xClinicId: string,
+        requestBody: Record<string, any>,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/webhooks/payments/{provider}',
+            path: {
+                'provider': provider,
+            },
+            headers: {
+                'X-Clinic-Id': xClinicId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Invalid signature or payload`,
             },
         });
     }
