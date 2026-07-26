@@ -197,5 +197,32 @@ export async function financialSummary() {
   }>;
 }
 
+// ── Checkout ──
+
+export interface CheckoutResponse {
+  paymentIntentId: string;
+  receivableId: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+  pixQrCode?: string | null;
+  pixCopyPaste?: string | null;
+  checkoutUrl?: string | null;
+  expiresAt?: string | null;
+}
+
+export async function checkoutCreate(body: {
+  receivableId: string;
+  paymentMethod: string;
+  amount?: number;
+  returnUrl?: string;
+}): Promise<CheckoutResponse> {
+  const response = await apiFetch("/checkout", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return response.json();
+}
+
 export { DefaultService } from "@/generated/services/DefaultService";
 

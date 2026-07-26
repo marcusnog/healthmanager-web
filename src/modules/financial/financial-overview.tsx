@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, expenseSave, expenseDelete, type ExpenseCategoryResponse } from "@/services/api";
+import { DefaultService, expenseSave, expenseDelete, checkoutCreate, type ExpenseCategoryResponse, type CheckoutResponse } from "@/services/api";
 import type { ReceivableResponse, PaymentResponse, PatientResponse } from "@/generated";
 import type { PaymentIntentResponse } from "@/generated/models/PaymentIntentResponse";
 import type { PaymentIntentPagedResult } from "@/generated/models/PaymentIntentPagedResult";
@@ -179,6 +179,10 @@ export function FinancialOverview({
   const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
   const [selectedPatientReceivable, setSelectedPatientReceivable] = useState<ReceivableResponse | undefined>(undefined);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutReceivable, setCheckoutReceivable] = useState<ReceivableResponse | null>(null);
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
+  const [checkoutMethod, setCheckoutMethod] = useState<string>("Pix");
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
   const expenseTotalPages = Math.max(1, Math.ceil(expenseTotal / 20));
@@ -301,6 +305,16 @@ export function FinancialOverview({
       await invalidateFinancial();
     },
     onError: () => setFeedback("Nao foi possivel criar a intencao de pagamento."),
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: ({ receivableId, paymentMethod, amount }: { receivableId: string; paymentMethod: string; amount?: number }) =>
+      checkoutCreate({ receivableId, paymentMethod, amount }),
+    onSuccess: async (result) => {
+      setCheckoutResult(result);
+      await invalidateFinancial();
+    },
+    onError: () => setFeedback("Nao foi possivel iniciar o checkout."),
   });
 
   const confirmIntentMutation = useMutation({
@@ -611,6 +625,69 @@ export function FinancialOverview({
         </Modal>
       ) : null}
 
+      {/* Checkout modal */}
+      {showCheckoutModal ? (
+        <Modal title={checkoutResult ? "Checkout gerado" : "Gerar cobranca"} onClose={() => { setShowCheckoutModal(false); setCheckoutReceivable(null); setCheckoutResult(null); }}>
+          {checkoutResult ? (
+            <div className="grid gap-4">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4 text-center">
+                <p className="text-sm font-semibold text-[var(--ink)]">Status</p>
+                <p className="mt-1 text-lg font-bold">{checkoutResult.status === "Processing" ? "Aguardando pagamento" : checkoutResult.status}</p>
+              </div>
+              {checkoutResult.pixQrCode ? (
+                <div className="text-center">
+                  <p className="mb-2 text-sm font-semibold">QR Code PIX</p>
+                  <img src={`data:image/png;base64,${checkoutResult.pixQrCode}`} alt="QR Code PIX" className="mx-auto rounded-lg border border-[var(--border)]" style={{ maxWidth: 220 }} />
+                </div>
+              ) : null}
+              {checkoutResult.pixCopyPaste ? (
+                <div>
+                  <p className="mb-1 text-sm font-semibold">PIX Copia e Cola</p>
+                  <div className="flex items-center gap-2">
+                    <input className="input-field flex-1" readOnly value={checkoutResult.pixCopyPaste} />
+                    <button className="btn btn-ghost btn-sm" onClick={() => { navigator.clipboard.writeText(checkoutResult.pixCopyPaste!); setFeedback("Copiado!"); }} type="button">Copiar</button>
+                  </div>
+                </div>
+              ) : null}
+              {checkoutResult.checkoutUrl ? (
+                <div className="text-center">
+                  <p className="mb-2 text-sm font-semibold">Link de pagamento</p>
+                  <a className="text-sm font-semibold text-[var(--brand)] underline" href={checkoutResult.checkoutUrl} rel="noopener noreferrer" target="_blank">{checkoutResult.checkoutUrl}</a>
+                </div>
+              ) : null}
+              {checkoutResult.expiresAt ? (
+                <p className="text-xs text-center text-[var(--muted)]">Expira em {new Date(checkoutResult.expiresAt).toLocaleString("pt-BR")}</p>
+              ) : null}
+              <div className="flex justify-end">
+                <button className="btn btn-ghost btn-sm" onClick={() => { setShowCheckoutModal(false); setCheckoutReceivable(null); setCheckoutResult(null); }} type="button">Fechar</button>
+              </div>
+            </div>
+          ) : checkoutReceivable ? (
+            <div className="grid gap-4">
+              <p className="text-sm text-[var(--muted)]">
+                Gerar cobranca para <strong>{checkoutReceivable.patientName}</strong> — {formatCurrency(checkoutReceivable.outstandingAmount ?? 0)} em aberto
+              </p>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Forma de pagamento</label>
+                <div className="toolbar-inline flex-wrap gap-2">
+                  {["Pix", "CreditCard", "DebitCard"].map((m) => (
+                    <button key={m} className={cn("btn btn-sm", checkoutMethod === m ? "btn-brand-outline" : "btn-ghost")} onClick={() => setCheckoutMethod(m)} type="button">
+                      {m === "CreditCard" ? "Cartao credito" : m === "DebitCard" ? "Cartao debito" : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button className="btn btn-ghost btn-sm" onClick={() => { setShowCheckoutModal(false); setCheckoutReceivable(null); }} type="button">Cancelar</button>
+                <button className="btn btn-primary" disabled={checkoutMutation.isPending} onClick={() => checkoutMutation.mutate({ receivableId: checkoutReceivable.id!, paymentMethod: checkoutMethod, amount: checkoutReceivable.outstandingAmount ?? undefined })} type="button">
+                  {checkoutMutation.isPending ? <span className="spinner" /> : "Gerar cobranca"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </Modal>
+      ) : null}
+
       {/* Tab content: Receivables */}
       {activeTab === "receivables" ? (
         <section className="panel rounded-lg p-5 md:p-6">
@@ -703,7 +780,10 @@ export function FinancialOverview({
                           <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); onPaymentReceivableIdChange(receivable.id); setShowPayments(true); }} type="button">Pagamentos</button>
                             {receivable.status === "Pending" || receivable.status === "Partial" ? (
-                              <button className="btn btn-ghost btn-sm" onClick={() => startQuickPayment(receivable)} type="button">Registrar pagamento</button>
+                              <>
+                                <button className="btn btn-ghost btn-sm" onClick={() => startQuickPayment(receivable)} type="button">Registrar pagamento</button>
+                                <button className="btn btn-ghost btn-sm text-[var(--brand)]" onClick={() => { setCheckoutReceivable(receivable); setCheckoutResult(null); setCheckoutMethod("Pix"); setShowCheckoutModal(true); }} type="button">Cobrar</button>
+                              </>
                             ) : null}
                           </div>
                         </td>

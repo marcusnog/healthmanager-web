@@ -10,6 +10,8 @@ import type { BrandingRequest } from '../models/BrandingRequest';
 import type { BrandingResponse } from '../models/BrandingResponse';
 import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
+import type { CheckoutRequest } from '../models/CheckoutRequest';
+import type { CheckoutResponse } from '../models/CheckoutResponse';
 import type { ClinicalRecordAddendumResponse } from '../models/ClinicalRecordAddendumResponse';
 import type { ClinicalRecordResponse } from '../models/ClinicalRecordResponse';
 import type { CreateAddendumRequest } from '../models/CreateAddendumRequest';
@@ -1002,6 +1004,52 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/payment-intents/{id}/cancel',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns CheckoutResponse Created
+     * @throws ApiError
+     */
+    public static checkoutCreate(
+        requestBody: CheckoutRequest,
+    ): CancelablePromise<CheckoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/checkout',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns CheckoutResponse Created
+     * @throws ApiError
+     */
+    public static portalCheckoutCreate(
+        requestBody: CheckoutRequest,
+    ): CancelablePromise<CheckoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/portal/checkout',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @returns CheckoutResponse OK
+     * @throws ApiError
+     */
+    public static checkoutGet(
+        id: string,
+    ): CancelablePromise<CheckoutResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/checkout/{id}',
             path: {
                 'id': id,
             },
