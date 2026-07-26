@@ -10,6 +10,7 @@ export type AppointmentResponse = {
     endAt?: string;
     status?: string;
     confirmationStatus?: string;
+    source?: string;
     appointmentTypeId?: string;
     type?: string;
     amount?: number;
