@@ -35,6 +35,7 @@ import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
 import type { PagedPatientResponse } from '../models/PagedPatientResponse';
 import type { PagedPaymentResponse } from '../models/PagedPaymentResponse';
 import type { PagedReceivableResponse } from '../models/PagedReceivableResponse';
+import type { PagedWhatsAppConversationResponse } from '../models/PagedWhatsAppConversationResponse';
 import type { PatientDocumentResponse } from '../models/PatientDocumentResponse';
 import type { PatientPortalAppointmentResponse } from '../models/PatientPortalAppointmentResponse';
 import type { PatientPortalAuthResponse } from '../models/PatientPortalAuthResponse';
@@ -51,6 +52,7 @@ import type { ProfessionalSettlementRequest } from '../models/ProfessionalSettle
 import type { ProfessionalSettlementResponse } from '../models/ProfessionalSettlementResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { SendWhatsAppMessageRequest } from '../models/SendWhatsAppMessageRequest';
 import type { SettlementResponse } from '../models/SettlementResponse';
 import type { TenantIntegrationResponse } from '../models/TenantIntegrationResponse';
 import type { TenantSettingsResponse } from '../models/TenantSettingsResponse';
@@ -62,6 +64,7 @@ import type { UpdateTenantSettingsRequest } from '../models/UpdateTenantSettings
 import type { UploadPatientDocumentForm } from '../models/UploadPatientDocumentForm';
 import type { WhatsAppConfigRequest } from '../models/WhatsAppConfigRequest';
 import type { WhatsAppConfigResponse } from '../models/WhatsAppConfigResponse';
+import type { WhatsAppMessageResponse } from '../models/WhatsAppMessageResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -1060,6 +1063,64 @@ export class DefaultService {
             path: {
                 'id': id,
             },
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param search
+     * @returns PagedWhatsAppConversationResponse OK
+     * @throws ApiError
+     */
+    public static whatsappConversationsList(
+        page: number = 1,
+        pageSize: number = 20,
+        search?: string | null,
+    ): CancelablePromise<PagedWhatsAppConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/whatsapp/conversations',
+            query: {
+                'Page': page,
+                'PageSize': pageSize,
+                'Search': search,
+            },
+        });
+    }
+    /**
+     * @param phone
+     * @returns WhatsAppMessageResponse OK
+     * @throws ApiError
+     */
+    public static whatsappMessagesList(
+        phone: string,
+    ): CancelablePromise<Array<WhatsAppMessageResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/whatsapp/conversations/{phone}/messages',
+            path: {
+                'phone': phone,
+            },
+        });
+    }
+    /**
+     * @param phone
+     * @param requestBody
+     * @returns WhatsAppMessageResponse OK
+     * @throws ApiError
+     */
+    public static whatsappMessageSend(
+        phone: string,
+        requestBody: SendWhatsAppMessageRequest,
+    ): CancelablePromise<WhatsAppMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/whatsapp/conversations/{phone}/messages',
+            path: {
+                'phone': phone,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

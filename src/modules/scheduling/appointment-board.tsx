@@ -16,8 +16,10 @@ import { apiErrorMessage } from "@/lib/api-error";
 import type {
   AppointmentResponse,
   AppointmentTypeResponse,
+  CreatePaymentRequest,
   DoctorResponse,
   PatientResponse,
+  ReceivableResponse,
 } from "@/generated";
 import { ClinicalRecordModal } from "./clinical-record-modal";
 
@@ -29,6 +31,11 @@ const schema = z.object({
   appointmentTypeId: z.string().min(1, "Selecione o tipo da consulta."),
   amount: z.coerce.number().min(1, "Informe o valor da consulta."),
   notes: z.string().optional(),
+});
+
+const paymentSchema = z.object({
+  amount: z.coerce.number().positive("Informe um valor valido."),
+  paymentMethod: z.enum(["Cash", "Pix", "CreditCard", "DebitCard", "Insurance"]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -83,6 +90,7 @@ function getWeekDays(from: string): string[] {
 
 export function AppointmentBoard({
   appointments,
+  receivables = [],
   patients,
   doctors,
   appointmentTypes = [],
@@ -104,6 +112,7 @@ export function AppointmentBoard({
   onPageChange,
 }: {
   appointments: AppointmentResponse[];
+  receivables?: ReceivableResponse[];
   patients: PatientResponse[];
   doctors: DoctorResponse[];
   appointmentTypes?: AppointmentTypeResponse[];
@@ -127,6 +136,7 @@ export function AppointmentBoard({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
+  const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [processingAppointmentId, setProcessingAppointmentId] = useState<
     string | null
@@ -144,6 +154,20 @@ export function AppointmentBoard({
     () => Object.fromEntries(doctors.map((doctor) => [doctor.id, doctor])),
     [doctors],
   );
+  const receivableMap = useMemo(
+    () => Object.fromEntries(receivables.filter((item) => item.appointmentId).map((item) => [item.appointmentId, item])),
+    [receivables],
+  );
+
+  const {
+    register: registerPayment,
+    handleSubmit: handlePaymentSubmit,
+    reset: resetPayment,
+    formState: { errors: paymentErrors },
+  } = useForm<z.input<typeof paymentSchema>, undefined, z.infer<typeof paymentSchema>>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: { amount: 0, paymentMethod: "Pix" },
+  });
 
   const {
     register,
@@ -322,6 +346,34 @@ export function AppointmentBoard({
     },
   });
 
+  const registerPaymentMutation = useMutation({
+    mutationFn: (values: z.infer<typeof paymentSchema>) => DefaultService.paymentsCreate({
+      receivableId: paymentReceivable!.id!,
+      amount: values.amount,
+      paymentMethod: values.paymentMethod,
+      paidAt: new Date().toISOString(),
+      fundsRecipient: (values.paymentMethod === "CreditCard" || values.paymentMethod === "DebitCard" ? "Owner" : "Clinic") as CreatePaymentRequest.fundsRecipient,
+    }),
+    onSuccess: async () => {
+      setPaymentReceivable(null);
+      setFeedback("Pagamento restante registrado com sucesso.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointment-receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["payments"] }),
+        queryClient.invalidateQueries({ queryKey: ["financial-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+      ]);
+    },
+    onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel registrar o pagamento agora.")),
+  });
+
+  const openPayment = (receivable: ReceivableResponse) => {
+    setFeedback(null);
+    setPaymentReceivable(receivable);
+    resetPayment({ amount: receivable.outstandingAmount ?? 0, paymentMethod: "Pix" });
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
     await createAppointment.mutateAsync(values);
@@ -428,6 +480,34 @@ export function AppointmentBoard({
           canWrite={canWriteClinicalRecord}
           onClose={() => setClinicalRecordAppointment(null)}
         />
+      ) : null}
+
+      {paymentReceivable ? (
+        <Modal title="Receber saldo da consulta" onClose={() => setPaymentReceivable(null)}>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={handlePaymentSubmit((values) => registerPaymentMutation.mutateAsync(values))}>
+            <p className="md:col-span-2 text-sm text-[var(--muted)]">
+              Saldo em aberto: {formatCurrency(paymentReceivable.outstandingAmount ?? 0)}
+            </p>
+            <Field error={paymentErrors.amount?.message} label="Valor recebido">
+              <input className="input-field" max={paymentReceivable.outstandingAmount ?? undefined} min={0.01} step="0.01" type="number" {...registerPayment("amount")} />
+            </Field>
+            <Field error={paymentErrors.paymentMethod?.message} label="Forma de pagamento">
+              <select className="input-field" {...registerPayment("paymentMethod")}>
+                <option value="Pix">Pix</option>
+                <option value="Cash">Dinheiro</option>
+                <option value="CreditCard">Cartao de credito</option>
+                <option value="DebitCard">Cartao de debito</option>
+                <option value="Insurance">Convenio</option>
+              </select>
+            </Field>
+            <div className="md:col-span-2 flex justify-end gap-3">
+              <button className="btn btn-ghost btn-sm" onClick={() => setPaymentReceivable(null)} type="button">Cancelar</button>
+              <button className="btn btn-primary" disabled={registerPaymentMutation.isPending} type="submit">
+                {registerPaymentMutation.isPending ? <span className="spinner" /> : "Confirmar recebimento"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       ) : null}
 
       <section className="panel p-5 md:p-6">
@@ -567,6 +647,7 @@ export function AppointmentBoard({
                 const doctor = doctorMap[appointment.doctorId ?? ""];
                 const statusVariant = resolveAppointmentStatus(appointment.status);
                 const isProcessing = processingAppointmentId === appointment.id;
+                const receivable = receivableMap[appointment.id ?? ""];
 
                 return (
                   <article
@@ -624,6 +705,11 @@ export function AppointmentBoard({
                       >
                         Prontuario
                       </button>
+                      {(receivable?.receivedAmount ?? 0) > 0 && (receivable?.outstandingAmount ?? 0) > 0 ? (
+                        <button className="btn btn-primary btn-sm" onClick={() => openPayment(receivable)} type="button">
+                          Receber saldo
+                        </button>
+                      ) : null}
                       {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
                         <button
                           className="btn btn-brand-outline btn-sm"

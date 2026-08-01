@@ -40,6 +40,7 @@ export type { PagedDoctorResponse } from './models/PagedDoctorResponse';
 export type { PagedPatientResponse } from './models/PagedPatientResponse';
 export type { PagedPaymentResponse } from './models/PagedPaymentResponse';
 export type { PagedReceivableResponse } from './models/PagedReceivableResponse';
+export type { PagedWhatsAppConversationResponse } from './models/PagedWhatsAppConversationResponse';
 export { PatientDetails } from './models/PatientDetails';
 export type { PatientDocumentResponse } from './models/PatientDocumentResponse';
 export type { PatientPortalAppointmentResponse } from './models/PatientPortalAppointmentResponse';
@@ -57,6 +58,7 @@ export type { ProfessionalSettlementRequest } from './models/ProfessionalSettlem
 export type { ProfessionalSettlementResponse } from './models/ProfessionalSettlementResponse';
 export type { ReceivableResponse } from './models/ReceivableResponse';
 export type { RefreshTokenRequest } from './models/RefreshTokenRequest';
+export type { SendWhatsAppMessageRequest } from './models/SendWhatsAppMessageRequest';
 export type { SettlementResponse } from './models/SettlementResponse';
 export type { SpecialtyItem } from './models/SpecialtyItem';
 export type { TenantIntegrationResponse } from './models/TenantIntegrationResponse';
@@ -70,5 +72,7 @@ export type { UploadPatientDocumentForm } from './models/UploadPatientDocumentFo
 export type { UserResponse } from './models/UserResponse';
 export type { WhatsAppConfigRequest } from './models/WhatsAppConfigRequest';
 export type { WhatsAppConfigResponse } from './models/WhatsAppConfigResponse';
+export { WhatsAppConversationResponse } from './models/WhatsAppConversationResponse';
+export { WhatsAppMessageResponse } from './models/WhatsAppMessageResponse';
 
 export { DefaultService } from './services/DefaultService';

@@ -3,12 +3,13 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate, paymentsCreate } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
     appointmentsCreate: vi.fn(),
     appointmentsUpdate: vi.fn(),
+    paymentsCreate: vi.fn(),
   }));
 
 vi.mock("@/services/api", () => ({
@@ -17,6 +18,7 @@ vi.mock("@/services/api", () => ({
     appointmentsConfirm,
     appointmentsCreate,
     appointmentsUpdate,
+    paymentsCreate,
   },
 }));
 
@@ -66,6 +68,7 @@ describe("AppointmentBoard", () => {
     appointmentsConfirm.mockReset();
     appointmentsCreate.mockReset();
     appointmentsUpdate.mockReset();
+    paymentsCreate.mockReset();
     baseProps.onAppointmentDateChange.mockReset();
   });
 
@@ -262,5 +265,35 @@ describe("AppointmentBoard", () => {
       "appointment-1",
       { appointmentTypeId: "type-first" },
     ));
+  });
+
+  it("registers the remaining appointment payment from the patient card", async () => {
+    paymentsCreate.mockResolvedValueOnce({});
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointments={[
+          { id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "InProgress", amount: 250 },
+          { id: "appointment-2", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", status: "Scheduled", amount: 250 },
+        ]}
+        receivables={[
+          { id: "receivable-1", appointmentId: "appointment-1", receivedAmount: 100, outstandingAmount: 150, status: "Partial" },
+          { id: "receivable-2", appointmentId: "appointment-2", receivedAmount: 0, outstandingAmount: 250, status: "Pending" },
+        ]}
+      />,
+    );
+
+    const receiveButtons = screen.getAllByRole("button", { name: "Receber saldo" });
+    expect(receiveButtons).toHaveLength(1);
+    fireEvent.click(receiveButtons[0]);
+    expect(screen.getByRole("spinbutton", { name: "Valor recebido" })).toHaveValue(150);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar recebimento" }));
+
+    await waitFor(() => expect(paymentsCreate).toHaveBeenCalledWith(expect.objectContaining({
+      receivableId: "receivable-1",
+      amount: 150,
+      paymentMethod: "Pix",
+    })));
+    expect(await screen.findByText("Pagamento restante registrado com sucesso.")).toBeVisible();
   });
 });
