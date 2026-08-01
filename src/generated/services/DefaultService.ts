@@ -677,6 +677,7 @@ export class DefaultService {
      * @param receivableId
      * @param dateFrom
      * @param dateTo
+     * @param destinationBank
      * @returns PagedPaymentResponse OK
      * @throws ApiError
      */
@@ -686,6 +687,7 @@ export class DefaultService {
         receivableId?: string,
         dateFrom?: string,
         dateTo?: string,
+        destinationBank?: string,
     ): CancelablePromise<PagedPaymentResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -696,6 +698,7 @@ export class DefaultService {
                 'ReceivableId': receivableId,
                 'DateFrom': dateFrom,
                 'DateTo': dateTo,
+                'DestinationBank': destinationBank,
             },
         });
     }

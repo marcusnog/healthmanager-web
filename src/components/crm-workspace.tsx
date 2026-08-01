@@ -212,6 +212,7 @@ export function CrmWorkspace() {
   const [paymentReceivableId, setPaymentReceivableId] = useState<string | undefined>(undefined);
   const [paymentDateFrom, setPaymentDateFrom] = useState<string | undefined>(undefined);
   const [paymentDateTo, setPaymentDateTo] = useState<string | undefined>(undefined);
+  const [paymentDestinationBank, setPaymentDestinationBank] = useState<string | undefined>(undefined);
   const [expensePage, setExpensePage] = useState(1);
   const [expenseCategory, setExpenseCategory] = useState<string | undefined>(undefined);
   const [expenseStatus, setExpenseStatus] = useState<string | undefined>(undefined);
@@ -290,8 +291,8 @@ export function CrmWorkspace() {
     : appointmentDate;
 
   const paymentsQuery = useQuery({
-    queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo],
-        queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
+    queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo, paymentDestinationBank],
+        queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo, paymentDestinationBank), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
     enabled: authenticated,
   });
@@ -351,8 +352,8 @@ export function CrmWorkspace() {
     enabled: authenticated,
   });
   const financialSummaryQuery = useQuery({
-    queryKey: ["financial-summary"],
-    queryFn: () => guardedQuery(() => financialSummary(), { totalReceived: 0, totalExpenses: 0, balance: 0 }),
+    queryKey: ["financial-summary", paymentDestinationBank],
+    queryFn: () => guardedQuery(() => financialSummary(paymentDestinationBank), { totalReceived: 0, totalExpenses: 0, balance: 0 }),
     placeholderData: { totalReceived: 0, totalExpenses: 0, balance: 0 },
     enabled: authenticated,
   });
@@ -462,10 +463,12 @@ export function CrmWorkspace() {
     paymentDateFrom: paymentDateFrom,
     paymentDateTo: paymentDateTo,
     paymentReceivableId: paymentReceivableId,
+    paymentDestinationBank: paymentDestinationBank,
     onPaymentPageChange: setPaymentPage,
     onPaymentReceivableIdChange: setPaymentReceivableId,
     onPaymentDateFromChange: setPaymentDateFrom,
     onPaymentDateToChange: setPaymentDateTo,
+    onPaymentDestinationBankChange: (value: string | undefined) => { setPaymentDestinationBank(value); setPaymentPage(1); },
     receivables: receivablesQuery.data?.items ?? [],
     status: receivableStatus,
     total: receivablesQuery.data?.total ?? 0,

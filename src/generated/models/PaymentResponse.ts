@@ -9,5 +9,6 @@ export type PaymentResponse = {
     paymentMethod?: string;
     paidAt?: string;
     patientName?: string;
+    destinationBank?: string | null;
 };
 

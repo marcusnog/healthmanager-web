@@ -8,6 +8,7 @@ export type CreateManualReceivableRequest = {
     dueDate?: string;
     paymentMethod: string;
     paidAt?: string;
+    destinationBank?: string | null;
     notes?: string;
 };
 

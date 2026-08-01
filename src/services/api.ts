@@ -188,8 +188,9 @@ export async function availabilityDelete(id: string) {
   await apiFetch(`/doctor-availabilities/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-export async function financialSummary() {
-  const response = await apiFetch(`/financial/summary`);
+export async function financialSummary(destinationBank?: string) {
+  const params = destinationBank ? `?destinationBank=${encodeURIComponent(destinationBank)}` : "";
+  const response = await apiFetch(`/financial/summary${params}`);
   return response.json() as Promise<{
     totalReceived: number;
     totalExpenses: number;
