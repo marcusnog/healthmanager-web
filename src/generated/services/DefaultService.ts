@@ -28,6 +28,7 @@ import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
 import type { NotificationConfigRequest } from '../models/NotificationConfigRequest';
 import type { NotificationConfigResponse } from '../models/NotificationConfigResponse';
+import type { OwnerSettlementRequest } from '../models/OwnerSettlementRequest';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
 import type { PagedAppointmentTypeResponse } from '../models/PagedAppointmentTypeResponse';
 import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
@@ -46,8 +47,11 @@ import type { PaymentGatewayConfigResponse } from '../models/PaymentGatewayConfi
 import type { PaymentIntentPagedResult } from '../models/PaymentIntentPagedResult';
 import type { PaymentIntentResponse } from '../models/PaymentIntentResponse';
 import type { PaymentResponse } from '../models/PaymentResponse';
+import type { ProfessionalSettlementRequest } from '../models/ProfessionalSettlementRequest';
+import type { ProfessionalSettlementResponse } from '../models/ProfessionalSettlementResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { SettlementResponse } from '../models/SettlementResponse';
 import type { TenantIntegrationResponse } from '../models/TenantIntegrationResponse';
 import type { TenantSettingsResponse } from '../models/TenantSettingsResponse';
 import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentRequest';
@@ -1154,6 +1158,46 @@ export class DefaultService {
             errors: {
                 400: `Invalid signature or payload`,
             },
+        });
+    }
+    /**
+     * @returns ProfessionalSettlementResponse OK
+     * @throws ApiError
+     */
+    public static professionalSettlementsList(): CancelablePromise<Array<ProfessionalSettlementResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/financial/professional-settlements',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns SettlementResponse OK
+     * @throws ApiError
+     */
+    public static professionalSettlementsCreate(
+        requestBody: ProfessionalSettlementRequest,
+    ): CancelablePromise<SettlementResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/financial/professional-settlements',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns SettlementResponse OK
+     * @throws ApiError
+     */
+    public static ownerSettlementsCreate(
+        requestBody: OwnerSettlementRequest,
+    ): CancelablePromise<SettlementResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/financial/owner-settlements',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

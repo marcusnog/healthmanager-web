@@ -353,8 +353,8 @@ export function CrmWorkspace() {
   });
   const financialSummaryQuery = useQuery({
     queryKey: ["financial-summary", paymentDestinationBank],
-    queryFn: () => guardedQuery(() => financialSummary(paymentDestinationBank), { totalReceived: 0, totalExpenses: 0, balance: 0 }),
-    placeholderData: { totalReceived: 0, totalExpenses: 0, balance: 0 },
+    queryFn: () => guardedQuery(() => financialSummary(paymentDestinationBank), { totalReceived: 0, totalExpenses: 0, balance: 0, grossReceived: 0, professionalLiability: 0, ownerReceivable: 0 }),
+    placeholderData: { totalReceived: 0, totalExpenses: 0, balance: 0, grossReceived: 0, professionalLiability: 0, ownerReceivable: 0 },
     enabled: authenticated,
   });
 
@@ -484,7 +484,7 @@ export function CrmWorkspace() {
     onExpenseStatusChange: handleExpenseStatusChange,
     onExpenseDateFromChange: handleExpenseDateFromChange,
     onExpenseDateToChange: handleExpenseDateToChange,
-    summary: financialSummaryQuery.data ?? { totalReceived: 0, totalExpenses: 0, balance: 0 },
+    summary: financialSummaryQuery.data ?? { totalReceived: 0, totalExpenses: 0, balance: 0, grossReceived: 0, professionalLiability: 0, ownerReceivable: 0 },
     expenseCategories: expenseCategoriesQuery.data?.items ?? [],
     onManageExpenseCategories: () => setActiveSection("categorias-despesa" as Section),
     paymentIntents: paymentIntentsQuery.data?.items ?? [],

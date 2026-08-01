@@ -10,5 +10,8 @@ export type PaymentResponse = {
     paidAt?: string;
     patientName?: string;
     destinationBank?: string | null;
+    fundsRecipient?: string;
+    clinicRevenueAmount?: number;
+    professionalPayableAmount?: number;
 };
 

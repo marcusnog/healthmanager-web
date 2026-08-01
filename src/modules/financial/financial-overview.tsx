@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field } from "@/components/ui/field";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, expenseSave, expenseDelete, checkoutCreate, type ExpenseCategoryResponse, type CheckoutResponse } from "@/services/api";
-import type { ReceivableResponse, PaymentResponse, PatientResponse } from "@/generated";
+import { DefaultService, expenseSave, expenseDelete, checkoutCreate, professionalSettlementsList, professionalSettlementCreate, ownerSettlementCreate, type ExpenseCategoryResponse, type CheckoutResponse } from "@/services/api";
+import type { ReceivableResponse, PaymentResponse, PatientResponse, CreatePaymentRequest } from "@/generated";
 import type { PaymentIntentResponse } from "@/generated/models/PaymentIntentResponse";
 import type { PaymentIntentPagedResult } from "@/generated/models/PaymentIntentPagedResult";
 import { formatCurrency } from "@/lib/formatters";
@@ -18,13 +18,14 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
-type Tab = "receivables" | "expenses" | "payments" | "intents";
+type Tab = "receivables" | "expenses" | "payments" | "settlements" | "intents";
 
 const paymentSchema = z.object({
   amount: z.coerce.number().positive("Informe um valor valido."),
   paymentMethod: z.enum(["Cash", "Pix", "CreditCard", "DebitCard", "Insurance"]),
   paidAt: z.string().min(1, "Informe a data do pagamento."),
   destinationBank: z.string().max(100).optional(),
+  fundsRecipient: z.enum(["Clinic", "Owner"]),
   notes: z.string().optional(),
 });
 
@@ -67,6 +68,9 @@ interface FinancialSummary {
   totalReceived: number;
   totalExpenses: number;
   balance: number;
+  grossReceived: number;
+  professionalLiability: number;
+  ownerReceivable: number;
 }
 
 const RECEIVABLE_STATUS_FILTERS = [
@@ -203,7 +207,7 @@ export function FinancialOverview({
     formState: { errors: paymentErrors },
   } = useForm<PaymentFormInput, undefined, PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", notes: "" },
+    defaultValues: { amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", fundsRecipient: "Clinic", notes: "" },
   });
 
   const {
@@ -244,14 +248,14 @@ export function FinancialOverview({
     mutationFn: async ({ receivableId, values }: { receivableId: string; values: PaymentFormValues }) =>
       DefaultService.paymentsCreate({
         receivableId, amount: values.amount, paymentMethod: values.paymentMethod,
-        paidAt: new Date(values.paidAt).toISOString(), destinationBank: values.destinationBank || undefined, notes: values.notes || undefined,
+        paidAt: new Date(values.paidAt).toISOString(), destinationBank: values.destinationBank || undefined, fundsRecipient: (values.paymentMethod === "CreditCard" || values.paymentMethod === "DebitCard" ? "Owner" : values.fundsRecipient) as CreatePaymentRequest.fundsRecipient, notes: values.notes || undefined,
       }),
     onSuccess: async () => {
       setFeedback("Pagamento registrado com sucesso.");
       setShowReceivableRegister(false);
       setSelectedPatientReceivable(undefined);
       setSelectedPatientId(undefined);
-      resetPayment({ amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", notes: "" });
+      resetPayment({ amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", fundsRecipient: "Clinic", notes: "" });
       await invalidateFinancial();
     },
     onError: () => setFeedback("Nao foi possivel registrar o pagamento agora."),
@@ -379,8 +383,21 @@ export function FinancialOverview({
     { key: "receivables", label: "Recebiveis" },
     { key: "expenses", label: "Despesas" },
     { key: "payments", label: "Pagamentos" },
+    { key: "settlements", label: "Repasses" },
     { key: "intents", label: "Intencoes" },
   ];
+
+  const settlementsQuery = useQuery({ queryKey: ["professional-settlements"], queryFn: professionalSettlementsList });
+  const settleProfessional = useMutation({
+    mutationFn: professionalSettlementCreate,
+    onSuccess: async () => { setFeedback("Repasse registrado sem lancar despesa."); await invalidateFinancial(); await settlementsQuery.refetch(); },
+    onError: () => setFeedback("Nao foi possivel registrar o repasse."),
+  });
+  const settleOwner = useMutation({
+    mutationFn: ownerSettlementCreate,
+    onSuccess: async () => { setFeedback("Acerto com o CEO registrado sem duplicar receita."); await invalidateFinancial(); },
+    onError: () => setFeedback("Nao foi possivel registrar o acerto com o CEO."),
+  });
 
   return (
     <>
@@ -389,10 +406,22 @@ export function FinancialOverview({
         <span className="mb-2 block text-sm font-semibold">Banco para prestacao de contas</span>
         <input className="input-field" maxLength={100} placeholder="Todos os bancos" value={paymentDestinationBank ?? ""} onChange={(e) => onPaymentDestinationBankChange(e.target.value || undefined)} />
       </label>
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Recebido dos pacientes</p>
+          <p className="mt-1 text-xl font-bold text-[var(--ink)]">{formatCurrency(summary.grossReceived ?? summary.totalReceived)}</p>
+        </div>
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Receitas do mes</p>
           <p className="mt-1 text-xl font-bold text-green-600">{formatCurrency(summary.totalReceived)}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Passivo profissionais</p>
+          <p className="mt-1 text-xl font-bold text-amber-600">{formatCurrency(summary.professionalLiability ?? 0)}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">A receber do CEO</p>
+          <p className="mt-1 text-xl font-bold text-blue-600">{formatCurrency(summary.ownerReceivable ?? 0)}</p>
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Abatimentos da clinica</p>
@@ -576,6 +605,12 @@ export function FinancialOverview({
                   </Field>
                   <Field error={paymentErrors.destinationBank?.message} label="Banco de destino">
                     <input className="input-field" maxLength={100} placeholder="Ex.: Itau - conta do dono" {...registerPayment("destinationBank")} />
+                  </Field>
+                  <Field error={paymentErrors.fundsRecipient?.message} label="Onde o valor caiu">
+                    <select className="input-field" {...registerPayment("fundsRecipient")}>
+                      <option value="Clinic">Conta da clinica</option>
+                      <option value="Owner">Conta do CEO</option>
+                    </select>
                   </Field>
                   <Field error={paymentErrors.notes?.message} label="Observacoes">
                     <input className="input-field" {...registerPayment("notes")} />
@@ -977,6 +1012,19 @@ export function FinancialOverview({
               </table>
             </div>
           )}
+        </section>
+      ) : null}
+
+      {activeTab === "settlements" ? (
+        <section className="panel rounded-lg p-5 md:p-6">
+          <div className="section-heading">
+            <div><h3 className="text-base font-semibold text-[var(--ink)]">Repasses aos profissionais</h3><p className="text-sm text-[var(--muted)]">Baixa de passivo, sem lancar despesa.</p></div>
+            <button className="btn btn-brand-outline btn-sm" disabled={!summary.ownerReceivable || settleOwner.isPending} onClick={() => settleOwner.mutate()} type="button">Registrar acerto do CEO</button>
+          </div>
+          {feedback ? <p className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
+          <div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Profissional</th><th className="numeric">Gerado</th><th className="numeric">Ja repassado</th><th className="numeric">Pendente</th><th /></tr></thead><tbody>
+            {(settlementsQuery.data ?? []).map((item) => <tr key={item.professionalId}><td>{item.professionalName}</td><td className="numeric">{formatCurrency(item.accrued)}</td><td className="numeric">{formatCurrency(item.paid)}</td><td className="numeric">{formatCurrency(item.outstanding)}</td><td><button className="btn btn-primary btn-sm" disabled={item.outstanding <= 0 || settleProfessional.isPending} onClick={() => settleProfessional.mutate(item.professionalId)} type="button">Repassar pendencias</button></td></tr>)}
+          </tbody></table></div>
         </section>
       ) : null}
 

@@ -10,6 +10,7 @@ export type DoctorResponse = {
     phone?: string;
     email?: string;
     isActive?: boolean;
+    clinicSharePercentage?: number;
     specialties?: Array<SpecialtyItem>;
 };
 

@@ -195,7 +195,33 @@ export async function financialSummary(destinationBank?: string) {
     totalReceived: number;
     totalExpenses: number;
     balance: number;
+    grossReceived: number;
+    professionalLiability: number;
+    ownerReceivable: number;
   }>;
+}
+
+export interface ProfessionalSettlementResponse {
+  professionalId: string;
+  professionalName: string;
+  accrued: number;
+  paid: number;
+  outstanding: number;
+}
+
+export async function professionalSettlementsList() {
+  const response = await apiFetch("/financial/professional-settlements");
+  return response.json() as Promise<ProfessionalSettlementResponse[]>;
+}
+
+export async function professionalSettlementCreate(professionalId: string) {
+  const response = await apiFetch("/financial/professional-settlements", { method: "POST", body: JSON.stringify({ professionalId }) });
+  return response.json();
+}
+
+export async function ownerSettlementCreate() {
+  const response = await apiFetch("/financial/owner-settlements", { method: "POST", body: "{}" });
+  return response.json();
 }
 
 // ── Checkout ──
