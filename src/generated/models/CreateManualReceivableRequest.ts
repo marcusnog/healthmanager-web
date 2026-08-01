@@ -9,6 +9,13 @@ export type CreateManualReceivableRequest = {
     paymentMethod: string;
     paidAt?: string;
     destinationBank?: string | null;
+    fundsRecipient?: CreateManualReceivableRequest.fundsRecipient;
     notes?: string;
 };
+export namespace CreateManualReceivableRequest {
+    export enum fundsRecipient {
+        CLINIC = 'Clinic',
+        OWNER = 'Owner',
+    }
+}
 

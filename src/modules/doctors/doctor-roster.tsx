@@ -16,6 +16,7 @@ const createDoctorSchema = z.object({
   crm: z.string().min(3, "Informe o CRM."),
   phone: z.string().optional(),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
+  clinicSharePercentage: z.number().min(0).max(100),
 });
 
 const updateDoctorSchema = z.object({
@@ -23,6 +24,7 @@ const updateDoctorSchema = z.object({
   phone: z.string().optional(),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
   isActive: z.boolean(),
+  clinicSharePercentage: z.number().min(0).max(100),
 });
 
 type CreateDoctorValues = z.infer<typeof createDoctorSchema>;
@@ -63,7 +65,7 @@ export function DoctorRoster({
 
   const form = useForm<CreateDoctorValues>({
     resolver: zodResolver(createDoctorSchema),
-    defaultValues: { name: "", crm: "", phone: "", email: "" },
+    defaultValues: { name: "", crm: "", phone: "", email: "", clinicSharePercentage: 100 },
   });
   const [createSpecialtyIds, setCreateSpecialtyIds] = useState<string[]>([]);
 
@@ -74,6 +76,7 @@ export function DoctorRoster({
         crm: values.crm,
         phone: values.phone || undefined,
         email: values.email || undefined,
+        clinicSharePercentage: values.clinicSharePercentage,
         specialtyIds: createSpecialtyIds.length > 0 ? createSpecialtyIds : undefined,
       }),
     onSuccess: async () => {
@@ -126,6 +129,9 @@ export function DoctorRoster({
             </Field>
             <Field className="md:col-span-2" error={form.formState.errors.email?.message} label="Email">
               <input className="input-field" {...form.register("email")} />
+            </Field>
+            <Field error={form.formState.errors.clinicSharePercentage?.message} label="Percentual retido pela clinica (%)">
+              <input className="input-field" min={0} max={100} step="0.01" type="number" {...form.register("clinicSharePercentage", { valueAsNumber: true })} />
             </Field>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-semibold">Especialidades</label>
@@ -273,6 +279,7 @@ function DoctorEditForm({
       phone: doctor.phone ?? "",
       email: doctor.email ?? "",
       isActive: doctor.isActive ?? true,
+      clinicSharePercentage: doctor.clinicSharePercentage ?? 100,
     },
   });
 
@@ -283,6 +290,7 @@ function DoctorEditForm({
         phone: values.phone || undefined,
         email: values.email || undefined,
         isActive: values.isActive,
+        clinicSharePercentage: values.clinicSharePercentage,
         specialtyIds: specialtyIds.length > 0 ? specialtyIds : undefined,
       }),
     onSuccess: async (updatedDoctor) => {
@@ -309,6 +317,9 @@ function DoctorEditForm({
       </Field>
       <Field className="md:col-span-2" error={errors.email?.message} label="Email">
         <input className="input-field" {...register("email")} />
+      </Field>
+      <Field error={errors.clinicSharePercentage?.message} label="Percentual retido pela clinica (%)">
+        <input className="input-field" min={0} max={100} step="0.01" type="number" {...register("clinicSharePercentage", { valueAsNumber: true })} />
       </Field>
       <div className="md:col-span-2">
         <label className="mb-2 block text-sm font-semibold">Especialidades</label>

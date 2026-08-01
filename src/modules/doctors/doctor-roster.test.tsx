@@ -71,6 +71,7 @@ describe("DoctorRoster", () => {
         crm: "CRM-SP-777777",
         phone: "11996665555",
         email: "lucia.prado@clinica.com",
+        clinicSharePercentage: 100,
         specialtyIds: undefined,
       }),
     );
@@ -128,6 +129,7 @@ describe("DoctorRoster", () => {
         phone: "11994443322",
         email: "carlos.eduardo@clinica.com",
         isActive: true,
+        clinicSharePercentage: 100,
         specialtyIds: ["spec-1"],
       }),
     );
