@@ -426,6 +426,7 @@ export function CrmWorkspace() {
   };
   const doctorsData = doctorsQuery.data ?? { items: [], page: 1, pageSize: 10, total: 0 };
   const appointmentBoardProps = {
+    canWriteClinicalRecord: isDoctor,
     appointmentDate,
     appointmentViewMode,
     appointmentDateFrom,

@@ -86,6 +86,7 @@ export function AppointmentBoard({
   patients,
   doctors,
   appointmentTypes = [],
+  canWriteClinicalRecord = false,
   appointmentDate,
   appointmentViewMode = "day",
   appointmentDateFrom,
@@ -106,6 +107,7 @@ export function AppointmentBoard({
   patients: PatientResponse[];
   doctors: DoctorResponse[];
   appointmentTypes?: AppointmentTypeResponse[];
+  canWriteClinicalRecord?: boolean;
   appointmentDate: string;
   appointmentViewMode?: "day" | "week";
   appointmentDateFrom?: string;
@@ -423,6 +425,7 @@ export function AppointmentBoard({
       {clinicalRecordAppointment ? (
         <ClinicalRecordModal
           appointment={clinicalRecordAppointment}
+          canWrite={canWriteClinicalRecord}
           onClose={() => setClinicalRecordAppointment(null)}
         />
       ) : null}

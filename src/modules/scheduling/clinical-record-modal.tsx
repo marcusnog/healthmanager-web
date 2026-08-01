@@ -8,7 +8,6 @@ import { Modal } from "@/components/ui/modal";
 import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { AppointmentResponse } from "@/generated";
-import type { ClinicalRecordResponse } from "@/generated/models/ClinicalRecordResponse";
 import { apiErrorMessage } from "@/lib/api-error";
 
 const createSchema = z.object({
@@ -28,9 +27,11 @@ type AddendumFormValues = z.infer<typeof addendumSchema>;
 
 export function ClinicalRecordModal({
   appointment,
+  canWrite,
   onClose,
 }: {
   appointment: AppointmentResponse;
+  canWrite: boolean;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -96,6 +97,9 @@ export function ClinicalRecordModal({
   });
 
   const record = clinicalRecordQuery.data;
+  const queryStatus = clinicalRecordQuery.error && typeof clinicalRecordQuery.error === "object" && "status" in clinicalRecordQuery.error
+    ? clinicalRecordQuery.error.status
+    : undefined;
   const isDraft = record?.status === "Draft";
   const isFinalized = record?.status === "Finalized";
 
@@ -109,14 +113,26 @@ export function ClinicalRecordModal({
     );
   }
 
+  if (clinicalRecordQuery.isError && queryStatus !== 404) {
+    return (
+      <Modal title="Prontuario" onClose={onClose} size="lg">
+        <div className="empty-state py-8">
+          <p className="text-sm font-semibold">{apiErrorMessage(clinicalRecordQuery.error, "Nao foi possivel carregar o prontuario.")}</p>
+        </div>
+      </Modal>
+    );
+  }
+
   if (!record && !isEditing) {
     return (
       <Modal title="Prontuario" onClose={onClose} size="lg">
         <div className="empty-state py-8">
           <p className="text-sm font-semibold mb-4">Nenhum prontuario registrado para esta consulta.</p>
-          <button className="btn btn-primary btn-sm" onClick={() => setIsEditing(true)} type="button">
-            Criar prontuario
-          </button>
+          {canWrite ? (
+            <button className="btn btn-primary btn-sm" onClick={() => setIsEditing(true)} type="button">
+              Criar prontuario
+            </button>
+          ) : null}
         </div>
       </Modal>
     );
@@ -161,7 +177,7 @@ export function ClinicalRecordModal({
         <div className="flex items-center justify-between">
           <StatusBadge variant={isDraft ? "scheduled" : "confirmed"} />
           <div className="toolbar-inline">
-            {isDraft ? (
+            {isDraft && canWrite ? (
               <>
                 <button className="btn btn-ghost btn-sm" onClick={() => setIsEditing(true)} type="button">
                   Editar
@@ -204,7 +220,7 @@ export function ClinicalRecordModal({
         {isFinalized ? (
           <div className="border-t border-[var(--border)] pt-4 mt-4">
             <h4 className="text-sm font-semibold text-[var(--ink)] mb-3">Addendums</h4>
-            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} />
+            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} canWrite={canWrite} />
           </div>
         ) : null}
       </div>
@@ -276,9 +292,11 @@ function ClinicalRecordForm({
 function AddendumSection({
   appointmentId,
   addendums,
+  canWrite,
 }: {
   appointmentId: string;
   addendums: { id?: string; content?: string; authorId?: string; authorName?: string | null; createdAt?: string }[];
+  canWrite: boolean;
 }) {
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -323,7 +341,7 @@ function AddendumSection({
         </div>
       ))}
 
-      {showAddForm ? (
+      {canWrite && showAddForm ? (
         <form className="grid gap-3" onSubmit={handleSubmit((values) => { setFeedback(null); addAddendum.mutateAsync(values); })}>
           <Field error={errors.content?.message} label="Addendum">
             <textarea className="input-field min-h-20" {...register("content")} />
@@ -335,11 +353,11 @@ function AddendumSection({
             </button>
           </div>
         </form>
-      ) : (
+      ) : canWrite ? (
         <button className="btn btn-ghost btn-sm" onClick={() => setShowAddForm(true)} type="button">
           + Adicionar addendum
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
