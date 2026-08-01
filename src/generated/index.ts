@@ -15,6 +15,8 @@ export type { BrandingRequest } from './models/BrandingRequest';
 export type { BrandingResponse } from './models/BrandingResponse';
 export type { CepAddressResponse } from './models/CepAddressResponse';
 export type { ChangePasswordRequest } from './models/ChangePasswordRequest';
+export { CheckoutRequest } from './models/CheckoutRequest';
+export type { CheckoutResponse } from './models/CheckoutResponse';
 export type { ClinicalRecordAddendumResponse } from './models/ClinicalRecordAddendumResponse';
 export { ClinicalRecordResponse } from './models/ClinicalRecordResponse';
 export type { CreateAddendumRequest } from './models/CreateAddendumRequest';

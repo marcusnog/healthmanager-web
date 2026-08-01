@@ -1,11 +1,12 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PortalService } from "@/services/portal-api";
+import type { CheckoutResponse } from "@/services/api";
 import { applyCpfMask } from "@/lib/formatters";
 import {
   readPortalSession,
@@ -298,6 +299,19 @@ function PortalDashboard({
     queryFn: () => PortalService.getDocuments(),
   });
 
+  const [checkoutReceivableId, setCheckoutReceivableId] = useState<string | null>(null);
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
+  const [checkoutMethod, setCheckoutMethod] = useState("Pix");
+
+  const checkoutMutation = useMutation({
+    mutationFn: (args: { receivableId: string; paymentMethod: string; amount?: number }) =>
+      PortalService.checkout(args),
+    onSuccess: (result) => {
+      setCheckoutResult(result);
+      queryClient.invalidateQueries({ queryKey: ["portal-receivables"] });
+    },
+  });
+
   function handleLogout() {
     clearPortalSession();
     queryClient.clear();
@@ -475,6 +489,12 @@ function PortalDashboard({
         <FinancialSection
           isLoading={receivablesQuery.isLoading}
           receivables={receivablesQuery.data ?? []}
+          checkoutReceivableId={checkoutReceivableId}
+          checkoutResult={checkoutResult}
+          checkoutPending={checkoutMutation.isPending}
+          onCheckoutReceivableChange={(id, method) => { setCheckoutReceivableId(id); setCheckoutResult(null); setCheckoutMethod(method); }}
+          onCheckoutSubmit={(receivableId, amount) => checkoutMutation.mutate({ receivableId, paymentMethod: checkoutMethod, amount })}
+          onCheckoutDismiss={() => { setCheckoutReceivableId(null); setCheckoutResult(null); }}
         />
       )}
       {section === "documentos" && (
@@ -597,10 +617,24 @@ function AppointmentSection({
 function FinancialSection({
   receivables,
   isLoading,
+  checkoutReceivableId,
+  checkoutResult,
+  checkoutPending,
+  onCheckoutReceivableChange,
+  onCheckoutSubmit,
+  onCheckoutDismiss,
 }: {
   receivables: PatientPortalReceivableResponse[];
   isLoading: boolean;
+  checkoutReceivableId: string | null;
+  checkoutResult: CheckoutResponse | null;
+  checkoutPending: boolean;
+  onCheckoutReceivableChange: (id: string, method: string) => void;
+  onCheckoutSubmit: (receivableId: string, amount?: number) => void;
+  onCheckoutDismiss: () => void;
 }) {
+  const [method, setMethod] = useState("Pix");
+  const checkoutReceivable = checkoutReceivableId ? receivables.find((r) => r.id === checkoutReceivableId) : null;
   return (
     <section className="panel rounded-[var(--radius-xl)] p-5">
       <div style={{ marginBottom: "1rem" }}>
@@ -696,9 +730,72 @@ function FinancialSection({
                     {pct.toFixed(0)}% quitado
                   </p>
                 </div>
+                {!isPaid && (
+                  <div style={{ marginTop: "0.5rem", textAlign: "right" }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => onCheckoutReceivableChange(r.id!, "Pix")} type="button">Pagar</button>
+                  </div>
+                )}
               </article>
             );
           })}
+        </div>
+      )}
+
+      {checkoutReceivable && !checkoutResult && (
+        <div className="data-card" style={{ marginTop: "1rem", borderStyle: "dashed" }}>
+          <p className="label" style={{ marginBottom: "0.5rem" }}>
+            Pagar: {formatCurrency(checkoutReceivable.outstandingAmount ?? 0)} em aberto
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+            {["Pix", "CreditCard", "DebitCard"].map((m) => (
+              <button key={m} className={`btn btn-sm ${method === m ? "btn-brand-outline" : "btn-ghost"}`} onClick={() => setMethod(m)} type="button">
+                {m === "CreditCard" ? "Cartao credito" : m === "DebitCard" ? "Cartao debito" : m}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+            <button className="btn btn-ghost btn-sm" onClick={onCheckoutDismiss} type="button">Cancelar</button>
+            <button className="btn btn-primary" disabled={checkoutPending} onClick={() => { onCheckoutReceivableChange(checkoutReceivable.id!, method); onCheckoutSubmit(checkoutReceivable.id!, checkoutReceivable.outstandingAmount ?? undefined); }} type="button">
+              {checkoutPending ? "Gerando..." : "Gerar cobranca"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {checkoutResult && (
+        <div className="data-card" style={{ marginTop: "1rem" }}>
+          <p className="label" style={{ marginBottom: "0.5rem" }}>Checkout gerado</p>
+          <p style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+            Status: {checkoutResult.status === "Processing" ? "Aguardando pagamento" : checkoutResult.status}
+          </p>
+          {checkoutResult.pixQrCode && (
+            <div style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.5rem" }}>QR Code PIX</p>
+              <img src={`data:image/png;base64,${checkoutResult.pixQrCode}`} alt="QR Code PIX" style={{ maxWidth: 180, borderRadius: "0.5rem", border: "1px solid var(--line)" }} />
+            </div>
+          )}
+          {checkoutResult.pixCopyPaste && (
+            <div style={{ marginBottom: "0.5rem" }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem" }}>PIX Copia e Cola</p>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input className="input-field" readOnly style={{ flex: 1, fontSize: "0.75rem" }} value={checkoutResult.pixCopyPaste} />
+                <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard.writeText(checkoutResult.pixCopyPaste!)} type="button">Copiar</button>
+              </div>
+            </div>
+          )}
+          {checkoutResult.checkoutUrl && (
+            <div style={{ marginBottom: "0.5rem" }}>
+              <a style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--brand)" }} href={checkoutResult.checkoutUrl} rel="noopener noreferrer" target="_blank">Abrir link de pagamento</a>
+            </div>
+          )}
+          {checkoutResult.expiresAt && (
+            <p style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: "0.25rem" }}>
+              Expira em {new Date(checkoutResult.expiresAt).toLocaleString("pt-BR")}
+            </p>
+          )}
+          <div style={{ marginTop: "0.75rem", textAlign: "right" }}>
+            <button className="btn btn-ghost btn-sm" onClick={onCheckoutDismiss} type="button">Fechar</button>
+          </div>
         </div>
       )}
     </section>
