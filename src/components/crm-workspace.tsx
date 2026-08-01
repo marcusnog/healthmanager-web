@@ -326,6 +326,12 @@ export function CrmWorkspace() {
     placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
     enabled: authenticated,
   });
+  const appointmentReceivablesQuery = useQuery({
+    queryKey: ["appointment-receivables", appointmentDateFrom, appointmentDateTo],
+    queryFn: () => guardedQuery(() => DefaultService.receivablesList(1, 100, undefined, appointmentDateFrom, appointmentDateTo), { items: [], page: 1, pageSize: 100, total: 0 }),
+    placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
+    enabled: authenticated,
+  });
   const appointmentTypesQuery = useQuery({
     queryKey: ["appointment-types"],
     queryFn: () => guardedQuery(() => DefaultService.appointmentTypesList(1, 100), { items: [], page: 1, pageSize: 100, total: 0 }),
@@ -435,6 +441,7 @@ export function CrmWorkspace() {
     appointmentDoctorId: resolvedAppointmentDoctorId,
     appointmentStatus,
     appointments: appointmentsQuery.data?.items ?? [],
+    receivables: appointmentReceivablesQuery.data?.items ?? [],
     appointmentTypes: appointmentTypesQuery.data?.items ?? [],
     doctors: doctorsData.items ?? [],
     isLoading: appointmentsQuery.isLoading,
