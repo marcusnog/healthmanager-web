@@ -7,6 +7,7 @@ export type CreatePaymentRequest = {
     amount: number;
     paymentMethod: string;
     paidAt?: string;
+    destinationBank?: string | null;
     notes?: string;
 };
 

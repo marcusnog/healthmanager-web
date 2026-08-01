@@ -24,6 +24,7 @@ const paymentSchema = z.object({
   amount: z.coerce.number().positive("Informe um valor valido."),
   paymentMethod: z.enum(["Cash", "Pix", "CreditCard", "DebitCard", "Insurance"]),
   paidAt: z.string().min(1, "Informe a data do pagamento."),
+  destinationBank: z.string().max(100).optional(),
   notes: z.string().optional(),
 });
 
@@ -96,6 +97,7 @@ export function FinancialOverview({
   paymentDateFrom,
   paymentDateTo,
   paymentReceivableId,
+  paymentDestinationBank,
   onPageChange,
   onStatusChange,
   onDateFromChange,
@@ -104,6 +106,7 @@ export function FinancialOverview({
   onPaymentReceivableIdChange,
   onPaymentDateFromChange,
   onPaymentDateToChange,
+  onPaymentDestinationBankChange,
   expenses,
   expensePage,
   expenseTotal,
@@ -139,6 +142,7 @@ export function FinancialOverview({
   paymentDateFrom: string | undefined;
   paymentDateTo: string | undefined;
   paymentReceivableId: string | undefined;
+  paymentDestinationBank: string | undefined;
   onPageChange: (page: number) => void;
   onStatusChange: (status: "Pending" | "Partial" | "Paid" | undefined) => void;
   onDateFromChange: (value: string | undefined) => void;
@@ -147,6 +151,7 @@ export function FinancialOverview({
   onPaymentReceivableIdChange: (value: string | undefined) => void;
   onPaymentDateFromChange: (value: string | undefined) => void;
   onPaymentDateToChange: (value: string | undefined) => void;
+  onPaymentDestinationBankChange: (value: string | undefined) => void;
   expenses: ExpenseResponse[];
   expensePage: number;
   expenseTotal: number;
@@ -198,7 +203,7 @@ export function FinancialOverview({
     formState: { errors: paymentErrors },
   } = useForm<PaymentFormInput, undefined, PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), notes: "" },
+    defaultValues: { amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", notes: "" },
   });
 
   const {
@@ -239,14 +244,14 @@ export function FinancialOverview({
     mutationFn: async ({ receivableId, values }: { receivableId: string; values: PaymentFormValues }) =>
       DefaultService.paymentsCreate({
         receivableId, amount: values.amount, paymentMethod: values.paymentMethod,
-        paidAt: new Date(values.paidAt).toISOString(), notes: values.notes || undefined,
+        paidAt: new Date(values.paidAt).toISOString(), destinationBank: values.destinationBank || undefined, notes: values.notes || undefined,
       }),
     onSuccess: async () => {
       setFeedback("Pagamento registrado com sucesso.");
       setShowReceivableRegister(false);
       setSelectedPatientReceivable(undefined);
       setSelectedPatientId(undefined);
-      resetPayment({ amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), notes: "" });
+      resetPayment({ amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", notes: "" });
       await invalidateFinancial();
     },
     onError: () => setFeedback("Nao foi possivel registrar o pagamento agora."),
@@ -380,17 +385,21 @@ export function FinancialOverview({
   return (
     <>
       {/* Summary cards */}
+      <label className="mb-4 block max-w-sm">
+        <span className="mb-2 block text-sm font-semibold">Banco para prestacao de contas</span>
+        <input className="input-field" maxLength={100} placeholder="Todos os bancos" value={paymentDestinationBank ?? ""} onChange={(e) => onPaymentDestinationBankChange(e.target.value || undefined)} />
+      </label>
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Receitas do mes</p>
           <p className="mt-1 text-xl font-bold text-green-600">{formatCurrency(summary.totalReceived)}</p>
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Despesas do mes</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Abatimentos da clinica</p>
           <p className="mt-1 text-xl font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Saldo do mes</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Saldo a repassar</p>
           <p className={cn("mt-1 text-xl font-bold", summary.balance >= 0 ? "text-green-600" : "text-red-600")}>
             {formatCurrency(summary.balance)}
           </p>
@@ -565,6 +574,9 @@ export function FinancialOverview({
                   <Field error={paymentErrors.paidAt?.message} label="Data">
                     <input className="input-field" type="datetime-local" {...registerPayment("paidAt")} />
                   </Field>
+                  <Field error={paymentErrors.destinationBank?.message} label="Banco de destino">
+                    <input className="input-field" maxLength={100} placeholder="Ex.: Itau - conta do dono" {...registerPayment("destinationBank")} />
+                  </Field>
                   <Field error={paymentErrors.notes?.message} label="Observacoes">
                     <input className="input-field" {...registerPayment("notes")} />
                   </Field>
@@ -606,6 +618,7 @@ export function FinancialOverview({
                     <th>Paciente</th>
                     <th className="numeric">Valor</th>
                     <th>Metodo</th>
+                    <th>Banco</th>
                     <th>Data</th>
                   </tr>
                 </thead>
@@ -615,6 +628,7 @@ export function FinancialOverview({
                       <td>{p.patientName ?? "-"}</td>
                       <td className="numeric">{formatCurrency(p.amount ?? 0)}</td>
                       <td>{p.paymentMethod}</td>
+                      <td>{p.destinationBank ?? "-"}</td>
                       <td>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("pt-BR") : "-"}</td>
                     </tr>
                   ))}
@@ -871,6 +885,7 @@ export function FinancialOverview({
                     <th>Categoria</th>
                     <th className="numeric">Valor</th>
                     <th>Metodo</th>
+                    <th>Banco</th>
                     <th>Data</th>
                     <th>Status</th>
                     <th>Acoes</th>
@@ -944,6 +959,7 @@ export function FinancialOverview({
                     <th>Paciente</th>
                     <th className="numeric">Valor</th>
                     <th>Metodo</th>
+                    <th>Banco</th>
                     <th>Data</th>
                   </tr>
                 </thead>
@@ -953,6 +969,7 @@ export function FinancialOverview({
                       <td>{p.patientName ?? "-"}</td>
                       <td className="numeric">{formatCurrency(p.amount ?? 0)}</td>
                       <td>{p.paymentMethod}</td>
+                      <td>{p.destinationBank ?? "-"}</td>
                       <td>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("pt-BR") : "-"}</td>
                     </tr>
                   ))}
