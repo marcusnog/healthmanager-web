@@ -16,6 +16,7 @@ import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { HealthInsuranceList } from "@/modules/health-insurances/health-insurance-list";
 import { SpecialtyList } from "@/modules/specialties/specialty-list";
 import { AvailabilityList } from "@/modules/availabilities/availability-list";
+import { AtendimentoPanel } from "@/modules/atendimento/atendimento-panel";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
@@ -25,6 +26,7 @@ import type { SessionState } from "@/types/app";
 
 type Section =
   | "dashboard"
+  | "atendimento"
   | "agenda"
   | "tipos-consulta"
   | "pacientes"
@@ -55,6 +57,9 @@ function AgendaIcon() {
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
+}
+function AtendimentoIcon() {
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-4A8 8 0 1 1 21 15Z" /></svg>;
 }
 function PacientesIcon() {
   return (
@@ -131,6 +136,7 @@ function CrossIcon() {
 
 const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
+  { section: "atendimento",   icon: <AtendimentoIcon />, label: "Atendimento" },
   { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
   { section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
@@ -146,9 +152,11 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
 const DOCTOR_NAV = NAV.filter((n) =>
   ["dashboard", "agenda", "pacientes", "agenda-medicos"].includes(n.section),
 );
+const RECEPTION_NAV = NAV.filter((n) => ["dashboard", "atendimento", "agenda", "pacientes"].includes(n.section));
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
+  atendimento:    { title: "Atendimento",      subtitle: "Conversas da clínica pelo WhatsApp" },
   agenda:         { title: "Agenda",           subtitle: "Consultas, confirmações e cancelamentos" },
   "tipos-consulta": { title: "Tipos de consulta", subtitle: "Cadastro dos tipos usados no agendamento" },
   pacientes:      { title: "Pacientes",        subtitle: "Cadastro, busca e documentos" },
@@ -561,7 +569,7 @@ export function CrmWorkspace() {
   const meta = isDoctor && resolvedActiveSection in DOCTOR_SECTION_TITLE
     ? DOCTOR_SECTION_TITLE[resolvedActiveSection]
     : SECTION_TITLE[resolvedActiveSection];
-  const currentNav = isDoctor ? DOCTOR_NAV : NAV;
+  const currentNav = isDoctor ? DOCTOR_NAV : sessionRole === "Secretary" ? RECEPTION_NAV : NAV;
 
   function renderSection() {
     switch (resolvedActiveSection) {
@@ -583,6 +591,8 @@ export function CrmWorkspace() {
         );
       case "agenda":
         return <AppointmentBoard {...appointmentBoardProps} />;
+      case "atendimento":
+        return <AtendimentoPanel />;
       case "tipos-consulta":
         return <AppointmentTypeList items={appointmentTypesQuery.data?.items ?? []} isLoading={appointmentTypesQuery.isLoading} />;
       case "pacientes":
@@ -702,7 +712,7 @@ export function CrmWorkspace() {
             <Avatar name={session.name} size="sm" />
             <div className="min-w-0 flex-1">
               <p className="sidebar-user-name">{session.name}</p>
-              <p className="sidebar-user-role">{session.role}</p>
+              <p className="sidebar-user-role">{session.role === "Secretary" ? "Recepção" : session.role}</p>
             </div>
           </div>
           <button
