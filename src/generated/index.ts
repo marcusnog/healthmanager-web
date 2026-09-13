@@ -30,17 +30,27 @@ export type { CreatePaymentIntentRequest } from './models/CreatePaymentIntentReq
 export { CreatePaymentRequest } from './models/CreatePaymentRequest';
 export type { DashboardSummaryResponse } from './models/DashboardSummaryResponse';
 export type { DoctorResponse } from './models/DoctorResponse';
+export type { GrantApplicationBalanceRequest } from './models/GrantApplicationBalanceRequest';
 export type { LoginRequest } from './models/LoginRequest';
 export type { NotificationConfigRequest } from './models/NotificationConfigRequest';
 export type { NotificationConfigResponse } from './models/NotificationConfigResponse';
 export type { OwnerSettlementRequest } from './models/OwnerSettlementRequest';
+export type { PackageItemRequest } from './models/PackageItemRequest';
+export type { PackageItemResponse } from './models/PackageItemResponse';
+export type { PackageRequest } from './models/PackageRequest';
+export type { PackageResponse } from './models/PackageResponse';
 export type { PagedAppointmentResponse } from './models/PagedAppointmentResponse';
 export type { PagedAppointmentTypeResponse } from './models/PagedAppointmentTypeResponse';
 export type { PagedDoctorResponse } from './models/PagedDoctorResponse';
+export type { PagedPackageResponse } from './models/PagedPackageResponse';
 export type { PagedPatientResponse } from './models/PagedPatientResponse';
 export type { PagedPaymentResponse } from './models/PagedPaymentResponse';
+export type { PagedProductResponse } from './models/PagedProductResponse';
 export type { PagedReceivableResponse } from './models/PagedReceivableResponse';
 export type { PagedWhatsAppConversationResponse } from './models/PagedWhatsAppConversationResponse';
+export type { PatientApplicationBalanceResponse } from './models/PatientApplicationBalanceResponse';
+export type { PatientApplicationRequest } from './models/PatientApplicationRequest';
+export type { PatientApplicationResponse } from './models/PatientApplicationResponse';
 export { PatientDetails } from './models/PatientDetails';
 export type { PatientDocumentResponse } from './models/PatientDocumentResponse';
 export type { PatientPortalAppointmentResponse } from './models/PatientPortalAppointmentResponse';
@@ -54,6 +64,8 @@ export { PaymentGatewayConfigResponse } from './models/PaymentGatewayConfigRespo
 export type { PaymentIntentPagedResult } from './models/PaymentIntentPagedResult';
 export { PaymentIntentResponse } from './models/PaymentIntentResponse';
 export type { PaymentResponse } from './models/PaymentResponse';
+export type { ProductRequest } from './models/ProductRequest';
+export type { ProductResponse } from './models/ProductResponse';
 export type { ProfessionalSettlementRequest } from './models/ProfessionalSettlementRequest';
 export type { ProfessionalSettlementResponse } from './models/ProfessionalSettlementResponse';
 export type { ReceivableResponse } from './models/ReceivableResponse';
@@ -76,3 +88,4 @@ export { WhatsAppConversationResponse } from './models/WhatsAppConversationRespo
 export { WhatsAppMessageResponse } from './models/WhatsAppMessageResponse';
 
 export { DefaultService } from './services/DefaultService';
+export { PatientApplicationsService } from './services/PatientApplicationsService';

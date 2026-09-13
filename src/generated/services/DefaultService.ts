@@ -29,11 +29,15 @@ import type { LoginRequest } from '../models/LoginRequest';
 import type { NotificationConfigRequest } from '../models/NotificationConfigRequest';
 import type { NotificationConfigResponse } from '../models/NotificationConfigResponse';
 import type { OwnerSettlementRequest } from '../models/OwnerSettlementRequest';
+import type { PackageRequest } from '../models/PackageRequest';
+import type { PackageResponse } from '../models/PackageResponse';
 import type { PagedAppointmentResponse } from '../models/PagedAppointmentResponse';
 import type { PagedAppointmentTypeResponse } from '../models/PagedAppointmentTypeResponse';
 import type { PagedDoctorResponse } from '../models/PagedDoctorResponse';
+import type { PagedPackageResponse } from '../models/PagedPackageResponse';
 import type { PagedPatientResponse } from '../models/PagedPatientResponse';
 import type { PagedPaymentResponse } from '../models/PagedPaymentResponse';
+import type { PagedProductResponse } from '../models/PagedProductResponse';
 import type { PagedReceivableResponse } from '../models/PagedReceivableResponse';
 import type { PagedWhatsAppConversationResponse } from '../models/PagedWhatsAppConversationResponse';
 import type { PatientDocumentResponse } from '../models/PatientDocumentResponse';
@@ -48,6 +52,8 @@ import type { PaymentGatewayConfigResponse } from '../models/PaymentGatewayConfi
 import type { PaymentIntentPagedResult } from '../models/PaymentIntentPagedResult';
 import type { PaymentIntentResponse } from '../models/PaymentIntentResponse';
 import type { PaymentResponse } from '../models/PaymentResponse';
+import type { ProductRequest } from '../models/ProductRequest';
+import type { ProductResponse } from '../models/ProductResponse';
 import type { ProfessionalSettlementRequest } from '../models/ProfessionalSettlementRequest';
 import type { ProfessionalSettlementResponse } from '../models/ProfessionalSettlementResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
@@ -1257,6 +1263,152 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/financial/owner-settlements',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns ProductResponse OK
+     * @throws ApiError
+     */
+    public static productsCreate(
+        requestBody: ProductRequest,
+    ): CancelablePromise<ProductResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/products',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param search
+     * @returns PagedProductResponse OK
+     * @throws ApiError
+     */
+    public static productsList(
+        page: number = 1,
+        pageSize: number = 20,
+        search?: string,
+    ): CancelablePromise<PagedProductResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/products',
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+                'search': search,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static productsDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/products/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns ProductResponse OK
+     * @throws ApiError
+     */
+    public static productsUpdate(
+        id: string,
+        requestBody: ProductRequest,
+    ): CancelablePromise<ProductResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/products/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns PackageResponse OK
+     * @throws ApiError
+     */
+    public static packagesCreate(
+        requestBody: PackageRequest,
+    ): CancelablePromise<PackageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/packages',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param page
+     * @param pageSize
+     * @param search
+     * @returns PagedPackageResponse OK
+     * @throws ApiError
+     */
+    public static packagesList(
+        page: number = 1,
+        pageSize: number = 20,
+        search?: string,
+    ): CancelablePromise<PagedPackageResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/packages',
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+                'search': search,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static packagesDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/packages/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns PackageResponse OK
+     * @throws ApiError
+     */
+    public static packagesUpdate(
+        id: string,
+        requestBody: PackageRequest,
+    ): CancelablePromise<PackageResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/packages/{id}',
+            path: {
+                'id': id,
+            },
             body: requestBody,
             mediaType: 'application/json',
         });

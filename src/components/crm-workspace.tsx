@@ -17,6 +17,7 @@ import { HealthInsuranceList } from "@/modules/health-insurances/health-insuranc
 import { SpecialtyList } from "@/modules/specialties/specialty-list";
 import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { AtendimentoPanel } from "@/modules/atendimento/atendimento-panel";
+import { CatalogManager } from "@/modules/catalog/catalog-manager";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
@@ -30,6 +31,7 @@ type Section =
   | "agenda"
   | "tipos-consulta"
   | "pacientes"
+  | "produtos-pacotes"
   | "financeiro"
   | "categorias-despesa"
   | "medicos"
@@ -140,6 +142,7 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
   { section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
+  { section: "produtos-pacotes", icon: <TagIcon />, label: "Produtos e pacotes" },
   { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
   { section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa" },
   { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
@@ -152,7 +155,7 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
 const DOCTOR_NAV = NAV.filter((n) =>
   ["dashboard", "agenda", "pacientes", "agenda-medicos"].includes(n.section),
 );
-const RECEPTION_NAV = NAV.filter((n) => ["dashboard", "atendimento", "agenda", "pacientes"].includes(n.section));
+const RECEPTION_NAV = NAV.filter((n) => ["dashboard", "atendimento", "agenda", "pacientes", "produtos-pacotes"].includes(n.section));
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
@@ -160,6 +163,7 @@ const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   agenda:         { title: "Agenda",           subtitle: "Consultas, confirmações e cancelamentos" },
   "tipos-consulta": { title: "Tipos de consulta", subtitle: "Cadastro dos tipos usados no agendamento" },
   pacientes:      { title: "Pacientes",        subtitle: "Cadastro, busca e documentos" },
+  "produtos-pacotes": { title: "Produtos e pacotes", subtitle: "Catálogo de tratamentos e planos" },
   financeiro:     { title: "Financeiro",       subtitle: "Receitas, despesas e saldo" },
   "categorias-despesa": { title: "Categorias de despesa", subtitle: "Cadastro das categorias financeiras" },
   medicos:        { title: "Médicos",          subtitle: "Equipe médica e disponibilidade" },
@@ -597,6 +601,8 @@ export function CrmWorkspace() {
         return <AppointmentTypeList items={appointmentTypesQuery.data?.items ?? []} isLoading={appointmentTypesQuery.isLoading} />;
       case "pacientes":
         return <PatientList {...patientListProps} />;
+      case "produtos-pacotes":
+        return <CatalogManager />;
       case "financeiro":
         return <FinancialOverview {...financialOverviewProps} />;
       case "categorias-despesa":
