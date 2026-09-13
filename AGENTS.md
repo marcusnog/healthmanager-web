@@ -48,13 +48,14 @@ src/
     formatters.ts       # CPF/phone masks, BRL currency, date, file size
   modules/              # Feature modules
     auth/               # login-panel
+    atendimento/        # WhatsApp conversation inbox for reception
     availabilities/     # doctor-availability-manager
     dashboard/          # summary-cards, dashboard-right-rail
     doctors/            # doctor-roster
     financial/          # financial-overview
     health-insurances/  # health-insurance-manager
     patients/           # patient-list
-    scheduling/         # appointment-board
+    scheduling/         # appointments, appointment types, clinical records
     settings/           # settings-panel
     specialties/        # specialty-manager
   providers/
@@ -76,6 +77,7 @@ tests/
 - `@/` path alias maps to `./src` (configured in tsconfig.json)
 - OpenAPI client in `src/generated/` — never edit by hand. Regenerate via `npm run generate:api`.
 - Hand-written API wrappers in `src/services/api.ts` extend the generated client for custom endpoints (expenses, financial summary)
+- `src/lib/api-error.ts` normalizes generated-client and HTTP errors for UI messages.
 - Backend proxy: `/backend/*` rewrites to `API_PROXY_TARGET` (default `http://127.0.0.1:8080`) — see `next.config.ts`
 - Vitest: jsdom environment, `vitest.setup.ts` adds `@testing-library/jest-dom` + `<dialog>` polyfill; coverage excludes `src/generated/` and `src/app/`
 - Two Playwright configs: `playwright.config.ts` (mocked) and `playwright.real.config.ts` (real backend — starts .NET API in-memory automatically)
@@ -87,7 +89,7 @@ tests/
 - Two auth sessions: clinic (`localStorage healthmanager.auth`, with JWT refresh) and patient portal (`localStorage healthmanager.portal`, no refresh)
 - Test wrapper: `renderWithProviders(ui)` from `src/test/render.tsx`
 - Linting: ESLint with `eslint-config-next/core-web-vitals` + `typescript`; ignores `.next/`, `src/generated/`, coverage, playwright reports
-- No CI workflow yet — add one in `.github/workflows/` when ready
+- `.github/workflows/frontend-ci.yml` runs install, lint, unit tests with coverage, and build on pushes to master/main/develop and on pull requests.
 
 ## Environment variables
 
