@@ -17,8 +17,25 @@ import {
 } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
+import { Permissions } from "@/lib/permissions";
 
 type Tab = "receivables" | "expenses" | "payments" | "settlements" | "intents";
+
+const ALL_TABS: { key: Tab; label: string }[] = [
+  { key: "receivables", label: "Contas a receber" },
+  { key: "expenses", label: "Contas a pagar" },
+  { key: "payments", label: "Pagamentos" },
+  { key: "settlements", label: "Repasses" },
+  { key: "intents", label: "Intencoes" },
+];
+
+const TAB_VIEW_PERM: Record<Tab, string> = {
+  receivables: Permissions.FinanceReceivablesView,
+  expenses: Permissions.FinancePayablesView,
+  payments: Permissions.FinanceReceivablesView,
+  settlements: Permissions.FinanceSettlements,
+  intents: Permissions.FinanceReceivablesView,
+};
 
 const paymentSchema = z.object({
   amount: z.coerce.number().positive("Informe um valor valido."),
@@ -132,6 +149,8 @@ export function FinancialOverview({
   paymentIntentStatus,
   onPaymentIntentPageChange,
   onPaymentIntentStatusChange,
+  permissions = [],
+  initialTab = "receivables",
 }: {
   receivables: ReceivableResponse[];
   page: number;
@@ -177,8 +196,19 @@ export function FinancialOverview({
   paymentIntentStatus: string | undefined;
   onPaymentIntentPageChange: (page: number) => void;
   onPaymentIntentStatusChange: (value: string | undefined) => void;
+  permissions?: string[];
+  initialTab?: Tab;
 }) {
-  const [activeTab, setActiveTab] = useState<Tab>("receivables");
+  const hasView = (tab: Tab) => !TAB_VIEW_PERM[tab] || permissions.length === 0 || permissions.includes(TAB_VIEW_PERM[tab]);
+  const hasManage = (perm: string) => permissions.length === 0 || permissions.includes(perm);
+  const canManageReceivables = hasManage(Permissions.FinanceReceivablesManage);
+  const canManagePayables = hasManage(Permissions.FinancePayablesManage);
+  const canManageSettlements = hasManage(Permissions.FinanceSettlements);
+  const canManageCategories = hasManage(Permissions.FinanceCategoriesManage);
+  const visibleTabs = ALL_TABS.filter(({ key }) => hasView(key));
+  const [activeTab, setActiveTab] = useState<Tab>(() =>
+    hasView(initialTab) ? initialTab : visibleTabs[0]?.key ?? "receivables",
+  );
   const [showPayments, setShowPayments] = useState(false);
   const [showReceivableRegister, setShowReceivableRegister] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -379,14 +409,6 @@ export function FinancialOverview({
     setShowExpenseForm(true);
   };
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: "receivables", label: "Recebiveis" },
-    { key: "expenses", label: "Despesas" },
-    { key: "payments", label: "Pagamentos" },
-    { key: "settlements", label: "Repasses" },
-    { key: "intents", label: "Intencoes" },
-  ];
-
   const settlementsQuery = useQuery({ queryKey: ["professional-settlements"], queryFn: professionalSettlementsList });
   const settleProfessional = useMutation({
     mutationFn: professionalSettlementCreate,
@@ -437,7 +459,7 @@ export function FinancialOverview({
 
       {/* Tabs */}
       <div className="toolbar-inline mb-4 border-b border-[var(--border)] pb-2">
-        {TABS.map(({ key, label }) => (
+        {visibleTabs.map(({ key, label }) => (
           <button
             key={key}
             className={cn("btn btn-sm", activeTab === key ? "btn-brand-outline" : "btn-ghost")}
@@ -466,7 +488,9 @@ export function FinancialOverview({
                 <option value="">Selecione...</option>
                 {expenseCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
-              <button className="mt-1 text-xs font-semibold text-[var(--brand)]" onClick={() => { setShowExpenseForm(false); onManageExpenseCategories(); }} type="button">Cadastrar categoria</button>
+              {canManageCategories ? (
+                <button className="mt-1 text-xs font-semibold text-[var(--brand)]" onClick={() => { setShowExpenseForm(false); onManageExpenseCategories(); }} type="button">Cadastrar categoria</button>
+              ) : null}
             </Field>
             <Field error={expenseFormErrors.paymentMethod?.message} label="Forma de pagamento">
               <select className="input-field" {...registerExpenseForm("paymentMethod")}>
@@ -749,7 +773,9 @@ export function FinancialOverview({
             </div>
             <div className="toolbar-inline">
               {feedback ? <p className="text-sm text-[var(--muted)]">{feedback}</p> : null}
-              <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setShowReceivableRegister(true); }} type="button">+ Registrar pagamento</button>
+              {canManageReceivables ? (
+                <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setShowReceivableRegister(true); }} type="button">+ Registrar pagamento</button>
+              ) : null}
             </div>
           </div>
 
@@ -828,7 +854,7 @@ export function FinancialOverview({
                         <td>
                           <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); onPaymentReceivableIdChange(receivable.id); setShowPayments(true); }} type="button">Pagamentos</button>
-                            {receivable.status === "Pending" || receivable.status === "Partial" ? (
+                            {(receivable.status === "Pending" || receivable.status === "Partial") && canManageReceivables ? (
                               <>
                                 <button className="btn btn-ghost btn-sm" onClick={() => startQuickPayment(receivable)} type="button">Registrar pagamento</button>
                                 <button className="btn btn-ghost btn-sm text-[var(--brand)]" onClick={() => { setCheckoutReceivable(receivable); setCheckoutResult(null); setCheckoutMethod("Pix"); setShowCheckoutModal(true); }} type="button">Cobrar</button>
@@ -874,7 +900,9 @@ export function FinancialOverview({
             </div>
             <div className="toolbar-inline">
               {feedback ? <p className="text-sm text-[var(--muted)]">{feedback}</p> : null}
-              <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); openNewExpense(); }} type="button">+ Nova despesa</button>
+              {canManagePayables ? (
+                <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); openNewExpense(); }} type="button">+ Nova despesa</button>
+              ) : null}
             </div>
           </div>
 
@@ -938,10 +966,12 @@ export function FinancialOverview({
                       <td>{new Date(expense.paidAt).toLocaleDateString("pt-BR")}</td>
                       <td><StatusBadge variant={resolveExpenseStatus(expense.status)} /></td>
                       <td>
-                        <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => openEditExpense(expense)} type="button">Editar</button>
-                          <button className="btn btn-ghost btn-sm text-[var(--danger)]" onClick={() => { if (confirm("Excluir esta despesa?")) deleteExpenseMutation.mutate(expense.id); }} type="button">Excluir</button>
-                        </div>
+                        {canManagePayables ? (
+                          <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
+                            <button className="btn btn-ghost btn-sm" onClick={() => openEditExpense(expense)} type="button">Editar</button>
+                            <button className="btn btn-ghost btn-sm text-[var(--danger)]" onClick={() => { if (confirm("Excluir esta despesa?")) deleteExpenseMutation.mutate(expense.id); }} type="button">Excluir</button>
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
@@ -1019,11 +1049,13 @@ export function FinancialOverview({
         <section className="panel rounded-lg p-5 md:p-6">
           <div className="section-heading">
             <div><h3 className="text-base font-semibold text-[var(--ink)]">Repasses aos profissionais</h3><p className="text-sm text-[var(--muted)]">Baixa de passivo, sem lancar despesa.</p></div>
-            <button className="btn btn-brand-outline btn-sm" disabled={!summary.ownerReceivable || settleOwner.isPending} onClick={() => settleOwner.mutate()} type="button">Registrar acerto do CEO</button>
+            {canManageSettlements ? (
+              <button className="btn btn-brand-outline btn-sm" disabled={!summary.ownerReceivable || settleOwner.isPending} onClick={() => settleOwner.mutate()} type="button">Registrar acerto do CEO</button>
+            ) : null}
           </div>
           {feedback ? <p className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
           <div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Profissional</th><th className="numeric">Gerado</th><th className="numeric">Ja repassado</th><th className="numeric">Pendente</th><th /></tr></thead><tbody>
-            {(settlementsQuery.data ?? []).map((item) => <tr key={item.professionalId}><td>{item.professionalName}</td><td className="numeric">{formatCurrency(item.accrued)}</td><td className="numeric">{formatCurrency(item.paid)}</td><td className="numeric">{formatCurrency(item.outstanding)}</td><td><button className="btn btn-primary btn-sm" disabled={item.outstanding <= 0 || settleProfessional.isPending} onClick={() => settleProfessional.mutate(item.professionalId)} type="button">Repassar pendencias</button></td></tr>)}
+            {(settlementsQuery.data ?? []).map((item) => <tr key={item.professionalId}><td>{item.professionalName}</td><td className="numeric">{formatCurrency(item.accrued)}</td><td className="numeric">{formatCurrency(item.paid)}</td><td className="numeric">{formatCurrency(item.outstanding)}</td><td>{canManageSettlements ? <button className="btn btn-primary btn-sm" disabled={item.outstanding <= 0 || settleProfessional.isPending} onClick={() => settleProfessional.mutate(item.professionalId)} type="button">Repassar pendencias</button> : null}</td></tr>)}
           </tbody></table></div>
         </section>
       ) : null}
@@ -1040,7 +1072,9 @@ export function FinancialOverview({
             </div>
             <div className="toolbar-inline">
               {feedback ? <p className="text-sm text-[var(--muted)]">{feedback}</p> : null}
-              <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setShowIntentForm(true); }} type="button">+ Nova intencao</button>
+              {canManageReceivables ? (
+                <button className="btn btn-primary btn-sm" onClick={() => { setFeedback(null); setShowIntentForm(true); }} type="button">+ Nova intencao</button>
+              ) : null}
             </div>
           </div>
 
@@ -1084,7 +1118,7 @@ export function FinancialOverview({
                       <td>{intent.confirmedAt ? new Date(intent.confirmedAt).toLocaleString("pt-BR") : "-"}</td>
                       <td>
                         <div className="toolbar-inline" style={{ gap: "0.25rem" }}>
-                          {intent.status === "Created" || intent.status === "Processing" ? (
+                          {canManageReceivables && (intent.status === "Created" || intent.status === "Processing") ? (
                             <>
                               <button
                                 className="btn btn-ghost btn-sm"

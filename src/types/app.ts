@@ -4,6 +4,7 @@ export type SessionState = {
   name: string;
   role: ClinicRole;
   clinicName: string;
+  permissions: string[];
 };
 
 export type AuthSession = {

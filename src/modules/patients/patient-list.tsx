@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 import { apiErrorMessage } from "@/lib/api-error";
+import { PatientApplicationsModal } from "./patient-applications";
 
 function isValidCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "");
@@ -197,6 +198,7 @@ export function PatientList({
   const [editingPatient, setEditingPatient] = useState<PatientResponse | null>(null);
   const [activePatient, setActivePatient] = useState<PatientResponse | null>(null);
   const [clinicalRecordsPatient, setClinicalRecordsPatient] = useState<PatientResponse | null>(null);
+  const [applicationsPatient, setApplicationsPatient] = useState<PatientResponse | null>(null);
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -373,6 +375,14 @@ export function PatientList({
         />
       ) : null}
 
+      {applicationsPatient ? (
+        <PatientApplicationsModal
+          patientId={applicationsPatient.id ?? ""}
+          patientName={applicationsPatient.name ?? "Paciente"}
+          onClose={() => setApplicationsPatient(null)}
+        />
+      ) : null}
+
       <section className="panel rounded-lg p-5 md:p-6">
         <div className="section-heading">
           <div>
@@ -536,6 +546,13 @@ export function PatientList({
                       type="button"
                     >
                       Prontuarios
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setApplicationsPatient(patient)}
+                      type="button"
+                    >
+                      Aplicacoes
                     </button>
                     <button
                       className="btn btn-danger btn-sm"

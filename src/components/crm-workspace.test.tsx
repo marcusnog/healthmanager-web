@@ -9,6 +9,15 @@ const {
   appointmentsList,
   receivablesList,
   doctorsList,
+  expensesList,
+  expenseCategoriesList,
+  financialSummary,
+  professionalSettlementsList,
+  expenseSave,
+  expenseDelete,
+  checkoutCreate,
+  professionalSettlementCreate,
+  ownerSettlementCreate,
 } =
   vi.hoisted(() => ({
     dashboardSummary: vi.fn(),
@@ -16,6 +25,15 @@ const {
     appointmentsList: vi.fn(),
     receivablesList: vi.fn(),
     doctorsList: vi.fn(),
+    expensesList: vi.fn(),
+    expenseCategoriesList: vi.fn(),
+    financialSummary: vi.fn(),
+    professionalSettlementsList: vi.fn(),
+    expenseSave: vi.fn(),
+    expenseDelete: vi.fn(),
+    checkoutCreate: vi.fn(),
+    professionalSettlementCreate: vi.fn(),
+    ownerSettlementCreate: vi.fn(),
   }));
 
 vi.mock("@/services/api", () => ({
@@ -26,10 +44,33 @@ vi.mock("@/services/api", () => ({
     receivablesList,
     doctorsList,
   },
+  expensesList,
+  expenseCategoriesList,
+  financialSummary,
+  professionalSettlementsList,
+  expenseSave,
+  expenseDelete,
+  checkoutCreate,
+  professionalSettlementCreate,
+  ownerSettlementCreate,
 }));
 
+function mockFinancialQueries() {
+  expensesList.mockResolvedValue({ items: [], page: 1, pageSize: 20, total: 0 });
+  expenseCategoriesList.mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+  financialSummary.mockResolvedValue({
+    totalReceived: 0,
+    totalExpenses: 0,
+    balance: 0,
+    grossReceived: 0,
+    professionalLiability: 0,
+    ownerReceivable: 0,
+  });
+  professionalSettlementsList.mockResolvedValue([]);
+}
+
 describe("CrmWorkspace", () => {
-  function seedSession() {
+  function seedSession(session?: Record<string, unknown>) {
     window.localStorage.setItem(
       "healthmanager.auth",
       JSON.stringify({
@@ -43,6 +84,7 @@ describe("CrmWorkspace", () => {
           name: "Admin Local",
           role: "Admin",
           clinicName: "Clinica Aurora",
+          ...session,
         },
       }),
     );
@@ -54,6 +96,10 @@ describe("CrmWorkspace", () => {
     appointmentsList.mockReset();
     receivablesList.mockReset();
     doctorsList.mockReset();
+    expensesList.mockReset();
+    expenseCategoriesList.mockReset();
+    financialSummary.mockReset();
+    professionalSettlementsList.mockReset();
     window.localStorage.clear();
   });
 
@@ -357,5 +403,84 @@ describe("CrmWorkspace", () => {
 
     expect(await screen.findByText("Agenda de amanha")).toBeVisible();
     expect(appointmentsList).toHaveBeenCalledWith(1, 10, "2026-05-08", undefined, undefined);
+  });
+
+  it("renders the finance sub-navigation only for granted permissions", async () => {
+    seedSession({
+      role: "Admin",
+      permissions: [
+        "finance.categories.view",
+        "finance.categories.manage",
+        "finance.receivables.view",
+        "finance.receivables.manage",
+        "finance.payables.view",
+        "finance.summary.view",
+        "finance.settlements",
+      ],
+    });
+    mockFinancialQueries();
+    dashboardSummary.mockResolvedValue({ appointmentsToday: 0, confirmedToday: 0, cancelledToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 });
+    patientsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    appointmentsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    receivablesList.mockResolvedValue({ items: [], page: 1, pageSize: 5, total: 0 });
+    doctorsList.mockResolvedValue([]);
+
+    renderWithProviders(<CrmWorkspace />);
+
+    expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Contas a pagar" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Repasses" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Categorias de despesa" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Repasses" }));
+    expect(await screen.findByText("Baixa do passivo profissional")).toBeVisible();
+  });
+
+  it("hides finance sub-navigation the role lacks permission for", async () => {
+    seedSession({
+      role: "Secretary",
+      permissions: [
+        "finance.categories.view",
+        "finance.categories.manage",
+        "finance.receivables.view",
+        "finance.receivables.manage",
+        "finance.payables.view",
+        "finance.summary.view",
+      ],
+    });
+    mockFinancialQueries();
+    dashboardSummary.mockResolvedValue({ appointmentsToday: 0, confirmedToday: 0, cancelledToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 });
+    patientsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    appointmentsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    receivablesList.mockResolvedValue({ items: [], page: 1, pageSize: 5, total: 0 });
+    doctorsList.mockResolvedValue([]);
+
+    renderWithProviders(<CrmWorkspace />);
+
+    expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Contas a pagar" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Categorias de despesa" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Repasses" })).not.toBeInTheDocument();
+  });
+
+  it("gates finance screens for a doctor with a partial permission set", async () => {
+    seedSession({
+      role: "Doctor",
+      name: "Dr. Henrique",
+      permissions: ["finance.receivables.view", "finance.summary.view"],
+    });
+    mockFinancialQueries();
+    dashboardSummary.mockResolvedValue({ appointmentsToday: 0, confirmedToday: 0, cancelledToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 });
+    patientsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    appointmentsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+    receivablesList.mockResolvedValue({ items: [], page: 1, pageSize: 5, total: 0 });
+    doctorsList.mockResolvedValue([]);
+
+    renderWithProviders(<CrmWorkspace />);
+
+    expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Contas a pagar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Repasses" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Categorias de despesa" })).not.toBeInTheDocument();
   });
 });

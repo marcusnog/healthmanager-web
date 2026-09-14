@@ -68,6 +68,7 @@ export function createAuthSession(response: AuthResponse): AuthSession | null {
       name: response.user.name,
       role: normalizeRole(response.user.role),
       clinicName: deriveClinicName(response.user.email, response.user.clinicId),
+      permissions: response.user?.permissions ?? [],
     },
   };
 }
