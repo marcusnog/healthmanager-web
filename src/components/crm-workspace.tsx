@@ -21,7 +21,8 @@ import { CatalogManager } from "@/modules/catalog/catalog-manager";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
-import type { SessionState } from "@/types/app";
+import type { SessionState, ClinicRole } from "@/types/app";
+import { Permissions } from "@/lib/permissions";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -33,6 +34,8 @@ type Section =
   | "pacientes"
   | "produtos-pacotes"
   | "financeiro"
+  | "financeiro-pagar"
+  | "financeiro-repasses"
   | "categorias-despesa"
   | "medicos"
   | "convenios"
@@ -136,15 +139,17 @@ function CrossIcon() {
 
 /* ─── Nav config ─────────────────────────────────────────────────── */
 
-const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
+const NAV: { section: Section; icon: React.ReactNode; label: string; permission?: string }[] = [
   { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
   { section: "atendimento",   icon: <AtendimentoIcon />, label: "Atendimento" },
   { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
   { section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
   { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
   { section: "produtos-pacotes", icon: <TagIcon />, label: "Produtos e pacotes" },
-  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Financeiro" },
-  { section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa" },
+  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Contas a receber", permission: Permissions.FinanceReceivablesView },
+  { section: "financeiro-pagar", icon: <FinanceiroIcon />, label: "Contas a pagar", permission: Permissions.FinancePayablesView },
+  { section: "financeiro-repasses", icon: <FinanceiroIcon />, label: "Repasses", permission: Permissions.FinanceSettlements },
+  { section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa", permission: Permissions.FinanceCategoriesView },
   { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
   { section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
   { section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
@@ -152,10 +157,23 @@ const NAV: { section: Section; icon: React.ReactNode; label: string }[] = [
   { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
-const DOCTOR_NAV = NAV.filter((n) =>
-  ["dashboard", "agenda", "pacientes", "agenda-medicos"].includes(n.section),
-);
-const RECEPTION_NAV = NAV.filter((n) => ["dashboard", "atendimento", "agenda", "pacientes", "produtos-pacotes"].includes(n.section));
+const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
+  const hasGranular = (permissions?.length ?? 0) > 0;
+  const base = role === "Doctor"
+    ? ["dashboard", "agenda", "pacientes", "agenda-medicos"]
+    : role === "Secretary"
+      ? ["dashboard", "atendimento", "agenda", "pacientes", "produtos-pacotes"]
+      : null;
+  return NAV.filter((n) => {
+    if (base) {
+      if (base.includes(n.section)) return true;
+      // finance items when the role has the granular permission for them
+      return n.permission !== undefined && hasGranular && (permissions ?? []).includes(n.permission);
+    }
+    if (!n.permission) return true;
+    return !hasGranular || (permissions ?? []).includes(n.permission);
+  });
+};
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
@@ -164,7 +182,9 @@ const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
   "tipos-consulta": { title: "Tipos de consulta", subtitle: "Cadastro dos tipos usados no agendamento" },
   pacientes:      { title: "Pacientes",        subtitle: "Cadastro, busca e documentos" },
   "produtos-pacotes": { title: "Produtos e pacotes", subtitle: "Catálogo de tratamentos e planos" },
-  financeiro:     { title: "Financeiro",       subtitle: "Receitas, despesas e saldo" },
+financeiro:     { title: "Contas a receber", subtitle: "Recebíveis, pagamentos e fechamento" },
+  "financeiro-pagar": { title: "Contas a pagar", subtitle: "Despesas da clínica e categorias" },
+  "financeiro-repasses": { title: "Repasses", subtitle: "Baixa do passivo profissional" },
   "categorias-despesa": { title: "Categorias de despesa", subtitle: "Cadastro das categorias financeiras" },
   medicos:        { title: "Médicos",          subtitle: "Equipe médica e disponibilidade" },
   convenios:      { title: "Convênios",        subtitle: "Cadastro de convênios e contatos" },
@@ -293,7 +313,8 @@ export function CrmWorkspace() {
 
   // ponytail: doctor auto-filters appointments; non-doctor uses the manual filter
   const resolvedAppointmentDoctorId = isDoctor ? currentDoctorId : appointmentDoctorId;
-  const resolvedActiveSection = isDoctor && !["dashboard", "agenda", "pacientes"].includes(activeSection) ? "dashboard" as Section : activeSection;
+  const doctorAllowedSections = ["dashboard", "agenda", "pacientes", "agenda-medicos", "financeiro"];
+  const resolvedActiveSection = isDoctor && !doctorAllowedSections.includes(activeSection) ? "dashboard" as Section : activeSection;
 
   const appointmentDateFrom = appointmentViewMode === "week"
     ? (() => { const d = new Date(appointmentDate + "T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })()
@@ -567,13 +588,14 @@ export function CrmWorkspace() {
     );
   }
   const sessionRole = session.role;
+  const sessionPermissions = session.permissions ?? [];
 
   /* ─── Section content ───────────────────────────────────────── */
 
   const meta = isDoctor && resolvedActiveSection in DOCTOR_SECTION_TITLE
     ? DOCTOR_SECTION_TITLE[resolvedActiveSection]
     : SECTION_TITLE[resolvedActiveSection];
-  const currentNav = isDoctor ? DOCTOR_NAV : sessionRole === "Secretary" ? RECEPTION_NAV : NAV;
+  const currentNav = NAV_FOR_ROLE(sessionRole, session.permissions);
 
   function renderSection() {
     switch (resolvedActiveSection) {
@@ -603,10 +625,14 @@ export function CrmWorkspace() {
         return <PatientList {...patientListProps} />;
       case "produtos-pacotes":
         return <CatalogManager />;
-      case "financeiro":
-        return <FinancialOverview {...financialOverviewProps} />;
+case "financeiro":
+        return <FinancialOverview {...financialOverviewProps} initialTab="receivables" permissions={sessionPermissions} />;
+      case "financeiro-pagar":
+        return <FinancialOverview {...financialOverviewProps} initialTab="expenses" permissions={sessionPermissions} />;
+      case "financeiro-repasses":
+        return <FinancialOverview {...financialOverviewProps} initialTab="settlements" permissions={sessionPermissions} />;
       case "categorias-despesa":
-        return <ExpenseCategoryList items={expenseCategoriesQuery.data?.items ?? []} isLoading={expenseCategoriesQuery.isLoading} />;
+        return <ExpenseCategoryList items={expenseCategoriesQuery.data?.items ?? []} isLoading={expenseCategoriesQuery.isLoading} canManage={sessionPermissions.includes(Permissions.FinanceCategoriesManage)} />;
       case "medicos":
         return (
           <DoctorRoster

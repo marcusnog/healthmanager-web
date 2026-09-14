@@ -52,7 +52,7 @@ src/
     availabilities/     # doctor-availability-manager
     dashboard/          # summary-cards, dashboard-right-rail
     doctors/            # doctor-roster
-    financial/          # financial-overview
+    financial/          # financial-overview (permission-gated sub-screens), expense-category-list
     health-insurances/  # health-insurance-manager
     patients/           # patient-list
     scheduling/         # appointments, appointment types, clinical records

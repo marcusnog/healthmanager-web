@@ -8,5 +8,6 @@ export type UserResponse = {
     name?: string;
     email?: string;
     role?: string;
+    permissions?: Array<string>;
 };
 
