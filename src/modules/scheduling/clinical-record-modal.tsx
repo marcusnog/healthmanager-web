@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { AppointmentResponse } from "@/generated";
 import { apiErrorMessage } from "@/lib/api-error";
+import { formatCurrency } from "@/lib/formatters";
 
 const createSchema = z.object({
   chiefComplaint: z.string().optional(),
@@ -253,11 +254,23 @@ function ClinicalRecordForm({
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: defaultValues ?? { chiefComplaint: "", history: "", physicalExam: "", assessment: "", plan: "" },
   });
+  const productsQuery = useQuery({ queryKey: ["products"], queryFn: () => DefaultService.productsList(1, 100) });
+  const packagesQuery = useQuery({ queryKey: ["packages"], queryFn: () => DefaultService.packagesList(1, 100) });
+  const offers = [
+    ...(productsQuery.data?.items ?? []).filter(item => item.isActive).map(item => ({ id: `product-${item.id}`, label: item.name ?? "Produto", detail: `${item.applicationCount ?? 1} aplicacao(oes)`, price: item.price ?? 0 })),
+    ...(packagesQuery.data?.items ?? []).filter(item => item.isActive).map(item => ({ id: `package-${item.id}`, label: item.name ?? "Pacote", detail: `${item.items?.length ?? 0} produto(s)`, price: item.price ?? 0 })),
+  ];
+  const addOfferToPlan = (label: string, price: number) => {
+    const current = getValues("plan")?.trim();
+    setValue("plan", [current, `Oferta: ${label} - ${formatCurrency(price)}`].filter(Boolean).join("\n"), { shouldDirty: true });
+  };
 
   return (
     <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
@@ -276,6 +289,18 @@ function ClinicalRecordForm({
       <Field className="md:col-span-2" error={errors.plan?.message} label="Plano">
         <textarea className="input-field min-h-20" {...register("plan")} />
       </Field>
+      <fieldset className="md:col-span-2 rounded-md border border-[var(--border)] p-4">
+        <legend className="px-1 text-sm font-semibold">Ofertas de produtos e pacotes</legend>
+        <p className="mb-3 text-xs text-[var(--muted)]">Adicione uma opcao ao plano apresentado ao paciente.</p>
+        {productsQuery.isLoading || packagesQuery.isLoading ? <span className="spinner" /> : offers.length ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {offers.map(offer => <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] p-3" key={offer.id}>
+              <div><p className="text-sm font-semibold">{offer.label}</p><p className="text-xs text-[var(--muted)]">{offer.detail} · {formatCurrency(offer.price)}</p></div>
+              <button className="btn btn-brand-outline btn-sm" onClick={() => addOfferToPlan(offer.label, offer.price)} type="button">Ofertar</button>
+            </div>)}
+          </div>
+        ) : <p className="text-sm text-[var(--muted)]">Nenhuma oferta ativa cadastrada.</p>}
+      </fieldset>
       {feedback ? (
         <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
       ) : null}

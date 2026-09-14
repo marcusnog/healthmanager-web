@@ -184,6 +184,27 @@ describe("AppointmentBoard", () => {
     ).toBeVisible();
   });
 
+  it("shows the monthly view and opens a selected day", () => {
+    const onAppointmentDateChange = vi.fn();
+    const onAppointmentViewModeChange = vi.fn();
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointmentDateFrom="2026-05-01"
+        appointmentDateTo="2026-05-31"
+        appointmentViewMode="month"
+        appointments={[{ id: "appointment-month", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Scheduled", amount: 250 }]}
+        onAppointmentDateChange={onAppointmentDateChange}
+        onAppointmentViewModeChange={onAppointmentViewModeChange}
+      />,
+    );
+
+    expect(screen.getByLabelText("Agenda mensal")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /71 consulta/ }));
+    expect(onAppointmentDateChange).toHaveBeenCalledWith("2026-05-07");
+    expect(onAppointmentViewModeChange).toHaveBeenCalledWith("day");
+  });
+
   it("shows the doctor and opens editing from the weekly view", () => {
     renderWithProviders(
       <AppointmentBoard
