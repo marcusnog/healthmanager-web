@@ -230,7 +230,7 @@ export function CrmWorkspace() {
   const [patientEmail, setPatientEmail] = useState("");
   const [patientHealthInsurance, setPatientHealthInsurance] = useState("");
   const [appointmentDate, setAppointmentDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [appointmentViewMode, setAppointmentViewMode] = useState<"day" | "week">("day");
+  const [appointmentViewMode, setAppointmentViewMode] = useState<"day" | "week" | "month">("day");
   const [appointmentPage, setAppointmentPage] = useState(1);
   const [appointmentDoctorId, setAppointmentDoctorId] = useState<string | undefined>(undefined);
   const [appointmentStatus, setAppointmentStatus] = useState<"Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined>(undefined);
@@ -318,9 +318,13 @@ export function CrmWorkspace() {
 
   const appointmentDateFrom = appointmentViewMode === "week"
     ? (() => { const d = new Date(appointmentDate + "T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })()
+    : appointmentViewMode === "month"
+      ? `${appointmentDate.slice(0, 7)}-01`
     : appointmentDate;
   const appointmentDateTo = appointmentViewMode === "week"
     ? (() => { const d = new Date(appointmentDateFrom + "T12:00:00"); d.setDate(d.getDate() + 6); return d.toISOString().slice(0, 10); })()
+    : appointmentViewMode === "month"
+      ? (() => { const d = new Date(`${appointmentDate.slice(0, 7)}-01T12:00:00`); d.setMonth(d.getMonth() + 1); d.setDate(0); return d.toISOString().slice(0, 10); })()
     : appointmentDate;
 
   const paymentsQuery = useQuery({
@@ -332,8 +336,8 @@ export function CrmWorkspace() {
   const appointmentsQuery = useQuery({
     queryKey: ["appointments", appointmentViewMode, appointmentDate, appointmentPage, resolvedAppointmentDoctorId, appointmentStatus],
     queryFn: () => guardedQuery(() => {
-      if (appointmentViewMode === "week") {
-        return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, undefined, resolvedAppointmentDoctorId, appointmentStatus, appointmentDateFrom, appointmentDateTo);
+      if (appointmentViewMode !== "day") {
+        return DefaultService.appointmentsList(appointmentPage, 100, undefined, resolvedAppointmentDoctorId, appointmentStatus, appointmentDateFrom, appointmentDateTo);
       }
       return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus);
     }, { items: [], page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: 0 }),
@@ -429,7 +433,7 @@ export function CrmWorkspace() {
   function handlePatientSortDirectionChange(value: string) { setPatientSortDirection(value); setPatientPage(1); }
   function handlePatientEmailChange(value: string) { setPatientEmail(value); setPatientPage(1); }
   function handlePatientHealthInsuranceChange(value: string) { setPatientHealthInsurance(value); setPatientPage(1); }
-  function handleAppointmentViewModeChange(value: "day" | "week") { setAppointmentViewMode(value); setAppointmentPage(1); }
+  function handleAppointmentViewModeChange(value: "day" | "week" | "month") { setAppointmentViewMode(value); setAppointmentPage(1); }
   function handleAppointmentDateChange(value: string) { setAppointmentDate(value); setAppointmentPage(1); }
   function handleAppointmentDoctorChange(value: string | undefined) { setAppointmentDoctorId(value); setAppointmentPage(1); }
   function handleAppointmentStatusChange(value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined) { setAppointmentStatus(value); setAppointmentPage(1); }

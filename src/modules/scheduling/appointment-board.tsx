@@ -47,6 +47,12 @@ function shiftDate(value: string, amount: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function shiftMonth(value: string, amount: number) {
+  const d = new Date(`${value.slice(0, 7)}-01T12:00:00`);
+  d.setMonth(d.getMonth() + amount);
+  return d.toISOString().slice(0, 10);
+}
+
 function toLocalDateTime(value: string) {
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
@@ -88,6 +94,23 @@ function getWeekDays(from: string): string[] {
   return days;
 }
 
+function getMonthDays(value: string): string[] {
+  const cursor = new Date(`${value.slice(0, 7)}-01T12:00:00`);
+  const month = cursor.getMonth();
+  const days: string[] = [];
+  while (cursor.getMonth() === month) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+function doctorColor(id?: string) {
+  let hash = 0;
+  for (const char of id ?? "") hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  return `hsl(${hash} 65% 45%)`;
+}
+
 export function AppointmentBoard({
   appointments,
   receivables = [],
@@ -118,14 +141,14 @@ export function AppointmentBoard({
   appointmentTypes?: AppointmentTypeResponse[];
   canWriteClinicalRecord?: boolean;
   appointmentDate: string;
-  appointmentViewMode?: "day" | "week";
+  appointmentViewMode?: "day" | "week" | "month";
   appointmentDateFrom?: string;
   appointmentDateTo?: string;
   appointmentDoctorId: string | undefined;
   appointmentStatus: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined;
   isLoading: boolean;
   onAppointmentDateChange: (value: string) => void;
-  onAppointmentViewModeChange?: (value: "day" | "week") => void;
+  onAppointmentViewModeChange?: (value: "day" | "week" | "month") => void;
   onDoctorChange: (value: string | undefined) => void;
   onStatusChange: (value: "Scheduled" | "Confirmed" | "Cancelled" | "Completed" | "NoShow" | "InProgress" | undefined) => void;
   page: number;
@@ -516,7 +539,7 @@ export function AppointmentBoard({
             <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {total} consulta{total === 1 ? "" : "s"}
-              {appointmentViewMode === "week" && appointmentDateFrom && appointmentDateTo
+              {appointmentViewMode !== "day" && appointmentDateFrom && appointmentDateTo
                 ? ` de ${appointmentDateFrom} a ${appointmentDateTo}`
                 : ` para ${appointmentDate}`}
             </p>
@@ -547,7 +570,7 @@ export function AppointmentBoard({
                   className="input-field"
                   onChange={(event) => onAppointmentDateChange(event.target.value)}
                   type="date"
-                  value={appointmentViewMode === "week" ? appointmentDateFrom ?? appointmentDate : appointmentDate}
+                  value={appointmentViewMode === "day" ? appointmentDate : appointmentDateFrom ?? appointmentDate}
                 />
               </Field>
               <Field className="min-w-0 flex-1" label="Medico">
@@ -569,10 +592,10 @@ export function AppointmentBoard({
             <div className="toolbar-inline flex-wrap gap-3">
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, appointmentViewMode === "week" ? -7 : -1))}
+                onClick={() => onAppointmentDateChange(appointmentViewMode === "month" ? shiftMonth(appointmentDate, -1) : shiftDate(appointmentDate, appointmentViewMode === "week" ? -7 : -1))}
                 type="button"
               >
-                {appointmentViewMode === "week" ? "Semana anterior" : "Dia anterior"}
+                {appointmentViewMode === "week" ? "Semana anterior" : appointmentViewMode === "month" ? "Mes anterior" : "Dia anterior"}
               </button>
               <button
                 className="btn btn-ghost btn-sm"
@@ -584,10 +607,10 @@ export function AppointmentBoard({
               </button>
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => onAppointmentDateChange(shiftDate(appointmentDate, appointmentViewMode === "week" ? 7 : 1))}
+                onClick={() => onAppointmentDateChange(appointmentViewMode === "month" ? shiftMonth(appointmentDate, 1) : shiftDate(appointmentDate, appointmentViewMode === "week" ? 7 : 1))}
                 type="button"
               >
-                {appointmentViewMode === "week" ? "Proxima semana" : "Proximo dia"}
+                {appointmentViewMode === "week" ? "Proxima semana" : appointmentViewMode === "month" ? "Proximo mes" : "Proximo dia"}
               </button>
               {onAppointmentViewModeChange && (
                 <div className="ml-2 flex rounded-md border border-[var(--border)] overflow-hidden">
@@ -604,6 +627,13 @@ export function AppointmentBoard({
                     type="button"
                   >
                     Semana
+                  </button>
+                  <button
+                    className={cn("btn btn-sm px-3 rounded-none border-l border-[var(--border)]", appointmentViewMode === "month" ? "btn-brand-outline" : "btn-ghost")}
+                    onClick={() => onAppointmentViewModeChange("month")}
+                    type="button"
+                  >
+                    Mes
                   </button>
                 </div>
               )}
@@ -626,6 +656,14 @@ export function AppointmentBoard({
           </div>
         </div>
 
+        {doctors.length > 1 ? (
+          <div className="mt-4 flex flex-wrap gap-3" aria-label="Cores dos medicos">
+            {doctors.map((doctor) => <span className="inline-flex items-center gap-1.5 text-xs text-[var(--muted)]" key={doctor.id}>
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: doctorColor(doctor.id) }} aria-hidden />{doctor.name}
+            </span>)}
+          </div>
+        ) : null}
+
         {appointmentViewMode === "week" && appointmentDateFrom ? (
           <WeekGrid
             appointments={appointments}
@@ -637,6 +675,8 @@ export function AppointmentBoard({
             onEdit={setEditingAppointment}
             onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }}
           />
+        ) : appointmentViewMode === "month" ? (
+          <MonthGrid appointments={appointments} patientMap={patientMap} doctorMap={doctorMap} monthDays={getMonthDays(appointmentDate)} todayDate={todayDate} isLoading={isLoading} onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }} />
         ) : (
           <div className="stack-list mt-5">
             {isLoading ? (
@@ -653,6 +693,7 @@ export function AppointmentBoard({
                   <article
                     className={cn("data-card appt-card", statusBorderClass(appointment.status))}
                     key={appointment.id ?? appointment.startAt ?? appointment.notes}
+                    style={{ borderLeftColor: doctorColor(appointment.doctorId) }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex items-baseline gap-3">
@@ -924,6 +965,38 @@ function AppointmentEditForm({
   );
 }
 
+function MonthGrid({ appointments, patientMap, doctorMap, monthDays, todayDate, isLoading, onDayClick }: {
+  appointments: AppointmentResponse[];
+  patientMap: Record<string, PatientResponse | undefined>;
+  doctorMap: Record<string, DoctorResponse | undefined>;
+  monthDays: string[];
+  todayDate: string;
+  isLoading: boolean;
+  onDayClick: (day: string) => void;
+}) {
+  const byDay = useMemo(() => appointments.reduce<Record<string, AppointmentResponse[]>>((days, apt) => {
+    const day = apt.startAt?.slice(0, 10) ?? "";
+    (days[day] ??= []).push(apt);
+    return days;
+  }, {}), [appointments]);
+  const offset = new Date(`${monthDays[0]}T12:00:00`).getDay();
+  if (isLoading) return <AppointmentSkeleton />;
+  return <div className="mt-5 grid grid-cols-7 gap-1 sm:gap-2" aria-label="Agenda mensal">
+    {WEEKDAY_NAMES.map(day => <span className="py-2 text-center text-xs font-semibold text-[var(--muted)]" key={day}>{day}</span>)}
+    {Array.from({ length: offset }, (_, index) => <span key={`empty-${index}`} />)}
+    {monthDays.map(day => {
+      const items = byDay[day] ?? [];
+      return <button className={cn("min-h-20 rounded-md border p-1.5 text-left sm:min-h-28 sm:p-2", day === todayDate ? "border-[var(--brand)] bg-[var(--brand-wash)]" : "border-[var(--border)]")} key={day} onClick={() => onDayClick(day)} type="button">
+        <span className="text-xs font-semibold">{Number(day.slice(-2))}</span>
+        <span className="mt-1 block text-[10px] text-[var(--muted)]">{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
+        <span className="mt-1 hidden space-y-1 sm:block">
+          {items.slice(0, 2).map(apt => <span className="block truncate border-l-2 pl-1 text-[10px]" key={apt.id} style={{ borderLeftColor: doctorColor(apt.doctorId) }} title={`${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>{formatTime(apt.startAt ?? "")} {patientMap[apt.patientId ?? ""]?.name}</span>)}
+        </span>
+      </button>;
+    })}
+  </div>;
+}
+
 function WeekGrid({
   appointments,
   patientMap,
@@ -1008,6 +1081,7 @@ function WeekGrid({
                       "rounded-md border p-1.5 text-[11px] leading-tight transition-colors",
                       isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
                     )}
+                    style={{ borderLeftColor: doctorColor(apt.doctorId) }}
                   >
                     <div className="font-semibold text-[var(--ink)]">
                       {formatTime(apt.startAt ?? "")}
