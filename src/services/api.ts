@@ -207,6 +207,14 @@ export interface ProfessionalSettlementResponse {
   accrued: number;
   paid: number;
   outstanding: number;
+  items: Array<{
+    paymentId: string;
+    appointmentId?: string | null;
+    patientName: string;
+    paidAt: string;
+    amount: number;
+    isOverdue: boolean;
+  }>;
 }
 
 export async function professionalSettlementsList() {
@@ -214,8 +222,8 @@ export async function professionalSettlementsList() {
   return response.json() as Promise<ProfessionalSettlementResponse[]>;
 }
 
-export async function professionalSettlementCreate(professionalId: string) {
-  const response = await apiFetch("/financial/professional-settlements", { method: "POST", body: JSON.stringify({ professionalId }) });
+export async function professionalSettlementCreate({ professionalId, paymentIds }: { professionalId: string; paymentIds: string[] }) {
+  const response = await apiFetch("/financial/professional-settlements", { method: "POST", body: JSON.stringify({ professionalId, paymentIds }) });
   return response.json();
 }
 

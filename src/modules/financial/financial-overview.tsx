@@ -221,6 +221,10 @@ export function FinancialOverview({
   const [checkoutReceivable, setCheckoutReceivable] = useState<ReceivableResponse | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
   const [checkoutMethod, setCheckoutMethod] = useState<string>("Pix");
+  const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>([]);
+  const [settlementProfessional, setSettlementProfessional] = useState("");
+  const [settlementDateFrom, setSettlementDateFrom] = useState("");
+  const [settlementDateTo, setSettlementDateTo] = useState("");
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
   const expenseTotalPages = Math.max(1, Math.ceil(expenseTotal / 20));
@@ -411,7 +415,7 @@ export function FinancialOverview({
   const settlementsQuery = useQuery({ queryKey: ["professional-settlements"], queryFn: professionalSettlementsList });
   const settleProfessional = useMutation({
     mutationFn: professionalSettlementCreate,
-    onSuccess: async () => { setFeedback("Repasse registrado sem lancar despesa."); await invalidateFinancial(); await settlementsQuery.refetch(); },
+    onSuccess: async () => { setSelectedSettlementIds([]); setFeedback("Repasse registrado sem lancar despesa."); await invalidateFinancial(); await settlementsQuery.refetch(); },
     onError: () => setFeedback("Nao foi possivel registrar o repasse."),
   });
   const settleOwner = useMutation({
@@ -419,6 +423,7 @@ export function FinancialOverview({
     onSuccess: async () => { setFeedback("Acerto com o CEO registrado sem duplicar receita."); await invalidateFinancial(); },
     onError: () => setFeedback("Nao foi possivel registrar o acerto com o CEO."),
   });
+  const selectedSettlementGroup = (settlementsQuery.data ?? []).find((group) => group.items.some((item) => selectedSettlementIds.includes(item.paymentId)));
 
   return (
     <>
@@ -1053,8 +1058,14 @@ export function FinancialOverview({
             ) : null}
           </div>
           {feedback ? <p className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
-          <div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Profissional</th><th className="numeric">Gerado</th><th className="numeric">Ja repassado</th><th className="numeric">Pendente</th><th /></tr></thead><tbody>
-            {(settlementsQuery.data ?? []).map((item) => <tr key={item.professionalId}><td>{item.professionalName}</td><td className="numeric">{formatCurrency(item.accrued)}</td><td className="numeric">{formatCurrency(item.paid)}</td><td className="numeric">{formatCurrency(item.outstanding)}</td><td>{canManageSettlements ? <button className="btn btn-primary btn-sm" disabled={item.outstanding <= 0 || settleProfessional.isPending} onClick={() => settleProfessional.mutate(item.professionalId)} type="button">Repassar pendencias</button> : null}</td></tr>)}
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <label><span className="mb-1 block text-xs font-semibold text-[var(--muted)]">Profissional</span><select className="input-field" value={settlementProfessional} onChange={(event) => setSettlementProfessional(event.target.value)}><option value="">Todos</option>{(settlementsQuery.data ?? []).map((item) => <option key={item.professionalId} value={item.professionalId}>{item.professionalName}</option>)}</select></label>
+            <label><span className="mb-1 block text-xs font-semibold text-[var(--muted)]">Pagamento de</span><input className="input-field" type="date" value={settlementDateFrom} onChange={(event) => setSettlementDateFrom(event.target.value)} /></label>
+            <label><span className="mb-1 block text-xs font-semibold text-[var(--muted)]">Pagamento ate</span><input className="input-field" type="date" value={settlementDateTo} onChange={(event) => setSettlementDateTo(event.target.value)} /></label>
+          </div>
+          {canManageSettlements ? <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3"><span className="text-sm text-[var(--muted)]">{selectedSettlementIds.length} consulta{selectedSettlementIds.length === 1 ? "" : "s"} selecionada{selectedSettlementIds.length === 1 ? "" : "s"}</span><button className="btn btn-primary btn-sm" disabled={!selectedSettlementGroup || settleProfessional.isPending} onClick={() => selectedSettlementGroup && settleProfessional.mutate({ professionalId: selectedSettlementGroup.professionalId, paymentIds: selectedSettlementIds })} type="button">Repassar selecionadas</button></div> : null}
+          <div className="overflow-x-auto"><table className="data-table"><thead><tr><th className="w-12"><span className="sr-only">Selecionar</span></th><th>Paciente</th><th>Profissional</th><th>Pagamento</th><th className="numeric">Valor do repasse</th></tr></thead><tbody>
+            {(settlementsQuery.data ?? []).filter((group) => !settlementProfessional || group.professionalId === settlementProfessional).flatMap((group) => group.items.filter((item) => (!settlementDateFrom || item.paidAt.slice(0, 10) >= settlementDateFrom) && (!settlementDateTo || item.paidAt.slice(0, 10) <= settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
           </tbody></table></div>
         </section>
       ) : null}

@@ -66,6 +66,7 @@ export { PaymentIntentResponse } from './models/PaymentIntentResponse';
 export type { PaymentResponse } from './models/PaymentResponse';
 export type { ProductRequest } from './models/ProductRequest';
 export type { ProductResponse } from './models/ProductResponse';
+export type { ProfessionalSettlementItemResponse } from './models/ProfessionalSettlementItemResponse';
 export type { ProfessionalSettlementRequest } from './models/ProfessionalSettlementRequest';
 export type { ProfessionalSettlementResponse } from './models/ProfessionalSettlementResponse';
 export type { ReceivableResponse } from './models/ReceivableResponse';

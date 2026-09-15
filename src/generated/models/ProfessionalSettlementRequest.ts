@@ -4,6 +4,7 @@
 /* eslint-disable */
 export type ProfessionalSettlementRequest = {
     professionalId: string;
+    paymentIds?: Array<string>;
     throughDate?: string;
     paidAt?: string;
 };
