@@ -1028,12 +1028,12 @@ function WeekGrid({
 
   if (isLoading) {
     return (
-      <div className="mt-5 grid grid-cols-7 gap-2 overflow-x-auto">
+      <div className="mt-5 grid min-h-[560px] grid-cols-7 overflow-x-auto rounded-lg border border-[var(--border)]">
         {weekDays.map((_, i) => (
-          <div key={i} className="flex flex-col gap-2 min-w-[120px]">
-            <div className="skeleton h-12 rounded" />
-            <div className="skeleton h-20 rounded" />
-            <div className="skeleton h-16 rounded" />
+          <div key={i} className="min-w-[130px] border-r border-[var(--border)] p-2">
+            <div className="skeleton h-14 rounded" />
+            <div className="skeleton mt-3 h-20 rounded" />
+            <div className="skeleton mt-2 h-16 rounded" />
           </div>
         ))}
       </div>
@@ -1041,7 +1041,7 @@ function WeekGrid({
   }
 
   return (
-    <div className="mt-5 grid grid-cols-7 gap-2 overflow-x-auto">
+    <div className="mt-5 grid min-h-[560px] grid-cols-7 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Agenda semanal">
       {weekDays.map((day) => {
         const dateObj = new Date(day + "T12:00:00");
         const dayName = WEEKDAY_NAMES[dateObj.getDay()];
@@ -1051,22 +1051,22 @@ function WeekGrid({
         const apts = dayAppointments[day] ?? [];
 
         return (
-          <div key={day} className="flex flex-col gap-1.5 min-w-[130px]">
+          <div key={day} className={cn("min-w-[130px] border-r border-[var(--border)]", isToday && "bg-[var(--brand-wash)]/40")}>
             <button
               className={cn(
-                "flex flex-col items-center rounded-lg p-2 text-sm transition-colors",
+                "flex min-h-16 w-full flex-col items-center border-b border-[var(--border)] p-2 text-sm transition-colors",
                 isToday
-                  ? "bg-[var(--brand)] text-white"
-                  : "bg-[var(--surface-brand)] text-[var(--ink)] hover:bg-[var(--border)]",
+                  ? "text-[var(--brand)]"
+                  : "bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--bg)]",
               )}
               onClick={() => onDayClick(day)}
               type="button"
             >
               <span className="text-[10px] uppercase tracking-wide font-semibold">{dayName}</span>
-              <span className="text-lg font-bold leading-tight">{dayNum}</span>
+              <span className={cn("mt-0.5 grid size-8 place-items-center rounded-full text-lg font-semibold leading-tight", isToday && "bg-[var(--brand)] text-white")}>{dayNum}</span>
               <span className="text-[10px] uppercase">{month}</span>
             </button>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 p-1.5">
               {apts.length === 0 && !isLoading && (
                 <p className="text-[11px] text-[var(--muted)] text-center py-2">—</p>
               )}
@@ -1078,7 +1078,7 @@ function WeekGrid({
                   <div
                     key={apt.id}
                     className={cn(
-                      "rounded-md border p-1.5 text-[11px] leading-tight transition-colors",
+                      "rounded-md border bg-[var(--surface)] p-2 text-[11px] leading-tight transition-colors hover:bg-[var(--bg)]",
                       isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
                     )}
                     style={{ borderLeftColor: doctorColor(apt.doctorId) }}

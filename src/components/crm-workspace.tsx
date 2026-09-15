@@ -733,7 +733,7 @@ case "financeiro":
             <button
               key={section}
               className={`nav-item ${activeSection === section ? "active" : ""}`}
-              onClick={() => { setActiveSection(section); setSidebarOpen(false); }}
+              onClick={() => { setActiveSection(section); if (section === "agenda") setAppointmentViewMode("week"); setSidebarOpen(false); }}
               type="button"
             >
               {icon}
