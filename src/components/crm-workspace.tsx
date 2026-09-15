@@ -630,11 +630,11 @@ export function CrmWorkspace() {
       case "produtos-pacotes":
         return <CatalogManager />;
 case "financeiro":
-        return <FinancialOverview {...financialOverviewProps} initialTab="receivables" permissions={sessionPermissions} />;
+        return <FinancialOverview key="receivables" {...financialOverviewProps} initialTab="receivables" permissions={sessionPermissions} />;
       case "financeiro-pagar":
-        return <FinancialOverview {...financialOverviewProps} initialTab="expenses" permissions={sessionPermissions} />;
+        return <FinancialOverview key="expenses" {...financialOverviewProps} initialTab="expenses" permissions={sessionPermissions} />;
       case "financeiro-repasses":
-        return <FinancialOverview {...financialOverviewProps} initialTab="settlements" permissions={sessionPermissions} />;
+        return <FinancialOverview key="settlements" {...financialOverviewProps} initialTab="settlements" permissions={sessionPermissions} />;
       case "categorias-despesa":
         return <ExpenseCategoryList items={expenseCategoriesQuery.data?.items ?? []} isLoading={expenseCategoriesQuery.isLoading} canManage={sessionPermissions.includes(Permissions.FinanceCategoriesManage)} />;
       case "medicos":

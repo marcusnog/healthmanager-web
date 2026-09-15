@@ -434,7 +434,7 @@ describe("CrmWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Contas a receber" }));
     expect((await screen.findAllByRole("heading", { name: "Contas a receber" })).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Repasses" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Repasses" })[1]);
     expect(await screen.findByRole("heading", { name: "Repasses aos profissionais" })).toBeVisible();
     fireEvent.click(screen.getAllByRole("button", { name: "Contas a pagar" })[0]);
     expect(await screen.findByRole("heading", { name: "Despesas" })).toBeVisible();

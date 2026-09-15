@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field } from "@/components/ui/field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService, expenseSave, expenseDelete, checkoutCreate, professionalSettlementsList, professionalSettlementCreate, ownerSettlementCreate, type ExpenseCategoryResponse, type CheckoutResponse } from "@/services/api";
@@ -208,7 +208,6 @@ export function FinancialOverview({
   const visibleTabs = ALL_TABS.filter(({ key }) => hasView(key));
   const requestedTab = hasView(initialTab) ? initialTab : visibleTabs[0]?.key ?? "receivables";
   const [activeTab, setActiveTab] = useState<Tab>(requestedTab);
-  useEffect(() => setActiveTab(requestedTab), [requestedTab]);
   const [showPayments, setShowPayments] = useState(false);
   const [showReceivableRegister, setShowReceivableRegister] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
