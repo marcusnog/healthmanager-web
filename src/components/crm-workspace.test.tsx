@@ -432,8 +432,12 @@ describe("CrmWorkspace", () => {
     expect(screen.getByRole("button", { name: "Repasses" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Categorias de despesa" })).toBeVisible();
 
+    fireEvent.click(screen.getByRole("button", { name: "Contas a receber" }));
+    expect((await screen.findAllByRole("heading", { name: "Contas a receber" })).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Repasses" }));
-    expect(await screen.findByText("Baixa do passivo profissional")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Repasses aos profissionais" })).toBeVisible();
+    fireEvent.click(screen.getAllByRole("button", { name: "Contas a pagar" })[0]);
+    expect(await screen.findByRole("heading", { name: "Despesas" })).toBeVisible();
   });
 
   it("hides finance sub-navigation the role lacks permission for", async () => {
