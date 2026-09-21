@@ -231,6 +231,57 @@ describe("AppointmentBoard", () => {
     expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
   });
 
+  it("confirms a scheduled appointment from the weekly view", async () => {
+    appointmentsConfirm.mockResolvedValueOnce({ type: "Retorno" });
+
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointmentDateFrom="2026-05-04"
+        appointmentDateTo="2026-05-10"
+        appointmentViewMode="week"
+        appointments={[{
+          id: "appointment-1",
+          patientId: "patient-1",
+          doctorId: "doctor-1",
+          startAt: "2026-05-07T11:00:00Z",
+          endAt: "2026-05-07T11:30:00Z",
+          status: "Scheduled",
+          appointmentTypeId: "type-return",
+          type: "Retorno",
+          amount: 180,
+        }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar consulta de Marina Souza" }));
+
+    await waitFor(() => expect(appointmentsConfirm).toHaveBeenCalledWith("appointment-1"));
+    expect(await screen.findByText("Retorno confirmada com sucesso.")).toBeVisible();
+  });
+
+  it("does not offer confirmation for an already confirmed appointment in the weekly view", () => {
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointmentDateFrom="2026-05-04"
+        appointmentDateTo="2026-05-10"
+        appointmentViewMode="week"
+        appointments={[{
+          id: "appointment-1",
+          patientId: "patient-1",
+          doctorId: "doctor-1",
+          startAt: "2026-05-07T11:00:00Z",
+          status: "Confirmed",
+          type: "Retorno",
+          amount: 180,
+        }]}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Confirmar consulta de Marina Souza" })).not.toBeInTheDocument();
+  });
+
   it("keeps the edit modal open and shows the scheduling conflict", async () => {
     appointmentsUpdate.mockRejectedValueOnce({
       body: { detail: "Conflito de horario para o medico selecionado." },

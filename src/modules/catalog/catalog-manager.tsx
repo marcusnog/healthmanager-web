@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DefaultService, type PackageResponse, type ProductResponse } from "@/generated";
+import type { PackageResponse, ProductResponse } from "@/generated";
 import { Modal } from "@/components/ui/modal";
+import { apiErrorMessage } from "@/lib/api-error";
 import { formatCurrency } from "@/lib/formatters";
+import { DefaultService } from "@/services/api";
 
 type PackageLine = { productId: string; applicationCount: number };
 
@@ -34,7 +36,7 @@ export function CatalogManager() {
       return editingProduct?.id ? DefaultService.productsUpdate(editingProduct.id, body) : DefaultService.productsCreate(body);
     },
     onSuccess: async () => { setProductOpen(false); setFeedback("Produto salvo com sucesso."); await refresh(); },
-    onError: () => setFeedback("Não foi possível salvar o produto."),
+    onError: (error) => setFeedback(apiErrorMessage(error, "Não foi possível salvar o produto.")),
   });
   const savePackage = useMutation({
     mutationFn: () => {
@@ -42,7 +44,7 @@ export function CatalogManager() {
       return editingPackage?.id ? DefaultService.packagesUpdate(editingPackage.id, body) : DefaultService.packagesCreate(body);
     },
     onSuccess: async () => { setPackageOpen(false); setFeedback("Pacote salvo com sucesso."); await refresh(); },
-    onError: () => setFeedback("Não foi possível salvar o pacote."),
+    onError: (error) => setFeedback(apiErrorMessage(error, "Não foi possível salvar o pacote.")),
   });
   const removeProduct = useMutation({ mutationFn: DefaultService.productsDelete, onSuccess: async () => { setFeedback("Produto excluído."); await refresh(); }, onError: () => setFeedback("Produto vinculado a pacote não pode ser excluído.") });
   const removePackage = useMutation({ mutationFn: DefaultService.packagesDelete, onSuccess: async () => { setFeedback("Pacote excluído."); await refresh(); }, onError: () => setFeedback("Não foi possível excluir o pacote.") });

@@ -673,6 +673,11 @@ export function AppointmentBoard({
             todayDate={todayDate}
             isLoading={isLoading}
             onEdit={setEditingAppointment}
+            onConfirm={(appointment) => {
+              setFeedback(null);
+              confirmAppointment.mutate(appointment);
+            }}
+            processingAppointmentId={processingAppointmentId}
             onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }}
           />
         ) : appointmentViewMode === "month" ? (
@@ -751,13 +756,13 @@ export function AppointmentBoard({
                           Receber saldo
                         </button>
                       ) : null}
-                      {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
+                      {appointment.status === "Scheduled" ? (
                         <button
                           className="btn btn-brand-outline btn-sm"
                           disabled={isProcessing}
                           onClick={() => {
                             setFeedback(null);
-                            void confirmAppointment.mutateAsync(appointment);
+                            confirmAppointment.mutate(appointment);
                           }}
                           type="button"
                         >
@@ -1005,6 +1010,8 @@ function WeekGrid({
   todayDate,
   isLoading,
   onEdit,
+  onConfirm,
+  processingAppointmentId,
   onDayClick,
 }: {
   appointments: AppointmentResponse[];
@@ -1014,6 +1021,8 @@ function WeekGrid({
   todayDate: string;
   isLoading: boolean;
   onEdit: (appointment: AppointmentResponse) => void;
+  onConfirm: (appointment: AppointmentResponse) => void;
+  processingAppointmentId: string | null;
   onDayClick: (day: string) => void;
 }) {
   const dayAppointments = useMemo(() => {
@@ -1099,14 +1108,27 @@ function WeekGrid({
                       )}
                     </div>
                     {!isCancelled ? (
-                      <button
-                        aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
-                        className="mt-1 text-[var(--brand)] underline"
-                        onClick={() => onEdit(apt)}
-                        type="button"
-                      >
-                        Editar
-                      </button>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <button
+                          aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
+                          className="text-[var(--brand)] underline"
+                          onClick={() => onEdit(apt)}
+                          type="button"
+                        >
+                          Editar
+                        </button>
+                        {apt.status === "Scheduled" ? (
+                          <button
+                            aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
+                            className="text-[var(--brand)] underline"
+                            disabled={processingAppointmentId === apt.id}
+                            onClick={() => onConfirm(apt)}
+                            type="button"
+                          >
+                            Confirmar
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 );
