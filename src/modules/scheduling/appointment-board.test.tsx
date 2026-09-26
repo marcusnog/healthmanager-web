@@ -3,13 +3,15 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate, paymentsCreate } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
     appointmentsCreate: vi.fn(),
     appointmentsUpdate: vi.fn(),
     paymentsCreate: vi.fn(),
+    patientsCreate: vi.fn(),
+    healthInsurancesList: vi.fn(),
   }));
 
 vi.mock("@/services/api", () => ({
@@ -19,7 +21,9 @@ vi.mock("@/services/api", () => ({
     appointmentsCreate,
     appointmentsUpdate,
     paymentsCreate,
+    patientsCreate,
   },
+  healthInsurancesList,
 }));
 
 describe("AppointmentBoard", () => {
@@ -69,6 +73,9 @@ describe("AppointmentBoard", () => {
     appointmentsCreate.mockReset();
     appointmentsUpdate.mockReset();
     paymentsCreate.mockReset();
+    patientsCreate.mockReset();
+    healthInsurancesList.mockReset();
+    healthInsurancesList.mockResolvedValue({ items: [] });
     baseProps.onAppointmentDateChange.mockReset();
   });
 
@@ -182,6 +189,25 @@ describe("AppointmentBoard", () => {
     expect(
       screen.getByText("Nenhuma consulta encontrada para a data selecionada."),
     ).toBeVisible();
+  });
+
+  it("creates and selects a patient without losing the appointment draft", async () => {
+    patientsCreate.mockResolvedValueOnce({ id: "patient-2", name: "Ana Nova" });
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
+    fireEvent.change(screen.getByLabelText("Inicio"), { target: { value: "2026-05-07T16:30" } });
+    fireEvent.change(screen.getByLabelText("Observacoes"), { target: { value: "Retorno preservado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar paciente" }));
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Ana Nova" } });
+    fireEvent.change(screen.getByLabelText("CPF"), { target: { value: "52998224725" } });
+    fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "11999998888" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar paciente" }));
+
+    await waitFor(() => expect(patientsCreate).toHaveBeenCalled());
+    expect(screen.getByLabelText("Paciente")).toHaveValue("patient-2");
+    expect(screen.getByLabelText("Inicio")).toHaveValue("2026-05-07T16:30");
+    expect(screen.getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
   });
 
   it("shows the monthly view and opens a selected day", () => {

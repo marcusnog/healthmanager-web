@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
@@ -22,6 +22,7 @@ import type {
   ReceivableResponse,
 } from "@/generated";
 import { ClinicalRecordModal } from "./clinical-record-modal";
+import { PatientCreateModal } from "../patients/patient-list";
 
 const schema = z.object({
   patientId: z.string().min(1, "Selecione um paciente."),
@@ -157,6 +158,8 @@ export function AppointmentBoard({
   onPageChange: (page: number) => void;
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
+  const [createdPatient, setCreatedPatient] = useState<PatientResponse | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
@@ -196,6 +199,7 @@ export function AppointmentBoard({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormInput, undefined, FormValues>({
     resolver: zodResolver(schema),
@@ -369,6 +373,10 @@ export function AppointmentBoard({
     },
   });
 
+  useEffect(() => {
+    if (createdPatient?.id) setValue("patientId", createdPatient.id, { shouldValidate: true });
+  }, [createdPatient, setValue]);
+
   const registerPaymentMutation = useMutation({
     mutationFn: (values: z.infer<typeof paymentSchema>) => DefaultService.paymentsCreate({
       receivableId: paymentReceivable!.id!,
@@ -408,14 +416,17 @@ export function AppointmentBoard({
         <Modal title="Agendar consulta" onClose={() => setIsFormOpen(false)}>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
             <Field error={errors.patientId?.message} label="Paciente">
+              <div className="flex gap-2">
               <select className="input-field" {...register("patientId")}>
                 <option value="">Selecione</option>
-                {patients.map((patient) => (
+                {([...patients, ...(createdPatient && !patients.some((patient) => patient.id === createdPatient.id) ? [createdPatient] : [])]).map((patient) => (
                   <option key={patient.id ?? patient.cpf} value={patient.id}>
                     {patient.name}
                   </option>
                 ))}
               </select>
+              <button className="btn btn-ghost btn-sm shrink-0" onClick={() => setIsPatientFormOpen(true)} type="button">Cadastrar paciente</button>
+              </div>
             </Field>
             <Field error={errors.doctorId?.message} label="Medico">
               <select className="input-field" {...register("doctorId")}>
@@ -502,6 +513,16 @@ export function AppointmentBoard({
           appointment={clinicalRecordAppointment}
           canWrite={canWriteClinicalRecord}
           onClose={() => setClinicalRecordAppointment(null)}
+        />
+      ) : null}
+
+      {isPatientFormOpen ? (
+        <PatientCreateModal
+          onClose={() => setIsPatientFormOpen(false)}
+          onCreated={(patient) => {
+            setCreatedPatient(patient);
+            setIsPatientFormOpen(false);
+          }}
         />
       ) : null}
 

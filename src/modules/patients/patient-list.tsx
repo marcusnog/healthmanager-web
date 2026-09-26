@@ -159,6 +159,68 @@ function PatientDetailsFields({ register, getValues, setValue }: any) {
   );
 }
 
+export function PatientCreateModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (patient: PatientResponse) => void | Promise<void>;
+}) {
+  const queryClient = useQueryClient();
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "", cpf: "", phone: "", email: "", birthDate: "", healthInsuranceId: "", notes: "", details: emptyDetails(),
+    },
+  });
+  const healthInsQuery = useQuery({
+    queryKey: ["health-insurances-catalog"],
+    queryFn: async () => { const r = await healthInsurancesList(1, 200); return r.items ?? []; },
+    placeholderData: [],
+  });
+  const createPatient = useMutation({
+    mutationFn: (values: FormValues) => DefaultService.patientsCreate({
+      name: values.name,
+      cpf: values.cpf.replace(/\D/g, ""),
+      phone: values.phone.replace(/\D/g, ""),
+      email: values.email || undefined,
+      birthDate: values.birthDate || undefined,
+      healthInsuranceId: values.healthInsuranceId || undefined,
+      notes: values.notes || undefined,
+      details: normalizeDetails(values.details),
+    }),
+    onSuccess: async (patient) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["patients-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
+      ]);
+      await onCreated(patient);
+    },
+    onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel criar o paciente agora.")),
+  });
+
+  return (
+    <Modal title="Novo paciente" onClose={onClose} size="xl">
+      <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((values) => { setFeedback(null); createPatient.mutate(values); })}>
+        <Field error={errors.name?.message} label="Nome"><input className="input-field" {...register("name")} /></Field>
+        <Field error={errors.cpf?.message} label="CPF"><input className="input-field" placeholder="000.000.000-00" {...register("cpf", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyCpfMask(e.currentTarget.value); }} /></Field>
+        <Field error={errors.phone?.message} label="Telefone"><input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} /></Field>
+        <Field error={errors.birthDate?.message} label="Data de nascimento"><input className="input-field" type="date" {...register("birthDate")} /></Field>
+        <Field error={errors.email?.message} label="Email"><input className="input-field" {...register("email")} /></Field>
+        <Field error={errors.healthInsuranceId?.message} label="Convenio"><select className="input-field" {...register("healthInsuranceId")}><option value="">Sem convenio</option>{(healthInsQuery.data ?? []).map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+        <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
+        <Field className="md:col-span-2" error={errors.notes?.message} label="Observacoes"><textarea className="input-field min-h-24" {...register("notes")} /></Field>
+        {feedback ? <p className="md:col-span-2 text-sm text-red-700">{feedback}</p> : null}
+        <div className="md:col-span-2 flex justify-end gap-3">
+          <button className="btn btn-ghost btn-sm" onClick={onClose} type="button">Cancelar</button>
+          <button className="btn btn-primary" disabled={createPatient.isPending} type="submit">{createPatient.isPending ? "Salvando..." : "Salvar paciente"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function PatientList({
   patients,
   page,
@@ -204,65 +266,6 @@ export function PatientList({
   const queryClient = useQueryClient();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      cpf: "",
-      phone: "",
-      email: "",
-      birthDate: "",
-      healthInsuranceId: "",
-      notes: "",
-      details: emptyDetails(),
-    },
-  });
-
-  const healthInsQuery = useQuery({
-    queryKey: ["health-insurances-catalog"],
-    queryFn: async () => { const r = await healthInsurancesList(1, 200); return r.items ?? []; },
-    placeholderData: [],
-  });
-  const healthPlans = healthInsQuery.data ?? [];
-
-  const createPatient = useMutation({
-    mutationFn: async (values: FormValues) =>
-      DefaultService.patientsCreate({
-        name: values.name,
-        cpf: values.cpf.replace(/\D/g, ""),
-        phone: values.phone.replace(/\D/g, ""),
-        email: values.email || undefined,
-        birthDate: values.birthDate || undefined,
-        healthInsuranceId: values.healthInsuranceId || undefined,
-        notes: values.notes || undefined,
-        details: normalizeDetails(values.details),
-      }),
-    onSuccess: async () => {
-      setFeedback("Paciente criado com sucesso.");
-      reset();
-      setIsFormOpen(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patients-list"] }),
-        queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
-      ]);
-    },
-    onError: (error) => {
-      setFeedback(apiErrorMessage(error, "Nao foi possivel criar o paciente agora."));
-    },
-  });
-
-  const onSubmit = handleSubmit((values) => {
-    setFeedback(null);
-    createPatient.mutate(values);
-  });
-
   const deletePatient = useMutation({
     mutationFn: async (patientId: string) => {
       setDeletingPatientId(patientId);
@@ -286,55 +289,10 @@ export function PatientList({
   return (
     <>
       {isFormOpen ? (
-        <Modal title="Novo paciente" onClose={() => setIsFormOpen(false)} size="xl">
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-            <Field error={errors.name?.message} label="Nome">
-              <input className="input-field" {...register("name")} />
-            </Field>
-            <Field error={errors.cpf?.message} label="CPF">
-              <input className="input-field" placeholder="000.000.000-00" {...register("cpf", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyCpfMask(e.currentTarget.value); }} />
-            </Field>
-            <Field error={errors.phone?.message} label="Telefone">
-              <input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} />
-            </Field>
-            <Field error={errors.birthDate?.message} label="Data de nascimento">
-              <input className="input-field" type="date" {...register("birthDate")} />
-            </Field>
-            <Field error={errors.email?.message} label="Email">
-              <input className="input-field" {...register("email")} />
-            </Field>
-            <Field error={errors.healthInsuranceId?.message} label="Convenio">
-              <select className="input-field" {...register("healthInsuranceId")}>
-                <option value="">Sem convenio</option>
-                {healthPlans.map((p: HealthInsuranceResponse) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </Field>
-            <PatientDetailsFields getValues={getValues} register={register} setValue={setValue} />
-            <Field
-              className="md:col-span-2"
-              error={errors.notes?.message}
-              label="Observacoes"
-            >
-              <textarea className="input-field min-h-24" {...register("notes")} />
-            </Field>
-            <div className="md:col-span-2 flex justify-end gap-3">
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setIsFormOpen(false)}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={createPatient.isPending}
-                type="submit"
-              >
-                {createPatient.isPending ? "Salvando..." : "Salvar paciente"}
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <PatientCreateModal
+          onClose={() => setIsFormOpen(false)}
+          onCreated={() => { setFeedback("Paciente criado com sucesso."); setIsFormOpen(false); }}
+        />
       ) : null}
 
       {editingPatient ? (
