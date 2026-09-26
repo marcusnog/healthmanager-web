@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, expenseSave, expenseDelete, checkoutCreate, professionalSettlementsList, professionalSettlementCreate, ownerSettlementCreate, type ExpenseCategoryResponse, type CheckoutResponse } from "@/services/api";
+import { DefaultService, expenseSave, expenseDelete, checkoutCreate, professionalSettlementsList, professionalSettlementCreate, ownerSettlementCreate, type ExpenseCategoryResponse, type CheckoutResponse, type ProfessionalSettlementResponse } from "@/services/api";
 import type { ReceivableResponse, PaymentResponse, PatientResponse, CreatePaymentRequest } from "@/generated";
 import type { PaymentIntentResponse } from "@/generated/models/PaymentIntentResponse";
 import type { PaymentIntentPagedResult } from "@/generated/models/PaymentIntentPagedResult";
@@ -20,6 +20,14 @@ import { cn } from "@/lib/cn";
 import { Permissions } from "@/lib/permissions";
 
 type Tab = "receivables" | "expenses" | "payments" | "settlements" | "intents";
+
+export function sumSettlementTotals(groups: ProfessionalSettlementResponse[]) {
+  return groups.reduce((total, group) => ({
+    accrued: total.accrued + group.accrued,
+    paid: total.paid + group.paid,
+    outstanding: total.outstanding + group.outstanding,
+  }), { accrued: 0, paid: 0, outstanding: 0 });
+}
 
 const ALL_TABS: { key: Tab; label: string }[] = [
   { key: "receivables", label: "Contas a receber" },
@@ -424,6 +432,8 @@ export function FinancialOverview({
     onError: () => setFeedback("Nao foi possivel registrar o acerto com o CEO."),
   });
   const selectedSettlementGroup = (settlementsQuery.data ?? []).find((group) => group.items.some((item) => selectedSettlementIds.includes(item.paymentId)));
+  const visibleSettlementGroups = (settlementsQuery.data ?? []).filter((group) => !settlementProfessional || group.professionalId === settlementProfessional);
+  const settlementTotals = sumSettlementTotals(visibleSettlementGroups);
 
   return (
     <>
@@ -1052,12 +1062,17 @@ export function FinancialOverview({
       {activeTab === "settlements" ? (
         <section className="panel rounded-lg p-5 md:p-6">
           <div className="section-heading">
-            <div><h3 className="text-base font-semibold text-[var(--ink)]">Repasses aos profissionais</h3><p className="text-sm text-[var(--muted)]">Baixa de passivo, sem lancar despesa.</p></div>
+            <div><h3 className="text-base font-semibold text-[var(--ink)]">Repasses aos profissionais</h3><p className="text-sm text-[var(--muted)]">Pagamento recebido − parcela da clinica = valor devido ao profissional. O repasse baixa esse passivo sem lancar despesa.</p></div>
             {canManageSettlements ? (
               <button className="btn btn-brand-outline btn-sm" disabled={!summary.ownerReceivable || settleOwner.isPending} onClick={() => settleOwner.mutate()} type="button">Registrar acerto do CEO</button>
             ) : null}
           </div>
           {feedback ? <p className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
+          <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos repasses">
+            <div className="rounded-lg border border-[var(--border)] p-3"><p className="text-xs font-semibold text-[var(--muted)]">Acumulado</p><p className="mt-1 text-lg font-bold">{formatCurrency(settlementTotals.accrued)}</p></div>
+            <div className="rounded-lg border border-[var(--border)] p-3"><p className="text-xs font-semibold text-[var(--muted)]">Ja repassado</p><p className="mt-1 text-lg font-bold text-green-700">{formatCurrency(settlementTotals.paid)}</p></div>
+            <div className="rounded-lg border border-[var(--border)] p-3"><p className="text-xs font-semibold text-[var(--muted)]">Pendente</p><p className="mt-1 text-lg font-bold text-amber-700">{formatCurrency(settlementTotals.outstanding)}</p></div>
+          </div>
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <label><span className="mb-1 block text-xs font-semibold text-[var(--muted)]">Profissional</span><select className="input-field" value={settlementProfessional} onChange={(event) => setSettlementProfessional(event.target.value)}><option value="">Todos</option>{(settlementsQuery.data ?? []).map((item) => <option key={item.professionalId} value={item.professionalId}>{item.professionalName}</option>)}</select></label>
             <label><span className="mb-1 block text-xs font-semibold text-[var(--muted)]">Pagamento de</span><input className="input-field" type="date" value={settlementDateFrom} onChange={(event) => setSettlementDateFrom(event.target.value)} /></label>
@@ -1065,7 +1080,7 @@ export function FinancialOverview({
           </div>
           {canManageSettlements ? <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3"><span className="text-sm text-[var(--muted)]">{selectedSettlementIds.length} consulta{selectedSettlementIds.length === 1 ? "" : "s"} selecionada{selectedSettlementIds.length === 1 ? "" : "s"}</span><button className="btn btn-primary btn-sm" disabled={!selectedSettlementGroup || settleProfessional.isPending} onClick={() => selectedSettlementGroup && settleProfessional.mutate({ professionalId: selectedSettlementGroup.professionalId, paymentIds: selectedSettlementIds })} type="button">Repassar selecionadas</button></div> : null}
           <div className="overflow-x-auto"><table className="data-table"><thead><tr><th className="w-12"><span className="sr-only">Selecionar</span></th><th>Paciente</th><th>Profissional</th><th>Pagamento</th><th className="numeric">Valor do repasse</th></tr></thead><tbody>
-            {(settlementsQuery.data ?? []).filter((group) => !settlementProfessional || group.professionalId === settlementProfessional).flatMap((group) => group.items.filter((item) => (!settlementDateFrom || item.paidAt.slice(0, 10) >= settlementDateFrom) && (!settlementDateTo || item.paidAt.slice(0, 10) <= settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
+            {visibleSettlementGroups.flatMap((group) => group.items.filter((item) => (!settlementDateFrom || item.paidAt.slice(0, 10) >= settlementDateFrom) && (!settlementDateTo || item.paidAt.slice(0, 10) <= settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
           </tbody></table></div>
         </section>
       ) : null}
