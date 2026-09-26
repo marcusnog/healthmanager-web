@@ -18,6 +18,7 @@ import type { CreateAddendumRequest } from '../models/CreateAddendumRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
 import type { CreateClinicalRecordRequest } from '../models/CreateClinicalRecordRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
+import type { CreateGroupAppointmentRequest } from '../models/CreateGroupAppointmentRequest';
 import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { CreatePatientDocumentRequest } from '../models/CreatePatientDocumentRequest';
 import type { CreatePatientRequest } from '../models/CreatePatientRequest';
@@ -464,6 +465,21 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/appointments',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns AppointmentResponse Created
+     * @throws ApiError
+     */
+    public static appointmentsCreateGroup(
+        requestBody: CreateGroupAppointmentRequest,
+    ): CancelablePromise<Array<AppointmentResponse>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/group',
             body: requestBody,
             mediaType: 'application/json',
         });

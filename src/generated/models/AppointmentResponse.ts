@@ -4,6 +4,7 @@
 /* eslint-disable */
 export type AppointmentResponse = {
     id?: string;
+    appointmentGroupId?: string | null;
     patientId?: string;
     doctorId?: string;
     startAt?: string;

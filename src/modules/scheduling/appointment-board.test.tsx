@@ -3,11 +3,12 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsCreateGroup, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
     appointmentsCreate: vi.fn(),
+    appointmentsCreateGroup: vi.fn(),
     appointmentsUpdate: vi.fn(),
     paymentsCreate: vi.fn(),
     patientsCreate: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("@/services/api", () => ({
     appointmentsCancel,
     appointmentsConfirm,
     appointmentsCreate,
+    appointmentsCreateGroup,
     appointmentsUpdate,
     paymentsCreate,
     patientsCreate,
@@ -71,6 +73,7 @@ describe("AppointmentBoard", () => {
     appointmentsCancel.mockReset();
     appointmentsConfirm.mockReset();
     appointmentsCreate.mockReset();
+    appointmentsCreateGroup.mockReset();
     appointmentsUpdate.mockReset();
     paymentsCreate.mockReset();
     patientsCreate.mockReset();
@@ -208,6 +211,28 @@ describe("AppointmentBoard", () => {
     expect(screen.getByLabelText("Paciente")).toHaveValue("patient-2");
     expect(screen.getByLabelText("Inicio")).toHaveValue("2026-05-07T16:30");
     expect(screen.getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
+  });
+
+  it("creates a group appointment for the selected patients", async () => {
+    appointmentsCreateGroup.mockResolvedValueOnce([]);
+    renderWithProviders(
+      <AppointmentBoard
+        {...baseProps}
+        appointments={[]}
+        patients={[...baseProps.patients, { id: "patient-2", name: "Ana Nova", cpf: "52998224725", phone: "11999998888" }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Atendimento em grupo" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Marina Souza" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Ana Nova" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar consulta" }));
+
+    await waitFor(() => expect(appointmentsCreateGroup).toHaveBeenCalledWith(expect.objectContaining({
+      patientIds: ["patient-1", "patient-2"],
+      doctorId: "doctor-1",
+    })));
   });
 
   it("shows the monthly view and opens a selected day", () => {

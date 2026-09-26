@@ -160,6 +160,8 @@ export function AppointmentBoard({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [createdPatient, setCreatedPatient] = useState<PatientResponse | null>(null);
+  const [isGroup, setIsGroup] = useState(false);
+  const [groupPatientIds, setGroupPatientIds] = useState<string[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
@@ -216,7 +218,15 @@ export function AppointmentBoard({
 
   const createAppointment = useMutation({
     mutationFn: async (values: FormValues) =>
-      DefaultService.appointmentsCreate({
+      isGroup ? DefaultService.appointmentsCreateGroup({
+        patientIds: groupPatientIds,
+        doctorId: values.doctorId,
+        startAt: new Date(values.startAt).toISOString(),
+        durationMinutes: values.durationMinutes,
+        appointmentTypeId: values.appointmentTypeId,
+        amount: values.amount,
+        notes: values.notes || undefined,
+      }) : DefaultService.appointmentsCreate({
         patientId: values.patientId,
         doctorId: values.doctorId,
         startAt: new Date(values.startAt).toISOString(),
@@ -227,6 +237,8 @@ export function AppointmentBoard({
       }),
     onSuccess: async () => {
       setFeedback("Consulta agendada com sucesso.");
+      setGroupPatientIds([]);
+      setIsGroup(false);
       reset({
         patientId: patients[0]?.id ?? "",
         doctorId: doctors[0]?.id ?? "",
@@ -407,6 +419,10 @@ export function AppointmentBoard({
 
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
+    if (isGroup && groupPatientIds.length < 2) {
+      setFeedback("Selecione ao menos dois pacientes para o atendimento em grupo.");
+      return;
+    }
     await createAppointment.mutateAsync(values);
   });
 
@@ -415,16 +431,34 @@ export function AppointmentBoard({
       {isFormOpen ? (
         <Modal title="Agendar consulta" onClose={() => setIsFormOpen(false)}>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+            <label className="md:col-span-2 flex items-center gap-2 text-sm font-semibold">
+              <input checked={isGroup} onChange={(event) => { setIsGroup(event.target.checked); setGroupPatientIds([]); }} type="checkbox" />
+              Atendimento em grupo
+            </label>
             <Field error={errors.patientId?.message} label="Paciente">
               <div className="flex gap-2">
-              <select className="input-field" {...register("patientId")}>
+              {isGroup ? (
+                <div className="input-field flex max-h-36 flex-1 flex-col gap-2 overflow-y-auto">
+                  {([...patients, ...(createdPatient && !patients.some((patient) => patient.id === createdPatient.id) ? [createdPatient] : [])]).map((patient) => (
+                    <label className="flex items-center gap-2" key={patient.id ?? patient.cpf}>
+                      <input
+                        aria-label={patient.name ?? "Paciente"}
+                        checked={!!patient.id && groupPatientIds.includes(patient.id)}
+                        onChange={(event) => patient.id && setGroupPatientIds((ids) => event.target.checked ? [...ids, patient.id!] : ids.filter((id) => id !== patient.id))}
+                        type="checkbox"
+                      />
+                      {patient.name}
+                    </label>
+                  ))}
+                </div>
+              ) : <select className="input-field" {...register("patientId")}>
                 <option value="">Selecione</option>
                 {([...patients, ...(createdPatient && !patients.some((patient) => patient.id === createdPatient.id) ? [createdPatient] : [])]).map((patient) => (
                   <option key={patient.id ?? patient.cpf} value={patient.id}>
                     {patient.name}
                   </option>
                 ))}
-              </select>
+              </select>}
               <button className="btn btn-ghost btn-sm shrink-0" onClick={() => setIsPatientFormOpen(true)} type="button">Cadastrar paciente</button>
               </div>
             </Field>
@@ -521,6 +555,7 @@ export function AppointmentBoard({
           onClose={() => setIsPatientFormOpen(false)}
           onCreated={(patient) => {
             setCreatedPatient(patient);
+            if (isGroup && patient.id) setGroupPatientIds((ids) => [...ids, patient.id!]);
             setIsPatientFormOpen(false);
           }}
         />

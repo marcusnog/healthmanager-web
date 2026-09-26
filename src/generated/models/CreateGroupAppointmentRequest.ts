@@ -1,0 +1,14 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export type CreateGroupAppointmentRequest = {
+    patientIds: Array<string>;
+    doctorId: string;
+    startAt: string;
+    durationMinutes?: number;
+    notes?: string;
+    appointmentTypeId: string;
+    amount?: number;
+};
+

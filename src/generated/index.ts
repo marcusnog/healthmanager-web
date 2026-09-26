@@ -23,6 +23,7 @@ export type { CreateAddendumRequest } from './models/CreateAddendumRequest';
 export type { CreateAppointmentRequest } from './models/CreateAppointmentRequest';
 export type { CreateClinicalRecordRequest } from './models/CreateClinicalRecordRequest';
 export type { CreateDoctorRequest } from './models/CreateDoctorRequest';
+export type { CreateGroupAppointmentRequest } from './models/CreateGroupAppointmentRequest';
 export { CreateManualReceivableRequest } from './models/CreateManualReceivableRequest';
 export type { CreatePatientDocumentRequest } from './models/CreatePatientDocumentRequest';
 export type { CreatePatientRequest } from './models/CreatePatientRequest';
