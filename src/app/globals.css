@@ -52,14 +52,20 @@
   --surface-strong: #ffffff;
 
   /* Status tokens */
-  --status-confirmed-bg: rgba(22, 163, 74, 0.1);
-  --status-confirmed-color: #16a34a;
-  --status-scheduled-bg: rgba(99, 102, 241, 0.1);
-  --status-scheduled-color: #6366f1;
+  --status-confirmed-bg: rgba(37, 99, 235, 0.1);
+  --status-confirmed-color: #2563eb;
+  --status-scheduled-bg: rgba(107, 114, 128, 0.1);
+  --status-scheduled-color: #6b7280;
   --status-pending-bg: rgba(202, 138, 4, 0.1);
   --status-pending-color: #ca8a04;
-  --status-cancelled-bg: rgba(239, 68, 68, 0.1);
-  --status-cancelled-color: #ef4444;
+  --status-cancelled-bg: rgba(107, 114, 128, 0.1);
+  --status-cancelled-color: #6b7280;
+  --status-completed-bg: rgba(22, 163, 74, 0.1);
+  --status-completed-color: #16a34a;
+  --status-noshow-bg: rgba(239, 68, 68, 0.1);
+  --status-noshow-color: #ef4444;
+  --status-inprogress-bg: rgba(202, 138, 4, 0.1);
+  --status-inprogress-color: #a16207;
   --status-paid-bg: rgba(22, 163, 74, 0.1);
   --status-paid-color: #16a34a;
   --status-partial-bg: rgba(99, 102, 241, 0.1);
@@ -1039,15 +1045,27 @@ textarea.input-field {
 }
 
 .appt-confirmed {
-  border-left-color: var(--success);
+  border-left-color: var(--status-confirmed-color);
 }
 
 .appt-scheduled {
-  border-left-color: var(--brand);
+  border-left-color: var(--status-scheduled-color);
 }
 
 .appt-cancelled {
-  border-left-color: var(--danger);
+  border-left-color: var(--status-cancelled-color);
+}
+
+.appt-completed {
+  border-left-color: var(--status-completed-color);
+}
+
+.appt-noshow {
+  border-left-color: var(--status-noshow-color);
+}
+
+.appt-inprogress {
+  border-left-color: var(--status-inprogress-color);
 }
 
 /* ─── Topbar typography ──────────────────────────────────────────── */

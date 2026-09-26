@@ -63,12 +63,12 @@ function toLocalDateTime(value: string) {
 
 function statusBorderClass(status?: string) {
   switch (resolveAppointmentStatus(status)) {
-    case "confirmed":  return "appt-confirmed";
-    case "cancelled":
-    case "noshow":     return "appt-cancelled";
-    case "inprogress": return "appt-confirmed";
-    case "completed":  return "appt-scheduled";
-    default:           return "appt-scheduled";
+    case "confirmed": return "appt-confirmed";
+    case "cancelled": return "appt-cancelled";
+    case "noshow": return "appt-noshow";
+    case "inprogress": return "appt-inprogress";
+    case "completed": return "appt-completed";
+    default: return "appt-scheduled";
   }
 }
 
@@ -754,7 +754,6 @@ export function AppointmentBoard({
                   <article
                     className={cn("data-card appt-card", statusBorderClass(appointment.status))}
                     key={appointment.id ?? appointment.startAt ?? appointment.notes}
-                    style={{ borderLeftColor: doctorColor(appointment.doctorId) }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex items-baseline gap-3">
@@ -851,7 +850,7 @@ export function AppointmentBoard({
                           {isProcessing ? <span className="spinner" /> : "Compareceu"}
                         </button>
                       ) : null}
-                      {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? (
+                      {appointment.status === "InProgress" ? (
                         <button
                           className="btn btn-sm"
                           disabled={isProcessing}
@@ -1146,7 +1145,6 @@ function WeekGrid({
                       "rounded-md border bg-[var(--surface)] p-2 text-[11px] leading-tight transition-colors hover:bg-[var(--bg)]",
                       isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
                     )}
-                    style={{ borderLeftColor: doctorColor(apt.doctorId) }}
                   >
                     <div className="font-semibold text-[var(--ink)]">
                       {formatTime(apt.startAt ?? "")}

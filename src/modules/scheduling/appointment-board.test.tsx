@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
@@ -331,6 +331,24 @@ describe("AppointmentBoard", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Confirmar consulta de Marina Souza" })).not.toBeInTheDocument();
+  });
+
+  it("offers only valid status transitions during the appointment flow", () => {
+    const { rerender } = renderWithProviders(
+      <AppointmentBoard {...baseProps} appointments={[{
+        id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
+        startAt: "2026-05-07T11:00:00Z", status: "Scheduled", type: "Retorno", amount: 180,
+      }]} />,
+    );
+    expect(within(screen.getByRole("article")).queryByRole("button", { name: "Faltou" })).not.toBeInTheDocument();
+
+    rerender(<AppointmentBoard {...baseProps} appointments={[{
+      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
+      startAt: "2026-05-07T11:00:00Z", status: "InProgress", type: "Retorno", amount: 180,
+    }]} />);
+    expect(within(screen.getByRole("article")).getByRole("button", { name: "Faltou" })).toBeVisible();
+    expect(within(screen.getByRole("article")).getByRole("button", { name: "Compareceu" })).toBeVisible();
+    expect(within(screen.getByRole("article")).queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
   });
 
   it("keeps the edit modal open and shows the scheduling conflict", async () => {
