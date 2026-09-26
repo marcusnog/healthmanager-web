@@ -161,6 +161,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
+    fireEvent.click(screen.getByText("Mais acoes"));
     fireEvent.click(screen.getByRole("button", { name: "Remarcou" }));
 
     await waitFor(() =>
@@ -347,6 +348,7 @@ describe("AppointmentBoard", () => {
       id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
       startAt: "2026-05-07T11:00:00Z", status: "InProgress", type: "Retorno", amount: 180,
     }]} />);
+    fireEvent.click(within(screen.getByRole("article")).getByText("Mais acoes"));
     expect(within(screen.getByRole("article")).getByRole("button", { name: "Faltou" })).toBeVisible();
     expect(within(screen.getByRole("article")).getByRole("button", { name: "Compareceu" })).toBeVisible();
     expect(within(screen.getByRole("article")).queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
@@ -373,6 +375,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
+    fireEvent.click(screen.getByText("Mais acoes"));
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Inicio"), { target: { value: "2026-05-08T11:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
@@ -399,6 +402,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
+    fireEvent.click(screen.getByText("Mais acoes"));
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Tipo"), { target: { value: "type-first" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
@@ -425,6 +429,7 @@ describe("AppointmentBoard", () => {
       />,
     );
 
+    fireEvent.click(screen.getAllByText("Mais acoes")[0]);
     const receiveButtons = screen.getAllByRole("button", { name: "Receber saldo" });
     expect(receiveButtons).toHaveLength(1);
     fireEvent.click(receiveButtons[0]);

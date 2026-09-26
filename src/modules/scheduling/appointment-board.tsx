@@ -787,32 +787,6 @@ export function AppointmentBoard({
                     </div>
 
                     <div className="toolbar-inline mt-3">
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        disabled={isProcessing}
-                        onClick={() => {
-                          setFeedback(null);
-                          setEditingAppointment(appointment);
-                        }}
-                        type="button"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setFeedback(null);
-                          setClinicalRecordAppointment(appointment);
-                        }}
-                        type="button"
-                      >
-                        Prontuario
-                      </button>
-                      {(receivable?.receivedAmount ?? 0) > 0 && (receivable?.outstandingAmount ?? 0) > 0 ? (
-                        <button className="btn btn-primary btn-sm" onClick={() => openPayment(receivable)} type="button">
-                          Receber saldo
-                        </button>
-                      ) : null}
                       {appointment.status === "Scheduled" ? (
                         <button
                           className="btn btn-brand-outline btn-sm"
@@ -826,7 +800,7 @@ export function AppointmentBoard({
                           {isProcessing ? <span className="spinner" /> : "Confirmar"}
                         </button>
                       ) : null}
-                      {appointment.status === "Scheduled" || appointment.status === "Confirmed" ? (
+                      {appointment.status === "Confirmed" ? (
                         <button
                           className="btn btn-sm"
                           disabled={isProcessing}
@@ -852,32 +826,17 @@ export function AppointmentBoard({
                           {isProcessing ? <span className="spinner" /> : "Compareceu"}
                         </button>
                       ) : null}
-                      {appointment.status === "InProgress" ? (
-                        <button
-                          className="btn btn-sm"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setFeedback(null);
-                            void markNoShowAppointment.mutateAsync(appointment);
-                          }}
-                          type="button"
-                        >
-                          {isProcessing ? <span className="spinner" /> : "Faltou"}
-                        </button>
-                      ) : null}
-                      {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? (
-                        <button
-                          className="btn btn-danger btn-sm"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setFeedback(null);
-                            void cancelAppointment.mutateAsync(appointment);
-                          }}
-                          type="button"
-                        >
-                          {isProcessing ? <span className="spinner" /> : "Remarcou"}
-                        </button>
-                      ) : null}
+                      <details className="relative">
+                        <summary className="btn btn-ghost btn-sm cursor-pointer list-none">Mais acoes</summary>
+                        <div className="mt-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2">
+                          <button className="btn btn-ghost btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); setEditingAppointment(appointment); }} type="button">Editar</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); setClinicalRecordAppointment(appointment); }} type="button">Prontuario</button>
+                          {(receivable?.receivedAmount ?? 0) > 0 && (receivable?.outstandingAmount ?? 0) > 0 ? <button className="btn btn-primary btn-sm" onClick={() => openPayment(receivable)} type="button">Receber saldo</button> : null}
+                          {appointment.status === "Scheduled" ? <button className="btn btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void markInProgressAppointment.mutateAsync(appointment); }} type="button">Em atendimento</button> : null}
+                          {appointment.status === "InProgress" ? <button className="btn btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void markNoShowAppointment.mutateAsync(appointment); }} type="button">Faltou</button> : null}
+                          {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? <button className="btn btn-danger btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void cancelAppointment.mutateAsync(appointment); }} type="button">Remarcou</button> : null}
+                        </div>
+                      </details>
                     </div>
                   </article>
                 );
