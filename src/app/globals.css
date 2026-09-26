@@ -757,7 +757,8 @@ a {
 
 /* ─── Inputs ─────────────────────────────────────────────────────── */
 
-.input-field {
+.input-field,
+.field-input {
   width: 100%;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
@@ -769,15 +770,22 @@ a {
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
-.input-field::placeholder {
+.field-input {
+  box-shadow: var(--shadow-sm);
+}
+
+.input-field::placeholder,
+.field-input::placeholder {
   color: var(--muted-light);
 }
 
-.input-field:hover {
+.input-field:hover,
+.field-input:hover {
   border-color: var(--muted-light);
 }
 
-.input-field:focus {
+.input-field:focus,
+.field-input:focus {
   border-color: var(--brand);
   box-shadow: var(--focus-ring);
 }
