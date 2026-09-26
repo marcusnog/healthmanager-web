@@ -192,6 +192,7 @@ describe("AppointmentBoard", () => {
     expect(
       screen.getByText("Nenhuma consulta encontrada para a data selecionada."),
     ).toBeVisible();
+    expect(screen.getByLabelText("Regua de horarios do dia")).toBeVisible();
   });
 
   it("creates and selects a patient without losing the appointment draft", async () => {

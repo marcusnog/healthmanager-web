@@ -739,6 +739,8 @@ export function AppointmentBoard({
         ) : appointmentViewMode === "month" ? (
           <MonthGrid appointments={appointments} patientMap={patientMap} doctorMap={doctorMap} monthDays={getMonthDays(appointmentDate)} todayDate={todayDate} isLoading={isLoading} onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }} />
         ) : (
+          <>
+          <DailyTimeRuler appointments={appointments} appointmentDate={appointmentDate} patientMap={patientMap} />
           <div className="stack-list mt-5">
             {isLoading ? (
               <AppointmentSkeleton />
@@ -892,6 +894,7 @@ export function AppointmentBoard({
               </div>
             )}
           </div>
+          </>
         )}
 
         <div className="toolbar-inline mt-5 justify-between">
@@ -917,6 +920,57 @@ export function AppointmentBoard({
         </div>
       </section>
     </>
+  );
+}
+
+function DailyTimeRuler({
+  appointments,
+  appointmentDate,
+  patientMap,
+}: {
+  appointments: AppointmentResponse[];
+  appointmentDate: string;
+  patientMap: Record<string, PatientResponse>;
+}) {
+  const [now, setNow] = useState(() => new Date());
+  const startHour = 8;
+  const endHour = 18;
+  const totalMinutes = (endHour - startHour) * 60;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const position = (value?: string) => {
+    const date = new Date(value ?? "");
+    return ((date.getHours() * 60 + date.getMinutes() - startHour * 60) / totalMinutes) * 100;
+  };
+  const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isToday = appointmentDate === localToday;
+  const nowPosition = ((now.getHours() * 60 + now.getMinutes() - startHour * 60) / totalMinutes) * 100;
+
+  return (
+    <div aria-label="Regua de horarios do dia" className="mt-5 grid grid-cols-[3.5rem_1fr] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div aria-hidden className="relative h-72 border-r border-[var(--border)] text-[10px] text-[var(--muted)]">
+        {Array.from({ length: endHour - startHour + 1 }, (_, index) => (
+          <span className="absolute right-2 -translate-y-1/2" key={index} style={{ top: `${(index / (endHour - startHour)) * 100}%` }}>{String(startHour + index).padStart(2, "0")}:00</span>
+        ))}
+      </div>
+      <div className="relative h-72 bg-[linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[length:100%_10%]">
+        {appointments.map((appointment) => {
+          const top = Math.max(0, Math.min(100, position(appointment.startAt)));
+          const duration = appointment.startAt && appointment.endAt ? (new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) / 60_000 : 30;
+          const height = Math.max(4, Math.min(100 - top, (duration / totalMinutes) * 100));
+          return (
+            <div className={cn("absolute left-2 right-2 overflow-hidden rounded border-l-4 bg-[var(--surface)] px-2 py-1 text-xs shadow-sm", statusBorderClass(appointment.status))} key={appointment.id} style={{ top: `${top}%`, height: `${height}%` }}>
+              <span className="font-semibold">{formatTime(appointment.startAt ?? "")}</span>{" · "}{patientMap[appointment.patientId ?? ""]?.name ?? "Paciente"}
+            </div>
+          );
+        })}
+        {isToday && nowPosition >= 0 && nowPosition <= 100 ? <div aria-label="Horario atual" className="absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: `${nowPosition}%` }} /> : null}
+      </div>
+    </div>
   );
 }
 
