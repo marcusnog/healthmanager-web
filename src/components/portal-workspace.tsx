@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,7 @@ function createPortalFallbackExpiry() {
 }
 
 function PortalLogin({ onLogin }: { onLogin: () => void }) {
+  const isReady = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -174,7 +175,7 @@ function PortalLogin({ onLogin }: { onLogin: () => void }) {
             </p>
           </div>
 
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <form className="flex flex-col gap-4" action="/portal" method="post" onSubmit={onSubmit}>
             <label>
               <span className="mb-2 block text-sm font-medium">CPF</span>
               <input
@@ -225,7 +226,7 @@ function PortalLogin({ onLogin }: { onLogin: () => void }) {
 
             <button
               className="btn btn-primary mt-1"
-              disabled={isLoading}
+              disabled={!isReady || isLoading}
               type="submit"
             >
               {isLoading ? <span className="spinner" /> : "Acessar portal"}

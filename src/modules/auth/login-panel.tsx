@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,7 @@ type Props = {
 };
 
 export function LoginPanel({ session, onLogin, onLogout }: Props) {
+  const isReady = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const {
@@ -73,7 +74,7 @@ export function LoginPanel({ session, onLogin, onLogout }: Props) {
   }
 
   return (
-    <form className="login-form" onSubmit={onSubmit} noValidate>
+    <form className="login-form" action="/" method="post" onSubmit={onSubmit} noValidate>
       <Field label="E-mail" error={errors.email?.message}>
         <input
           className="input-field"
@@ -100,7 +101,7 @@ export function LoginPanel({ session, onLogin, onLogout }: Props) {
 
       <button
         className="btn btn-primary w-full mt-6"
-        disabled={isSubmitting}
+        disabled={!isReady || isSubmitting}
         type="submit"
       >
         {isSubmitting ? <span className="spinner" /> : "Entrar"}
