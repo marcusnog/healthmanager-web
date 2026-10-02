@@ -82,6 +82,22 @@ describe("AppointmentBoard", () => {
     baseProps.onAppointmentDateChange.mockReset();
   });
 
+  it("positions simultaneous appointments side by side and opens editing", () => {
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[
+      { id: "a", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", endAt: "2026-05-07T13:20:00Z", status: "Scheduled" },
+      { id: "b", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", endAt: "2026-05-07T12:40:00Z", status: "Confirmed" },
+    ]} />);
+    const grid = screen.getByLabelText("Regua de horarios do dia");
+    const blocks = within(grid).getAllByRole("button");
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].style.width).toBe("calc(50% - 6px)");
+    expect(blocks[1].style.left).toBe("calc(50% + 3px)");
+    expect(blocks[0].style.height).toBe("198px");
+    expect(blocks[1].style.height).toBe("98px");
+    fireEvent.click(blocks[0]);
+    expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+  });
+
   it("confirms a scheduled appointment from the operational board", async () => {
     appointmentsConfirm.mockResolvedValueOnce({
       id: "appointment-1",

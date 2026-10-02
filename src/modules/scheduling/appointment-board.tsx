@@ -740,7 +740,7 @@ export function AppointmentBoard({
           <MonthGrid appointments={appointments} patientMap={patientMap} doctorMap={doctorMap} monthDays={getMonthDays(appointmentDate)} todayDate={todayDate} isLoading={isLoading} onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }} />
         ) : (
           <>
-          <DailyTimeRuler appointments={appointments} appointmentDate={appointmentDate} patientMap={patientMap} />
+          <DailyTimeRuler appointments={appointments} appointmentDate={appointmentDate} patientMap={patientMap} doctors={doctors.filter(doctor => !appointmentDoctorId || doctor.id === appointmentDoctorId)} isLoading={isLoading} onEdit={setEditingAppointment} />
           <div className="stack-list mt-5">
             {isLoading ? (
               <AppointmentSkeleton />
@@ -882,52 +882,86 @@ export function AppointmentBoard({
   );
 }
 
-function DailyTimeRuler({
-  appointments,
-  appointmentDate,
-  patientMap,
-}: {
+function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, isLoading, onEdit }: {
   appointments: AppointmentResponse[];
   appointmentDate: string;
   patientMap: Record<string, PatientResponse>;
+  doctors: DoctorResponse[];
+  isLoading: boolean;
+  onEdit: (appointment: AppointmentResponse) => void;
 }) {
   const [now, setNow] = useState(() => new Date());
-  const startHour = 8;
-  const endHour = 18;
-  const totalMinutes = (endHour - startHour) * 60;
-
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
-
-  const position = (value?: string) => {
-    const date = new Date(value ?? "");
-    return ((date.getHours() * 60 + date.getMinutes() - startHour * 60) / totalMinutes) * 100;
+  const minutes = (value: string) => {
+    const date = new Date(value);
+    return date.getHours() * 60 + date.getMinutes();
   };
+  const valid = appointments.filter(apt => apt.startAt && Number.isFinite(new Date(apt.startAt).getTime()));
+  const start = Math.min(480, ...valid.map(apt => Math.floor(minutes(apt.startAt!) / 60) * 60));
+  const end = Math.max(1080, ...valid.map(apt => {
+    const finish = minutes(apt.startAt!) + (apt.endAt ? (new Date(apt.endAt).getTime() - new Date(apt.startAt!).getTime()) / 60_000 : 30);
+    return Math.ceil(finish / 60) * 60;
+  }));
+  const height = (end - start) * 2.5;
+  const columns = [...doctors.map(doctor => ({ id: doctor.id, name: doctor.name ?? "Médico" }))];
+  for (const apt of valid) {
+    if (!columns.some(column => column.id === apt.doctorId)) columns.push({ id: apt.doctorId, name: "Médico não informado" });
+  }
+  if (!columns.length) columns.push({ id: undefined, name: "Consultas" });
   const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const isToday = appointmentDate === localToday;
-  const nowPosition = ((now.getHours() * 60 + now.getMinutes() - startHour * 60) / totalMinutes) * 100;
-
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  if (isLoading) return <AppointmentSkeleton />;
   return (
-    <div aria-label="Regua de horarios do dia" className="mt-5 grid grid-cols-[3.5rem_1fr] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-      <div aria-hidden className="relative h-72 border-r border-[var(--border)] text-[10px] text-[var(--muted)]">
-        {Array.from({ length: endHour - startHour + 1 }, (_, index) => (
-          <span className="absolute right-2 -translate-y-1/2" key={index} style={{ top: `${(index / (endHour - startHour)) * 100}%` }}>{String(startHour + index).padStart(2, "0")}:00</span>
-        ))}
-      </div>
-      <div className="relative h-72 bg-[linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[length:100%_10%]">
-        {appointments.map((appointment) => {
-          const top = Math.max(0, Math.min(100, position(appointment.startAt)));
-          const duration = appointment.startAt && appointment.endAt ? (new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) / 60_000 : 30;
-          const height = Math.max(4, Math.min(100 - top, (duration / totalMinutes) * 100));
-          return (
-            <div className={cn("absolute left-2 right-2 overflow-hidden rounded border-l-4 bg-[var(--surface)] px-2 py-1 text-xs shadow-sm", statusBorderClass(appointment.status))} key={appointment.id} style={{ top: `${top}%`, height: `${height}%` }}>
-              <span className="font-semibold">{formatTime(appointment.startAt ?? "")}</span>{" · "}{patientMap[appointment.patientId ?? ""]?.name ?? "Paciente"}
-            </div>
-          );
+    <div aria-label="Regua de horarios do dia" className="mt-5 max-h-[680px] overflow-auto rounded-md border border-[var(--border)] bg-[var(--surface)]">
+      <div className="grid" style={{ gridTemplateColumns: `64px repeat(${columns.length}, minmax(240px, 1fr))`, minWidth: 64 + columns.length * 240 }}>
+        <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-4 text-xs text-[var(--muted)]">Horário</div>
+        {columns.map(column => <div key={column.id ?? "unknown"} className="sticky top-0 z-20 border-b border-l border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-sm font-semibold">{column.name}</div>)}
+        <div aria-hidden className="relative text-xs text-[var(--muted)]" style={{ height }}>
+          {Array.from({ length: Math.ceil((end - start) / 20) }, (_, index) => {
+            const time = start + index * 20;
+            return <span key={time} className="absolute right-2" style={{ top: index * 50 + 4 }}>{String(Math.floor(time / 60)).padStart(2, "0")}:{String(time % 60).padStart(2, "0")}</span>;
+          })}
+        </div>
+        {columns.map(column => {
+          const items = valid.filter(apt => apt.doctorId === column.id).sort((a, b) => new Date(a.startAt!).getTime() - new Date(b.startAt!).getTime());
+          const groups: AppointmentResponse[][] = [];
+          let groupEnd = 0;
+          for (const apt of items) {
+            const begin = new Date(apt.startAt!).getTime();
+            const finish = apt.endAt ? new Date(apt.endAt).getTime() : begin + 30 * 60_000;
+            if (!groups.length || begin >= groupEnd) { groups.push([]); groupEnd = finish; }
+            groups[groups.length - 1].push(apt);
+            groupEnd = Math.max(groupEnd, finish);
+          }
+          return <div key={column.id ?? "unknown"} className="relative border-l border-[var(--border)]" style={{ height, backgroundImage: "repeating-linear-gradient(to bottom, transparent 0px, transparent 49px, var(--border) 49px, var(--border) 50px)" }}>
+            {groups.flatMap(group => {
+              const laneEnds: number[] = [];
+              const placements = group.map(apt => {
+                const begin = new Date(apt.startAt!).getTime();
+                const finish = apt.endAt ? new Date(apt.endAt).getTime() : begin + 30 * 60_000;
+                let lane = laneEnds.findIndex(end => end <= begin);
+                if (lane === -1) lane = laneEnds.length;
+                laneEnds[lane] = finish;
+                return { apt, lane, duration: (finish - begin) / 60_000 };
+              });
+              return placements.map(({ apt, lane, duration }) => {
+                const patient = patientMap[apt.patientId ?? ""];
+                const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
+                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="absolute overflow-auto rounded-sm border border-[#ae00b6] bg-[#ec00ef] p-1.5 text-left text-xs leading-snug text-[#240027] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ top: (minutes(apt.startAt!) - start) * 2.5, height: Math.max(1, duration * 2.5 - 2), left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
+                  <strong className="block break-words">{patient?.name ?? "Paciente"}</strong>
+                  {patient?.details?.medicalRecordNumber ? <span className="block break-words">Prontuário {patient.details.medicalRecordNumber}</span> : null}
+                  {patient?.phone ? <span className="block break-words">{patient.phone}</span> : null}
+                  <span className="block">{formatTime(apt.startAt!)} – {apt.endAt ? formatTime(apt.endAt) : ""}</span>
+                  <span className="block">{STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}</span>
+                </button>;
+              });
+            })}
+            {appointmentDate === localToday && nowMinutes >= start && nowMinutes < end ? <div aria-label="Horario atual" className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: (nowMinutes - start) * 2.5 }} /> : null}
+          </div>;
         })}
-        {isToday && nowPosition >= 0 && nowPosition <= 100 ? <div aria-label="Horario atual" className="absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: `${nowPosition}%` }} /> : null}
       </div>
     </div>
   );
