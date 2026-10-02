@@ -105,8 +105,14 @@ describe("AppointmentBoard", () => {
       view.rerender(<AppointmentBoard {...baseProps} appointments={[{ ...appointment, status }]} />);
       const block = within(screen.getByLabelText("Regua de horarios do dia")).getByRole("button");
       const variant = status.toLowerCase();
-      expect(block.style.backgroundColor).toBe(status === "Scheduled" ? "var(--brand-wash)" : `var(--status-${variant}-bg)`);
-      expect(block.style.borderColor).toBe(status === "Scheduled" ? "var(--brand)" : `var(--status-${variant}-color)`);
+      const background = status === "Scheduled" ? "var(--brand-strong)" : `var(--status-${variant}-color)`;
+      const foreground = status === "Completed" || status === "NoShow" ? "var(--surface-inverse)" : "var(--surface)";
+      expect(block.style.backgroundColor).toBe(background);
+      expect(block.style.borderColor).toBe(background);
+      expect(block.style.color).toBe(foreground);
+      const card = screen.getByText("Marina Souza", { selector: "article span" }).closest("article")!;
+      expect(card.style.backgroundColor).toBe(background);
+      expect(card.style.color).toBe(foreground);
     }
   });
 
@@ -274,14 +280,21 @@ describe("AppointmentBoard", () => {
         appointmentDateFrom="2026-05-01"
         appointmentDateTo="2026-05-31"
         appointmentViewMode="month"
-        appointments={[{ id: "appointment-month", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Scheduled", amount: 250 }]}
+        appointments={[
+          { id: "appointment-month", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Scheduled", amount: 250 },
+          { id: "appointment-month-2", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", status: "Confirmed", amount: 250 },
+          { id: "appointment-month-3", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T13:00:00Z", status: "Scheduled", amount: 250 },
+        ]}
         onAppointmentDateChange={onAppointmentDateChange}
         onAppointmentViewModeChange={onAppointmentViewModeChange}
       />,
     );
 
     expect(screen.getByLabelText("Agenda mensal")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: /71 consulta/ }));
+    const day = screen.getByRole("button", { name: /73 consultas/ });
+    expect(within(day).getAllByText("Marina Souza")).toHaveLength(2);
+    expect(within(day).getByText("+1 mais")).toBeVisible();
+    fireEvent.click(day);
     expect(onAppointmentDateChange).toHaveBeenCalledWith("2026-05-07");
     expect(onAppointmentViewModeChange).toHaveBeenCalledWith("day");
   });

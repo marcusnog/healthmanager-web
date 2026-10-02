@@ -122,7 +122,6 @@ describe("PatientList", () => {
     expect(
       await screen.findByRole("heading", {
         name: "laudo.pdf",
-        exact: true,
       }),
     ).toBeVisible();
 
@@ -178,7 +177,6 @@ describe("PatientList", () => {
     expect(
       await screen.findByRole("heading", {
         name: "laudo.pdf",
-        exact: true,
       }),
     ).toBeVisible();
 

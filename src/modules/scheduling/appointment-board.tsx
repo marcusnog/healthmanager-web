@@ -107,8 +107,16 @@ function getMonthDays(value: string): string[] {
   return days;
 }
 
-function appointmentColorStyle(status?: string) {
+function appointmentColorStyle(status?: string, filled = false) {
   const variant = resolveAppointmentStatus(status);
+  if (filled) {
+    const background = variant === "scheduled" ? "var(--brand-strong)" : `var(--status-${variant}-color)`;
+    return {
+      backgroundColor: background,
+      borderColor: background,
+      color: variant === "completed" || variant === "noshow" ? "var(--surface-inverse)" : "var(--surface)",
+    };
+  }
   return {
     backgroundColor: variant === "scheduled" ? "var(--brand-wash)" : `var(--status-${variant}-bg)`,
     borderColor: variant === "scheduled" ? "var(--brand)" : `var(--status-${variant}-color)`,
@@ -752,29 +760,29 @@ export function AppointmentBoard({
                 return (
                   <article
                     className={cn("data-card appt-card", statusBorderClass(appointment.status))}
-                    style={appointmentColorStyle(appointment.status)}
+                    style={appointmentColorStyle(appointment.status, true)}
                     key={appointment.id ?? appointment.startAt ?? appointment.notes}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex items-baseline gap-3">
-                        <span className="tabular-nums text-base font-semibold text-[var(--ink)] shrink-0">
+                        <span className="tabular-nums text-base font-semibold shrink-0">
                           {formatTime(appointment.startAt ?? new Date().toISOString())}
                         </span>
                         <div className="min-w-0">
-                          <span className="font-semibold text-sm text-[var(--ink)]">
+                          <span className="font-semibold text-sm">
                             {patient?.name ?? "Paciente"}
                           </span>
-                          <div className="meta-row mt-0.5">
+                          <div className="meta-row mt-0.5" style={{ color: "inherit" }}>
                             {doctor?.name ? <span>{doctor.name}</span> : null}
                             {appointment.type ? <span>{appointment.type}</span> : null}
                             <span>{formatCurrency(appointment.amount ?? 0)}</span>
                           </div>
                           {appointment.notes ? (
-                            <p className="mt-1 text-xs text-[var(--muted)] leading-5">{appointment.notes}</p>
+                            <p className="mt-1 text-xs leading-5">{appointment.notes}</p>
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 rounded-md bg-[var(--surface)] p-1">
                         {appointment.source && appointment.source !== "Internal" && (
                           <span className="inline-flex items-center rounded-full bg-[var(--brand-wash)] px-2 py-0.5 text-[10px] font-semibold text-[var(--brand)] whitespace-nowrap">
                             {appointment.source}
@@ -784,7 +792,7 @@ export function AppointmentBoard({
                       </div>
                     </div>
 
-                    <div className="toolbar-inline mt-3">
+                    <div className="toolbar-inline mt-3 rounded-md bg-[var(--surface)] p-2 text-[var(--ink)]">
                       {appointment.status === "Scheduled" ? (
                         <button
                           className="btn btn-brand-outline btn-sm"
@@ -948,7 +956,7 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
               return placements.map(({ apt, lane, duration }) => {
                 const patient = patientMap[apt.patientId ?? ""];
                 const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
-                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="absolute overflow-auto rounded-sm border p-1.5 text-left text-xs leading-snug text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status), top: (minutes(apt.startAt!) - start) * 2.5, height: Math.max(1, duration * 2.5 - 2), left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
+                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="absolute overflow-auto rounded-sm border p-1.5 text-left text-xs leading-snug focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), top: (minutes(apt.startAt!) - start) * 2.5, height: Math.max(1, duration * 2.5 - 2), left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
                   <strong className="block break-words">{patient?.name ?? "Paciente"}</strong>
                   {patient?.details?.medicalRecordNumber ? <span className="block break-words">Prontuário {patient.details.medicalRecordNumber}</span> : null}
                   {patient?.phone ? <span className="block break-words">{patient.phone}</span> : null}
@@ -1091,11 +1099,15 @@ function MonthGrid({ appointments, patientMap, doctorMap, monthDays, todayDate, 
     {Array.from({ length: offset }, (_, index) => <span key={`empty-${index}`} />)}
     {monthDays.map(day => {
       const items = byDay[day] ?? [];
-      return <button className={cn("min-h-20 rounded-md border p-1.5 text-left sm:min-h-28 sm:p-2", day === todayDate ? "border-[var(--brand)] bg-[var(--brand-wash)]" : "border-[var(--border)]")} key={day} onClick={() => onDayClick(day)} type="button">
-        <span className="text-xs font-semibold">{Number(day.slice(-2))}</span>
-        <span className="mt-1 block text-[10px] text-[var(--muted)]">{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
-        <span className="mt-1 hidden space-y-1 sm:block">
-          {items.slice(0, 2).map(apt => <span className="block truncate border-l-2 pl-1 text-[10px]" key={apt.id} style={appointmentColorStyle(apt.status)} title={`${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>{formatTime(apt.startAt ?? "")} {patientMap[apt.patientId ?? ""]?.name}</span>)}
+      return <button className={cn("flex min-w-0 flex-col items-stretch rounded-md border p-1.5 text-left min-h-20 sm:min-h-40 sm:p-2 transition-colors hover:border-[var(--brand)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-strong)]", day === todayDate ? "border-[var(--brand)] bg-[var(--brand-wash)]" : items.length ? "border-[var(--border-strong)] bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--bg)]")} key={day} onClick={() => onDayClick(day)} type="button">
+        <span className={cn("text-base font-bold", day === todayDate ? "text-[var(--brand-strong)]" : "text-[var(--ink)]")}>{Number(day.slice(-2))}</span>
+        <span className={cn("mt-1 block text-xs", items.length ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]")}>{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
+        <span className="mt-2 hidden space-y-2 sm:block">
+          {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
+            <span className="block font-bold tabular-nums">{formatTime(apt.startAt ?? "")}</span>
+            <span className="block truncate font-medium">{patientMap[apt.patientId ?? ""]?.name ?? "Paciente"}</span>
+          </span>)}
+          {items.length > 2 ? <span className="block text-xs font-semibold text-[var(--brand-strong)]">+{items.length - 2} mais</span> : null}
         </span>
       </button>;
     })}
