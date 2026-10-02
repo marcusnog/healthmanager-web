@@ -226,7 +226,7 @@ describe("AppointmentBoard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar paciente" }));
 
     await waitFor(() => expect(patientsCreate).toHaveBeenCalled());
-    expect(screen.getByLabelText("Paciente")).toHaveValue("patient-2");
+    await waitFor(() => expect(screen.getByLabelText("Paciente")).toHaveValue("Ana Nova"));
     expect(screen.getByLabelText("Inicio")).toHaveValue("2026-05-07T16:30");
     expect(screen.getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
   });

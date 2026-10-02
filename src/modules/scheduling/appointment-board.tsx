@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
 import { DefaultService } from "@/services/api";
@@ -23,6 +23,7 @@ import type {
 } from "@/generated";
 import { ClinicalRecordModal } from "./clinical-record-modal";
 import { PatientCreateModal } from "../patients/patient-list";
+import { PatientSearch } from "./patient-search";
 
 const schema = z.object({
   patientId: z.string().min(1, "Selecione um paciente."),
@@ -199,6 +200,7 @@ export function AppointmentBoard({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setValue,
@@ -215,6 +217,8 @@ export function AppointmentBoard({
       notes: "",
     },
   });
+
+  const selectedPatientId = useWatch({ control, name: "patientId" });
 
   const createAppointment = useMutation({
     mutationFn: async (values: FormValues) =>
@@ -435,7 +439,7 @@ export function AppointmentBoard({
               <input checked={isGroup} onChange={(event) => { setIsGroup(event.target.checked); setGroupPatientIds([]); }} type="checkbox" />
               Atendimento em grupo
             </label>
-            <Field error={errors.patientId?.message} label="Paciente">
+            <Field error={errors.patientId?.message} label="Paciente" className="md:col-span-2">
               <div className="flex gap-2">
               {isGroup ? (
                 <div className="input-field flex max-h-36 flex-1 flex-col gap-2 overflow-y-auto">
@@ -451,14 +455,11 @@ export function AppointmentBoard({
                     </label>
                   ))}
                 </div>
-              ) : <select className="input-field" {...register("patientId")}>
-                <option value="">Selecione</option>
-                {([...patients, ...(createdPatient && !patients.some((patient) => patient.id === createdPatient.id) ? [createdPatient] : [])]).map((patient) => (
-                  <option key={patient.id ?? patient.cpf} value={patient.id}>
-                    {patient.name}
-                  </option>
-                ))}
-              </select>}
+              ) : <PatientSearch
+                patients={[...patients, ...(createdPatient && !patients.some(patient => patient.id === createdPatient.id) ? [createdPatient] : [])]}
+                value={selectedPatientId}
+                onChange={patient => setValue("patientId", patient?.id ?? "", { shouldValidate: true })}
+              />}
               <button className="btn btn-ghost btn-sm shrink-0" onClick={() => setIsPatientFormOpen(true)} type="button">Cadastrar paciente</button>
               </div>
             </Field>
