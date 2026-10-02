@@ -98,6 +98,18 @@ describe("AppointmentBoard", () => {
     expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
   });
 
+  it("updates calendar colors when the appointment status changes", () => {
+    const appointment = { id: "colored", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", endAt: "2026-05-07T12:30:00Z" };
+    const view = renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{ ...appointment, status: "Scheduled" }]} />);
+    for (const status of ["Scheduled", "Confirmed", "InProgress", "Completed", "Cancelled", "NoShow"] as const) {
+      view.rerender(<AppointmentBoard {...baseProps} appointments={[{ ...appointment, status }]} />);
+      const block = within(screen.getByLabelText("Regua de horarios do dia")).getByRole("button");
+      const variant = status.toLowerCase();
+      expect(block.style.backgroundColor).toBe(status === "Scheduled" ? "var(--brand-wash)" : `var(--status-${variant}-bg)`);
+      expect(block.style.borderColor).toBe(status === "Scheduled" ? "var(--brand)" : `var(--status-${variant}-color)`);
+    }
+  });
+
   it("confirms a scheduled appointment from the operational board", async () => {
     appointmentsConfirm.mockResolvedValueOnce({
       id: "appointment-1",
