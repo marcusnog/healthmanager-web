@@ -90,6 +90,7 @@ tests/
 - Test wrapper: `renderWithProviders(ui)` from `src/test/render.tsx`
 - Linting: ESLint with `eslint-config-next/core-web-vitals` + `typescript`; ignores `.next/`, `src/generated/`, coverage, playwright reports
 - `.github/workflows/frontend-ci.yml` runs install, lint, unit tests with coverage, and build on pushes to master/main/develop and on pull requests.
+- After CI passes on master/main pushes, the workflow builds the Docker image, uploads it over SSH to `157.254.207.208`, imports it into K3s, and updates `healthmanager/web`. Failed rollouts restore the previous image. Repository secrets: `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`. The Tailscale site uses this K3s deployment; the backend Docker Compose deploy is separate.
 
 ## Environment variables
 
