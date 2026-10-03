@@ -78,6 +78,7 @@ export type { SpecialtyItem } from './models/SpecialtyItem';
 export type { TenantIntegrationResponse } from './models/TenantIntegrationResponse';
 export type { TenantSettingsResponse } from './models/TenantSettingsResponse';
 export type { UpdateAppointmentRequest } from './models/UpdateAppointmentRequest';
+export { UpdateAppointmentStatusRequest } from './models/UpdateAppointmentStatusRequest';
 export type { UpdateClinicalRecordRequest } from './models/UpdateClinicalRecordRequest';
 export type { UpdateDoctorRequest } from './models/UpdateDoctorRequest';
 export type { UpdatePatientRequest } from './models/UpdatePatientRequest';

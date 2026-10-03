@@ -64,6 +64,7 @@ import type { SettlementResponse } from '../models/SettlementResponse';
 import type { TenantIntegrationResponse } from '../models/TenantIntegrationResponse';
 import type { TenantSettingsResponse } from '../models/TenantSettingsResponse';
 import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentRequest';
+import type { UpdateAppointmentStatusRequest } from '../models/UpdateAppointmentStatusRequest';
 import type { UpdateClinicalRecordRequest } from '../models/UpdateClinicalRecordRequest';
 import type { UpdateDoctorRequest } from '../models/UpdateDoctorRequest';
 import type { UpdatePatientRequest } from '../models/UpdatePatientRequest';
@@ -76,6 +77,26 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class DefaultService {
+    /**
+     * @param id
+     * @param requestBody
+     * @returns AppointmentResponse OK
+     * @throws ApiError
+     */
+    public static appointmentsUpdateStatus(
+        id: string,
+        requestBody: UpdateAppointmentStatusRequest,
+    ): CancelablePromise<AppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/appointments/{id}/status',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
     /**
      * @param requestBody
      * @returns AuthResponse OK
@@ -561,6 +582,26 @@ export class DefaultService {
             url: '/appointments/{id}/no-show',
             path: {
                 'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static appointmentsDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/appointments/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                400: `Appointment has protected clinical or financial records`,
+                404: `Appointment not found`,
             },
         });
     }

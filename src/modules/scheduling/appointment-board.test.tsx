@@ -3,12 +3,14 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsCreateGroup, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsCreateGroup, appointmentsDelete, appointmentsUpdateStatus, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
     appointmentsCreate: vi.fn(),
     appointmentsCreateGroup: vi.fn(),
+    appointmentsDelete: vi.fn(),
+    appointmentsUpdateStatus: vi.fn(),
     appointmentsUpdate: vi.fn(),
     paymentsCreate: vi.fn(),
     patientsCreate: vi.fn(),
@@ -21,6 +23,8 @@ vi.mock("@/services/api", () => ({
     appointmentsConfirm,
     appointmentsCreate,
     appointmentsCreateGroup,
+    appointmentsDelete,
+    appointmentsUpdateStatus,
     appointmentsUpdate,
     paymentsCreate,
     patientsCreate,
@@ -74,12 +78,53 @@ describe("AppointmentBoard", () => {
     appointmentsConfirm.mockReset();
     appointmentsCreate.mockReset();
     appointmentsCreateGroup.mockReset();
+    appointmentsDelete.mockReset();
+    appointmentsUpdateStatus.mockReset();
     appointmentsUpdate.mockReset();
     paymentsCreate.mockReset();
     patientsCreate.mockReset();
     healthInsurancesList.mockReset();
     healthInsurancesList.mockResolvedValue({ items: [] });
     baseProps.onAppointmentDateChange.mockReset();
+  });
+
+  it("requires confirmation before deleting and allows keeping the appointment", async () => {
+    appointmentsDelete.mockResolvedValueOnce(undefined);
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{
+      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Scheduled",
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir agendamento" }));
+    expect(screen.getByRole("heading", { name: "Excluir agendamento" })).toBeVisible();
+    expect(appointmentsDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Manter agendamento" }));
+    expect(appointmentsDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Excluir agendamento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusao" }));
+    await waitFor(() => expect(appointmentsDelete).toHaveBeenCalledWith("appointment-1"));
+    expect(await screen.findByText("Agendamento excluido com sucesso.")).toBeVisible();
+  });
+
+  it("keeps deletion confirmation open and explains protected history", async () => {
+    appointmentsDelete.mockRejectedValueOnce({ body: { detail: "Agendamento com pagamento registrado nao pode ser excluido." } });
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{
+      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Completed",
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir agendamento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusao" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Agendamento com pagamento registrado nao pode ser excluido.");
+    expect(screen.getByRole("heading", { name: "Excluir agendamento" })).toBeVisible();
+  });
+
+  it("opens deletion confirmation from the weekly edit modal", async () => {
+    appointmentsDelete.mockResolvedValueOnce(undefined);
+    renderWithProviders(<AppointmentBoard {...baseProps} appointmentViewMode="week" appointmentDateFrom="2026-05-04" appointmentDateTo="2026-05-10" appointments={[{
+      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", status: "Cancelled",
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Editar consulta de Marina Souza" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir agendamento" }));
+    expect(screen.getByRole("heading", { name: "Excluir agendamento" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusao" }));
+    await waitFor(() => expect(appointmentsDelete).toHaveBeenCalledWith("appointment-1"));
   });
 
   it("positions simultaneous appointments side by side and opens editing", () => {
@@ -117,7 +162,7 @@ describe("AppointmentBoard", () => {
   });
 
   it("confirms a scheduled appointment from the operational board", async () => {
-    appointmentsConfirm.mockResolvedValueOnce({
+    appointmentsUpdateStatus.mockResolvedValueOnce({
       id: "appointment-1",
       patientId: "patient-1",
       doctorId: "doctor-1",
@@ -150,19 +195,19 @@ describe("AppointmentBoard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Alterar status de Marina Souza" }), { target: { value: "Confirmed" } });
 
     await waitFor(() =>
-      expect(appointmentsConfirm).toHaveBeenCalledWith("appointment-1"),
+      expect(appointmentsUpdateStatus).toHaveBeenCalledWith("appointment-1", { status: "Confirmed" }),
     );
 
     expect(
-      await screen.findByText("Primeira consulta confirmada com sucesso."),
+      await screen.findByText("Status atualizado. Se marcou por engano, selecione o status correto."),
     ).toBeVisible();
   });
 
   it("cancels a scheduled appointment from the operational board", async () => {
-    appointmentsCancel.mockResolvedValueOnce({
+    appointmentsUpdateStatus.mockResolvedValueOnce({
       id: "appointment-1",
       patientId: "patient-1",
       doctorId: "doctor-1",
@@ -195,15 +240,14 @@ describe("AppointmentBoard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Mais acoes"));
-    fireEvent.click(screen.getByRole("button", { name: "Remarcou" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Alterar status de Marina Souza" }), { target: { value: "Cancelled" } });
 
     await waitFor(() =>
-      expect(appointmentsCancel).toHaveBeenCalledWith("appointment-1"),
+      expect(appointmentsUpdateStatus).toHaveBeenCalledWith("appointment-1", { status: "Cancelled" }),
     );
 
     expect(
-      await screen.findByText("Primeira consulta cancelada com sucesso."),
+      await screen.findByText("Status atualizado. Se marcou por engano, selecione o status correto."),
     ).toBeVisible();
   });
 
@@ -249,26 +293,22 @@ describe("AppointmentBoard", () => {
     expect(screen.getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
   });
 
-  it("creates a group appointment for the selected patients", async () => {
-    appointmentsCreateGroup.mockResolvedValueOnce([]);
-    renderWithProviders(
-      <AppointmentBoard
-        {...baseProps}
-        appointments={[]}
-        patients={[...baseProps.patients, { id: "patient-2", name: "Ana Nova", cpf: "52998224725", phone: "11999998888" }]}
-      />,
-    );
-
+  it("uses individual scheduling without a group option", async () => {
+    appointmentsCreate.mockResolvedValueOnce({});
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
     fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Atendimento em grupo" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Marina Souza" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Ana Nova" }));
+    expect(screen.queryByRole("checkbox", { name: "Atendimento em grupo" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Salvar consulta" }));
+    await waitFor(() => expect(appointmentsCreate).toHaveBeenCalledWith(expect.objectContaining({ patientId: "patient-1", doctorId: "doctor-1" })));
+    expect(appointmentsCreateGroup).not.toHaveBeenCalled();
+  });
 
-    await waitFor(() => expect(appointmentsCreateGroup).toHaveBeenCalledWith(expect.objectContaining({
-      patientIds: ["patient-1", "patient-2"],
-      doctorId: "doctor-1",
-    })));
+  it("expands and restores the appointment board", () => {
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ampliar quadro" }));
+    expect(screen.getByRole("region", { name: "Quadro de atendimentos" })).toHaveClass("fixed");
+    fireEvent.click(screen.getByRole("button", { name: "Sair da tela ampliada" }));
+    expect(screen.getByRole("region", { name: "Quadro de atendimentos" })).not.toHaveClass("fixed");
   });
 
   it("shows the monthly view and opens a selected day", () => {
@@ -376,23 +416,17 @@ describe("AppointmentBoard", () => {
     expect(screen.queryByRole("button", { name: "Confirmar consulta de Marina Souza" })).not.toBeInTheDocument();
   });
 
-  it("offers only valid status transitions during the appointment flow", () => {
-    const { rerender } = renderWithProviders(
-      <AppointmentBoard {...baseProps} appointments={[{
+  it("offers every status for direct changes and corrections, including terminal states", () => {
+    for (const status of ["Scheduled", "Confirmed", "InProgress", "Completed", "Cancelled", "NoShow"] as const) {
+      const { unmount } = renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{
         id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
-        startAt: "2026-05-07T11:00:00Z", status: "Scheduled", type: "Retorno", amount: 180,
-      }]} />,
-    );
-    expect(within(screen.getByRole("article")).queryByRole("button", { name: "Faltou" })).not.toBeInTheDocument();
-
-    rerender(<AppointmentBoard {...baseProps} appointments={[{
-      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
-      startAt: "2026-05-07T11:00:00Z", status: "InProgress", type: "Retorno", amount: 180,
-    }]} />);
-    fireEvent.click(within(screen.getByRole("article")).getByText("Mais acoes"));
-    expect(within(screen.getByRole("article")).getByRole("button", { name: "Faltou" })).toBeVisible();
-    expect(within(screen.getByRole("article")).getByRole("button", { name: "Compareceu" })).toBeVisible();
-    expect(within(screen.getByRole("article")).queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
+        startAt: "2026-05-07T11:00:00Z", status, type: "Retorno", amount: 180,
+      }]} />);
+      const control = screen.getByRole("combobox", { name: "Alterar status de Marina Souza" });
+      expect(control).toHaveValue(status);
+      expect(within(control).getAllByRole("option")).toHaveLength(6);
+      unmount();
+    }
   });
 
   it("keeps the edit modal open and shows the scheduling conflict", async () => {
@@ -417,7 +451,7 @@ describe("AppointmentBoard", () => {
     );
 
     fireEvent.click(screen.getByText("Mais acoes"));
-    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar / Remarcar" }));
     fireEvent.change(screen.getByLabelText("Inicio"), { target: { value: "2026-05-08T11:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
 
@@ -444,7 +478,7 @@ describe("AppointmentBoard", () => {
     );
 
     fireEvent.click(screen.getByText("Mais acoes"));
-    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar / Remarcar" }));
     fireEvent.change(screen.getByLabelText("Tipo"), { target: { value: "type-first" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
 

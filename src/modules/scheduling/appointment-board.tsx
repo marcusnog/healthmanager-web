@@ -16,6 +16,7 @@ import { apiErrorMessage } from "@/lib/api-error";
 import type {
   AppointmentResponse,
   AppointmentTypeResponse,
+  UpdateAppointmentStatusRequest,
   CreatePaymentRequest,
   DoctorResponse,
   PatientResponse,
@@ -169,14 +170,15 @@ export function AppointmentBoard({
   total: number;
   onPageChange: (page: number) => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [createdPatient, setCreatedPatient] = useState<PatientResponse | null>(null);
-  const [isGroup, setIsGroup] = useState(false);
-  const [groupPatientIds, setGroupPatientIds] = useState<string[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
+  const [deletingAppointment, setDeletingAppointment] = useState<AppointmentResponse | null>(null);
+  const [deleteFeedback, setDeleteFeedback] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [processingAppointmentId, setProcessingAppointmentId] = useState<
     string | null
@@ -233,15 +235,7 @@ export function AppointmentBoard({
 
   const createAppointment = useMutation({
     mutationFn: async (values: FormValues) =>
-      isGroup ? DefaultService.appointmentsCreateGroup({
-        patientIds: groupPatientIds,
-        doctorId: values.doctorId,
-        startAt: new Date(values.startAt).toISOString(),
-        durationMinutes: values.durationMinutes,
-        appointmentTypeId: values.appointmentTypeId,
-        amount: values.amount,
-        notes: values.notes || undefined,
-      }) : DefaultService.appointmentsCreate({
+      DefaultService.appointmentsCreate({
         patientId: values.patientId,
         doctorId: values.doctorId,
         startAt: new Date(values.startAt).toISOString(),
@@ -252,8 +246,6 @@ export function AppointmentBoard({
       }),
     onSuccess: async () => {
       setFeedback("Consulta agendada com sucesso.");
-      setGroupPatientIds([]);
-      setIsGroup(false);
       reset({
         patientId: patients[0]?.id ?? "",
         doctorId: doctors[0]?.id ?? "",
@@ -299,80 +291,52 @@ export function AppointmentBoard({
     },
   });
 
-  const cancelAppointment = useMutation({
-    mutationFn: async (appointment: AppointmentResponse) => {
-      if (!appointment.id) {
-        throw new Error("Consulta sem identificador.");
-      }
-
-      setProcessingAppointmentId(appointment.id);
-      return DefaultService.appointmentsCancel(appointment.id);
-    },
-    onSuccess: async (appointment) => {
-      setFeedback(`${appointment.type ?? "Consulta"} cancelada com sucesso.`);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
-      ]);
-    },
-    onError: () => {
-      setFeedback("Nao foi possivel cancelar a consulta agora.");
-    },
-    onSettled: () => {
-      setProcessingAppointmentId(null);
-    },
-  });
-
-  const markInProgressAppointment = useMutation({
-    mutationFn: async (appointment: AppointmentResponse) => {
+  const changeStatus = useMutation({
+    mutationFn: async ({ appointment, status }: { appointment: AppointmentResponse; status: NonNullable<AppointmentResponse["status"]> }) => {
       if (!appointment.id) throw new Error("Consulta sem identificador.");
       setProcessingAppointmentId(appointment.id);
-      return DefaultService.appointmentsInProgress(appointment.id);
+      return DefaultService.appointmentsUpdateStatus(appointment.id, { status: status as UpdateAppointmentStatusRequest.status });
     },
-    onSuccess: async (appointment) => {
-      setFeedback(`${appointment.type ?? "Consulta"} iniciada.`);
+    onSuccess: async () => {
+      setFeedback("Status atualizado. Se marcou por engano, selecione o status correto.");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["appointments"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["appointment-receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["financial-summary"] }),
       ]);
     },
-    onError: () => setFeedback("Nao foi possivel atualizar o status."),
+    onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel atualizar o status.")),
     onSettled: () => setProcessingAppointmentId(null),
   });
 
-  const completeAppointment = useMutation({
+  const deleteAppointment = useMutation({
     mutationFn: async (appointment: AppointmentResponse) => {
-      if (!appointment.id) throw new Error("Consulta sem identificador.");
+      if (!appointment.id) throw new Error("Agendamento sem identificador.");
       setProcessingAppointmentId(appointment.id);
-      return DefaultService.appointmentsComplete(appointment.id);
+      return DefaultService.appointmentsDelete(appointment.id);
     },
-    onSuccess: async (appointment) => {
-      setFeedback(`${appointment.type ?? "Consulta"} concluida.`);
+    onSuccess: async () => {
+      setDeletingAppointment(null);
+      setEditingAppointment(null);
+      setFeedback("Agendamento excluido com sucesso.");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["appointments"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["appointment-receivables"] }),
+        queryClient.invalidateQueries({ queryKey: ["financial-summary"] }),
       ]);
     },
-    onError: () => setFeedback("Nao foi possivel concluir a consulta."),
+    onError: (error) => setDeleteFeedback(apiErrorMessage(error, "Nao foi possivel excluir o agendamento.")),
     onSettled: () => setProcessingAppointmentId(null),
   });
 
-  const markNoShowAppointment = useMutation({
-    mutationFn: async (appointment: AppointmentResponse) => {
-      if (!appointment.id) throw new Error("Consulta sem identificador.");
-      setProcessingAppointmentId(appointment.id);
-      return DefaultService.appointmentsNoShow(appointment.id);
-    },
-    onSuccess: async (appointment) => {
-      setFeedback(`${appointment.type ?? "Consulta"} marcada como falta.`);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
-      ]);
-    },
-    onError: () => setFeedback("Nao foi possivel marcar falta."),
-    onSettled: () => setProcessingAppointmentId(null),
-  });
+  const openDelete = (appointment: AppointmentResponse) => {
+    setDeleteFeedback(null);
+    setDeletingAppointment(appointment);
+  };
 
   const updateAppointment = useMutation({
     mutationFn: async ({
@@ -434,43 +398,35 @@ export function AppointmentBoard({
 
   const onSubmit = handleSubmit(async (values) => {
     setFeedback(null);
-    if (isGroup && groupPatientIds.length < 2) {
-      setFeedback("Selecione ao menos dois pacientes para o atendimento em grupo.");
-      return;
-    }
     await createAppointment.mutateAsync(values);
   });
 
   return (
     <>
+      {deletingAppointment ? (
+        <Modal title="Excluir agendamento" onClose={() => { if (!deleteAppointment.isPending) setDeletingAppointment(null); }}>
+          <p className="text-sm">
+            Excluir o agendamento de <strong>{patientMap[deletingAppointment.patientId ?? ""]?.name ?? deletingAppointment.patientName ?? "Paciente"}</strong>
+            {deletingAppointment.startAt ? ` em ${new Date(deletingAppointment.startAt).toLocaleString("pt-BR")}` : ""}?
+          </p>
+          <p className="mt-3 text-sm text-[var(--muted)]">O agendamento sera removido da agenda e a cobranca sem pagamento sera cancelada. Agendamentos com pagamento, prontuario ou cobranca em andamento nao podem ser excluidos.</p>
+          {deleteFeedback ? <p role="alert" className="mt-3 text-sm">{deleteFeedback}</p> : null}
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <button className="btn btn-ghost min-h-11" disabled={deleteAppointment.isPending} onClick={() => setDeletingAppointment(null)} type="button">Manter agendamento</button>
+            <button className="btn btn-danger min-h-11" disabled={deleteAppointment.isPending} onClick={() => deleteAppointment.mutate(deletingAppointment)} type="button">{deleteAppointment.isPending ? "Excluindo..." : "Confirmar exclusao"}</button>
+          </div>
+        </Modal>
+      ) : null}
       {isFormOpen ? (
         <Modal title="Agendar consulta" onClose={() => setIsFormOpen(false)}>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-            <label className="md:col-span-2 flex items-center gap-2 text-sm font-semibold">
-              <input checked={isGroup} onChange={(event) => { setIsGroup(event.target.checked); setGroupPatientIds([]); }} type="checkbox" />
-              Atendimento em grupo
-            </label>
             <Field error={errors.patientId?.message} label="Paciente" className="md:col-span-2">
               <div className="flex gap-2">
-              {isGroup ? (
-                <div className="input-field flex max-h-36 flex-1 flex-col gap-2 overflow-y-auto">
-                  {([...patients, ...(createdPatient && !patients.some((patient) => patient.id === createdPatient.id) ? [createdPatient] : [])]).map((patient) => (
-                    <label className="flex items-center gap-2" key={patient.id ?? patient.cpf}>
-                      <input
-                        aria-label={patient.name ?? "Paciente"}
-                        checked={!!patient.id && groupPatientIds.includes(patient.id)}
-                        onChange={(event) => patient.id && setGroupPatientIds((ids) => event.target.checked ? [...ids, patient.id!] : ids.filter((id) => id !== patient.id))}
-                        type="checkbox"
-                      />
-                      {patient.name}
-                    </label>
-                  ))}
-                </div>
-              ) : <PatientSearch
+              <PatientSearch
                 patients={[...patients, ...(createdPatient && !patients.some(patient => patient.id === createdPatient.id) ? [createdPatient] : [])]}
                 value={selectedPatientId}
                 onChange={patient => setValue("patientId", patient?.id ?? "", { shouldValidate: true })}
-              />}
+              />
               <button className="btn btn-ghost btn-sm shrink-0" onClick={() => setIsPatientFormOpen(true)} type="button">Cadastrar paciente</button>
               </div>
             </Field>
@@ -537,8 +493,19 @@ export function AppointmentBoard({
 
       {editingAppointment ? (
         <Modal title="Editar consulta" onClose={() => setEditingAppointment(null)}>
+          <label className="mb-4 flex flex-wrap items-center gap-2 text-sm font-medium">
+            Alterar status
+            <select className="input-field min-h-11 w-auto" aria-label="Alterar status da consulta selecionada"
+              disabled={changeStatus.isPending || deleteAppointment.isPending}
+              value={(appointments.find(item => item.id === editingAppointment.id) ?? editingAppointment).status ?? "Scheduled"}
+              onChange={(event) => changeStatus.mutate({ appointment: editingAppointment, status: event.target.value as NonNullable<AppointmentResponse["status"]> })}>
+              {STATUS_FILTERS.filter(status => status.key).map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          {feedback ? <p role="status" className="mb-4 text-sm">{feedback}</p> : null}
+          <button className="btn btn-danger mb-4 min-h-11" disabled={changeStatus.isPending || deleteAppointment.isPending} onClick={() => openDelete(editingAppointment)} type="button">Excluir agendamento</button>
           <AppointmentEditForm
-            appointment={editingAppointment}
+            appointment={appointments.find(item => item.id === editingAppointment.id) ?? editingAppointment}
             doctors={doctors}
             appointmentTypes={appointmentTypes}
             onSaved={async (values) => {
@@ -567,7 +534,7 @@ export function AppointmentBoard({
           onClose={() => setIsPatientFormOpen(false)}
           onCreated={(patient) => {
             setCreatedPatient(patient);
-            if (isGroup && patient.id) setGroupPatientIds((ids) => [...ids, patient.id!]);
+            setValue("patientId", patient.id ?? "", { shouldValidate: true });
             setIsPatientFormOpen(false);
           }}
         />
@@ -601,10 +568,13 @@ export function AppointmentBoard({
         </Modal>
       ) : null}
 
-      <section className="panel p-5 md:p-6">
+      <section className={cn("panel p-5 md:p-6", isExpanded && "fixed inset-0 z-40 overflow-auto rounded-none")} aria-label="Quadro de atendimentos" onKeyDown={(event) => { if (isExpanded && event.key === "Escape") setIsExpanded(false); }}>
         <div className="section-heading">
           <div>
-            <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
+              <button className="btn btn-ghost min-h-11" type="button" aria-pressed={isExpanded} onClick={() => setIsExpanded(!isExpanded)}>{isExpanded ? "Sair da tela ampliada" : "Ampliar quadro"}</button>
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {total} consulta{total === 1 ? "" : "s"}
               {appointmentViewMode !== "day" && appointmentDateFrom && appointmentDateTo
@@ -745,8 +715,9 @@ export function AppointmentBoard({
           <MonthGrid appointments={appointments} patientMap={patientMap} doctorMap={doctorMap} monthDays={getMonthDays(appointmentDate)} todayDate={todayDate} isLoading={isLoading} onDayClick={(day) => { onAppointmentDateChange(day); onAppointmentViewModeChange?.("day"); }} />
         ) : (
           <>
+
           <DailyTimeRuler appointments={appointments} appointmentDate={appointmentDate} patientMap={patientMap} doctors={doctors.filter(doctor => !appointmentDoctorId || doctor.id === appointmentDoctorId)} isLoading={isLoading} onEdit={setEditingAppointment} />
-          <div className="stack-list mt-5">
+          <div className="mt-5 grid gap-4 xl:grid-cols-2">
             {isLoading ? (
               <AppointmentSkeleton />
             ) : appointments.length ? (
@@ -793,54 +764,29 @@ export function AppointmentBoard({
                     </div>
 
                     <div className="toolbar-inline mt-3 rounded-md bg-[var(--surface)] p-2 text-[var(--ink)]">
-                      {appointment.status === "Scheduled" ? (
-                        <button
-                          className="btn btn-brand-outline btn-sm"
-                          disabled={isProcessing}
-                          onClick={() => {
+                      <label className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                        Alterar status
+                        <select
+                          aria-label={`Alterar status de ${patient?.name ?? "Paciente"}`}
+                          className="input-field min-h-11 w-auto"
+                          disabled={isProcessing || changeStatus.isPending || deleteAppointment.isPending}
+                          value={appointment.status ?? "Scheduled"}
+                          onChange={(event) => {
                             setFeedback(null);
-                            confirmAppointment.mutate(appointment);
+                            changeStatus.mutate({ appointment, status: event.target.value as NonNullable<AppointmentResponse["status"]> });
                           }}
-                          type="button"
                         >
-                          {isProcessing ? <span className="spinner" /> : "Confirmar"}
-                        </button>
-                      ) : null}
-                      {appointment.status === "Confirmed" ? (
-                        <button
-                          className="btn btn-sm"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setFeedback(null);
-                            void markInProgressAppointment.mutateAsync(appointment);
-                          }}
-                          type="button"
-                        >
-                          {isProcessing ? <span className="spinner" /> : "Em atendimento"}
-                        </button>
-                      ) : null}
-                      {appointment.status === "InProgress" ? (
-                        <button
-                          className="btn btn-brand-outline btn-sm"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setFeedback(null);
-                            void completeAppointment.mutateAsync(appointment);
-                          }}
-                          type="button"
-                        >
-                          {isProcessing ? <span className="spinner" /> : "Compareceu"}
-                        </button>
-                      ) : null}
+                          {STATUS_FILTERS.filter((status) => status.key).map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+                        </select>
+                        {isProcessing ? <span role="status">Salvando...</span> : null}
+                      </label>
+                      <button className="btn btn-danger min-h-11" disabled={isProcessing || changeStatus.isPending || deleteAppointment.isPending} onClick={() => openDelete(appointment)} type="button">Excluir agendamento</button>
                       <details className="relative">
                         <summary className="btn btn-ghost btn-sm cursor-pointer list-none">Mais acoes</summary>
                         <div className="mt-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2">
-                          <button className="btn btn-ghost btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); setEditingAppointment(appointment); }} type="button">Editar</button>
+                          <button className="btn btn-ghost btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); setEditingAppointment(appointment); }} type="button">Editar / Remarcar</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); setClinicalRecordAppointment(appointment); }} type="button">Prontuario</button>
                           {(receivable?.receivedAmount ?? 0) > 0 && (receivable?.outstandingAmount ?? 0) > 0 ? <button className="btn btn-primary btn-sm" onClick={() => openPayment(receivable)} type="button">Receber saldo</button> : null}
-                          {appointment.status === "Scheduled" ? <button className="btn btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void markInProgressAppointment.mutateAsync(appointment); }} type="button">Em atendimento</button> : null}
-                          {appointment.status === "InProgress" ? <button className="btn btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void markNoShowAppointment.mutateAsync(appointment); }} type="button">Faltou</button> : null}
-                          {appointment.status !== "Cancelled" && appointment.status !== "NoShow" && appointment.status !== "Completed" ? <button className="btn btn-danger btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); void cancelAppointment.mutateAsync(appointment); }} type="button">Remarcou</button> : null}
                         </div>
                       </details>
                     </div>
@@ -917,12 +863,20 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
     if (!columns.some(column => column.id === apt.doctorId)) columns.push({ id: apt.doctorId, name: "Médico não informado" });
   }
   if (!columns.length) columns.push({ id: undefined, name: "Consultas" });
+  const columnWidths = columns.map(column => {
+    const items = valid.filter(apt => apt.doctorId === column.id);
+    const concurrent = Math.max(1, ...items.map(apt => items.filter(other =>
+      new Date(other.startAt!).getTime() <= new Date(apt.startAt!).getTime() &&
+      (other.endAt ? new Date(other.endAt).getTime() : new Date(other.startAt!).getTime() + 30 * 60_000) > new Date(apt.startAt!).getTime()
+    ).length));
+    return Math.max(360, concurrent * 180);
+  });
   const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   if (isLoading) return <AppointmentSkeleton />;
   return (
-    <div aria-label="Regua de horarios do dia" className="mt-5 max-h-[680px] overflow-auto rounded-md border border-[var(--border)] bg-[var(--surface)]">
-      <div className="grid" style={{ gridTemplateColumns: `64px repeat(${columns.length}, minmax(240px, 1fr))`, minWidth: 64 + columns.length * 240 }}>
+    <div aria-label="Regua de horarios do dia" className="mt-5 max-h-[80vh] overflow-auto rounded-md border border-[var(--border)] bg-[var(--surface)]">
+      <div className="grid" style={{ gridTemplateColumns: `64px ${columnWidths.map(width => `minmax(${width}px, 1fr)`).join(" ")}`, minWidth: 64 + columnWidths.reduce((sum, width) => sum + width, 0) }}>
         <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-4 text-xs text-[var(--muted)]">Horário</div>
         {columns.map(column => <div key={column.id ?? "unknown"} className="sticky top-0 z-20 border-b border-l border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-sm font-semibold">{column.name}</div>)}
         <div aria-hidden className="relative text-xs text-[var(--muted)]" style={{ height }}>
@@ -1219,11 +1173,10 @@ function WeekGrid({
                         <span className="text-[9px] font-semibold text-[var(--brand)]">{apt.source}</span>
                       )}
                     </div>
-                    {!isCancelled ? (
                       <div className="mt-1 flex flex-wrap gap-2">
                         <button
                           aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
-                          className="text-[var(--brand)] underline"
+                          className="min-h-11 text-[var(--brand)] underline"
                           onClick={() => onEdit(apt)}
                           type="button"
                         >
@@ -1232,7 +1185,7 @@ function WeekGrid({
                         {apt.status === "Scheduled" ? (
                           <button
                             aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
-                            className="text-[var(--brand)] underline"
+                            className="min-h-11 text-[var(--brand)] underline"
                             disabled={processingAppointmentId === apt.id}
                             onClick={() => onConfirm(apt)}
                             type="button"
@@ -1241,7 +1194,6 @@ function WeekGrid({
                           </button>
                         ) : null}
                       </div>
-                    ) : null}
                   </div>
                 );
               })}
