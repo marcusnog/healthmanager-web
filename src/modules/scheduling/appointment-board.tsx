@@ -857,7 +857,8 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
     const finish = minutes(apt.startAt!) + (apt.endAt ? (new Date(apt.endAt).getTime() - new Date(apt.startAt!).getTime()) / 60_000 : 30);
     return Math.ceil(finish / 60) * 60;
   }));
-  const height = (end - start) * 2.5;
+  const height = "clamp(320px, 52dvh, 600px)";
+  const position = (minute: number) => `${(minute - start) / (end - start) * 100}%`;
   const columns = [...doctors.map(doctor => ({ id: doctor.id, name: doctor.name ?? "Médico" }))];
   for (const apt of valid) {
     if (!columns.some(column => column.id === apt.doctorId)) columns.push({ id: apt.doctorId, name: "Médico não informado" });
@@ -875,14 +876,14 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   if (isLoading) return <AppointmentSkeleton />;
   return (
-    <div aria-label="Regua de horarios do dia" className="mt-5 max-h-[80vh] overflow-auto rounded-md border border-[var(--border)] bg-[var(--surface)]">
+    <div aria-label="Regua de horarios do dia" className="mt-5 overflow-x-auto rounded-md border border-[var(--border)] bg-[var(--surface)]">
       <div className="grid" style={{ gridTemplateColumns: `64px ${columnWidths.map(width => `minmax(${width}px, 1fr)`).join(" ")}`, minWidth: 64 + columnWidths.reduce((sum, width) => sum + width, 0) }}>
         <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-4 text-xs text-[var(--muted)]">Horário</div>
         {columns.map(column => <div key={column.id ?? "unknown"} className="sticky top-0 z-20 border-b border-l border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-sm font-semibold">{column.name}</div>)}
         <div aria-hidden className="relative text-xs text-[var(--muted)]" style={{ height }}>
-          {Array.from({ length: Math.ceil((end - start) / 20) }, (_, index) => {
-            const time = start + index * 20;
-            return <span key={time} className="absolute right-2" style={{ top: index * 50 + 4 }}>{String(Math.floor(time / 60)).padStart(2, "0")}:{String(time % 60).padStart(2, "0")}</span>;
+          {Array.from({ length: Math.ceil((end - start) / 60) + 1 }, (_, index) => {
+            const time = start + index * 60;
+            return <span key={time} className="absolute right-2" style={time === end ? { bottom: 0 } : { top: position(time) }}>{String(Math.floor(time / 60)).padStart(2, "0")}:{String(time % 60).padStart(2, "0")}</span>;
           })}
         </div>
         {columns.map(column => {
@@ -896,7 +897,7 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
             groups[groups.length - 1].push(apt);
             groupEnd = Math.max(groupEnd, finish);
           }
-          return <div key={column.id ?? "unknown"} className="relative border-l border-[var(--border)]" style={{ height, backgroundImage: "repeating-linear-gradient(to bottom, transparent 0px, transparent 49px, var(--border) 49px, var(--border) 50px)" }}>
+          return <div key={column.id ?? "unknown"} className="relative border-l border-[var(--border)]" style={{ height, backgroundImage: `repeating-linear-gradient(to bottom, var(--border) 0px, var(--border) 1px, transparent 1px, transparent ${60 / (end - start) * 100}%)` }}>
             {groups.flatMap(group => {
               const laneEnds: number[] = [];
               const placements = group.map(apt => {
@@ -909,17 +910,17 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
               });
               return placements.map(({ apt, lane, duration }) => {
                 const patient = patientMap[apt.patientId ?? ""];
-                const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
-                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="absolute overflow-auto rounded-sm border p-1.5 text-left text-xs leading-snug focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), top: (minutes(apt.startAt!) - start) * 2.5, height: Math.max(1, duration * 2.5 - 2), left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
-                  <strong className="block break-words">{patient?.name ?? "Paciente"}</strong>
-                  {patient?.details?.medicalRecordNumber ? <span className="block break-words">Prontuário {patient.details.medicalRecordNumber}</span> : null}
-                  {patient?.phone ? <span className="block break-words">{patient.phone}</span> : null}
-                  <span className="block">{formatTime(apt.startAt!)} – {apt.endAt ? formatTime(apt.endAt) : ""}</span>
-                  <span className="block">{STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}</span>
+                const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}${apt.endAt ? ` ? ${formatTime(apt.endAt)}` : ""}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
+                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="absolute flex flex-col justify-center overflow-hidden rounded-sm border px-1.5 text-left text-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), fontSize: "12px", lineHeight: "12px", top: position(minutes(apt.startAt!)), height: `calc(${duration / (end - start) * 100}% - 2px)`, left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <strong className="min-w-0 flex-1 truncate">{patient?.name ?? "Paciente"}</strong>
+                    <span className="shrink-0 tabular-nums">{formatTime(apt.startAt!)}</span>
+                  </span>
+                  {duration >= 60 ? <span className="mt-0.5 block shrink-0 truncate">{apt.endAt ? `At? ${formatTime(apt.endAt)} ? ` : ""}{STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}</span> : null}
                 </button>;
               });
             })}
-            {appointmentDate === localToday && nowMinutes >= start && nowMinutes < end ? <div aria-label="Horario atual" className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: (nowMinutes - start) * 2.5 }} /> : null}
+            {appointmentDate === localToday && nowMinutes >= start && nowMinutes < end ? <div aria-label="Horario atual" className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: position(nowMinutes) }} /> : null}
           </div>;
         })}
       </div>

@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ timezoneId: "America/Sao_Paulo" });
+
 for (const width of [1280, 390]) {
   test(`corrects status and expands simultaneous appointments at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize({ width, height: width === 1280 ? 720 : 900 });
     await page.addInitScript(() => localStorage.setItem("healthmanager.auth", JSON.stringify({
       accessToken: "mock-token", refreshToken: "mock-refresh", expiresAt: new Date(Date.now() + 3600_000).toISOString(),
       clinicId: "clinic-1", userId: "user-1", email: "test@example.test",
@@ -11,6 +13,8 @@ for (const width of [1280, 390]) {
     const appointments = [
       { id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-10-03T15:00:00Z", endAt: "2026-10-03T15:30:00Z", status: "Scheduled", type: "Consulta", amount: 180 },
       { id: "appointment-2", patientId: "patient-2", doctorId: "doctor-1", startAt: "2026-10-03T15:00:00Z", endAt: "2026-10-03T15:30:00Z", status: "Scheduled", type: "Consulta", amount: 180 },
+      { id: "appointment-3", patientId: "patient-3", doctorId: "doctor-2", startAt: "2026-10-03T10:00:00Z", endAt: "2026-10-03T10:30:00Z", status: "Confirmed", type: "Consulta", amount: 180 },
+      { id: "appointment-4", patientId: "patient-4", doctorId: "doctor-2", startAt: "2026-10-03T21:00:00Z", endAt: "2026-10-03T22:00:00Z", status: "Confirmed", type: "Consulta", amount: 180 },
     ];
     await page.route("**/backend/**", async route => {
       const path = new URL(route.request().url()).pathname.replace("/backend", "");
@@ -24,8 +28,8 @@ for (const width of [1280, 390]) {
         await route.fulfill({ contentType: "application/json", body: JSON.stringify(appointments[0]) });
         return;
       }
-      const items = path === "/patients" ? [{ id: "patient-1", name: "Marina Souza" }, { id: "patient-2", name: "Ana Nova" }]
-        : path === "/doctors" ? [{ id: "doctor-1", name: "Dra. Luciana Costa" }]
+      const items = path === "/patients" ? [{ id: "patient-1", name: "Marina Souza" }, { id: "patient-2", name: "Ana Nova" }, { id: "patient-3", name: "Primeira Consulta" }, { id: "patient-4", name: "Ultima Consulta" }]
+        : path === "/doctors" ? [{ id: "doctor-1", name: "Dra. Luciana Costa" }, { id: "doctor-2", name: "Dr. Paulo Silva" }]
         : path === "/appointment-types" ? [{ id: "type-1", name: "Consulta" }]
         : path === "/appointments" ? appointments : [];
       await route.fulfill({ contentType: "application/json", body: JSON.stringify({ items, page: 1, pageSize: 20, total: items.length }) });
@@ -33,6 +37,18 @@ for (const width of [1280, 390]) {
     await page.goto("/");
     const status = page.getByRole("combobox", { name: "Alterar status de Marina Souza" });
     await expect(status).toHaveValue("Scheduled");
+    const ruler = page.getByLabel("Regua de horarios do dia");
+    await ruler.scrollIntoViewIfNeeded();
+    expect(await ruler.evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+    await expect(ruler.getByText("07:00", { exact: true }).first()).toBeVisible();
+    await expect(ruler.getByText("19:00", { exact: true }).first()).toBeVisible();
+    const bounds = await ruler.boundingBox();
+    const lastAppointment = await ruler.getByRole("button", { name: /^Editar consulta: Ultima Consulta/ }).boundingBox();
+    expect(lastAppointment!.y + lastAppointment!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+    await page.screenshot({ path: `${test.info().outputDir}/whole-day-${width}.png` });
+    await ruler.getByRole("button", { name: /^Editar consulta: Ultima Consulta/ }).click();
+    await expect(page.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
     await status.selectOption("NoShow");
     await expect(status).toHaveValue("NoShow");
     await status.selectOption("Scheduled");

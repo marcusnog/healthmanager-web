@@ -137,8 +137,8 @@ describe("AppointmentBoard", () => {
     expect(blocks).toHaveLength(2);
     expect(blocks[0].style.width).toBe("calc(50% - 6px)");
     expect(blocks[1].style.left).toBe("calc(50% + 3px)");
-    expect(blocks[0].style.height).toBe("198px");
-    expect(blocks[1].style.height).toBe("98px");
+    expect(blocks[0].style.height).toBe("calc(13.3333% - 2px)");
+    expect(blocks[1].style.height).toBe("calc(6.66667% - 2px)");
     fireEvent.click(blocks[0]);
     expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
   });
