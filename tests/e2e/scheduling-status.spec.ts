@@ -14,7 +14,7 @@ for (const width of [1280, 390]) {
       { id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-10-03T15:00:00Z", endAt: "2026-10-03T15:30:00Z", status: "Scheduled", type: "Consulta", amount: 180 },
       { id: "appointment-2", patientId: "patient-2", doctorId: "doctor-1", startAt: "2026-10-03T15:00:00Z", endAt: "2026-10-03T15:30:00Z", status: "Scheduled", type: "Consulta", amount: 180 },
       { id: "appointment-3", patientId: "patient-3", doctorId: "doctor-2", startAt: "2026-10-03T10:00:00Z", endAt: "2026-10-03T10:30:00Z", status: "Confirmed", type: "Consulta", amount: 180 },
-      { id: "appointment-4", patientId: "patient-4", doctorId: "doctor-2", startAt: "2026-10-03T21:00:00Z", endAt: "2026-10-03T22:00:00Z", status: "Confirmed", type: "Consulta", amount: 180 },
+      { id: "appointment-4", patientId: "patient-4", doctorId: "doctor-4", startAt: "2026-10-03T21:00:00Z", endAt: "2026-10-03T22:00:00Z", status: "Confirmed", type: "Consulta", amount: 180 },
     ];
     await page.route("**/backend/**", async route => {
       const path = new URL(route.request().url()).pathname.replace("/backend", "");
@@ -29,7 +29,7 @@ for (const width of [1280, 390]) {
         return;
       }
       const items = path === "/patients" ? [{ id: "patient-1", name: "Marina Souza" }, { id: "patient-2", name: "Ana Nova" }, { id: "patient-3", name: "Primeira Consulta" }, { id: "patient-4", name: "Ultima Consulta" }]
-        : path === "/doctors" ? [{ id: "doctor-1", name: "Dra. Luciana Costa" }, { id: "doctor-2", name: "Dr. Paulo Silva" }]
+        : path === "/doctors" ? [{ id: "doctor-1", name: "Dra. Luciana Costa" }, { id: "doctor-2", name: "Dr. Paulo Silva" }, { id: "doctor-3", name: "Dra. Geovana Matos" }, { id: "doctor-4", name: "Dr. Ivo Francisco Rocha" }]
         : path === "/appointment-types" ? [{ id: "type-1", name: "Consulta" }]
         : path === "/appointments" ? appointments : [];
       await route.fulfill({ contentType: "application/json", body: JSON.stringify({ items, page: 1, pageSize: 20, total: items.length }) });
@@ -40,10 +40,13 @@ for (const width of [1280, 390]) {
     const ruler = page.getByLabel("Regua de horarios do dia");
     await ruler.scrollIntoViewIfNeeded();
     expect(await ruler.evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+    expect(await ruler.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await expect(ruler.getByText("07:00", { exact: true }).first()).toBeVisible();
     await expect(ruler.getByText("19:00", { exact: true }).first()).toBeVisible();
     const bounds = await ruler.boundingBox();
     const lastAppointment = await ruler.getByRole("button", { name: /^Editar consulta: Ultima Consulta/ }).boundingBox();
+    expect(lastAppointment!.x).toBeGreaterThanOrEqual(bounds!.x);
+    expect(lastAppointment!.x + lastAppointment!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
     expect(lastAppointment!.y + lastAppointment!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
     await page.screenshot({ path: `${test.info().outputDir}/whole-day-${width}.png` });
     await ruler.getByRole("button", { name: /^Editar consulta: Ultima Consulta/ }).click();
