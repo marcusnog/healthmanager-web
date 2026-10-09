@@ -127,6 +127,26 @@ describe("AppointmentBoard", () => {
     await waitFor(() => expect(appointmentsDelete).toHaveBeenCalledWith("appointment-1"));
   });
 
+  it("shares weekly rows by start time and keeps other times and days separate", () => {
+    renderWithProviders(<AppointmentBoard {...baseProps} appointmentViewMode="week" appointmentDateFrom="2026-05-04" appointments={[
+      { id: "later", patientId: "patient-1", startAt: "2026-05-07T11:00:00-02:00", status: "Confirmed" },
+      { id: "a", patientId: "patient-1", startAt: "2026-05-07T09:00:00-03:00", status: "Scheduled" },
+      { id: "b", patientId: "patient-1", startAt: "2026-05-07T09:00:00-03:00", status: "InProgress" },
+      { id: "c", patientId: "patient-1", startAt: "2026-05-07T12:00:00Z", status: "Cancelled" },
+      { id: "other-day", patientId: "patient-1", startAt: "2026-05-08T12:00:00Z", status: "Scheduled" },
+    ]} />);
+    const cards = within(screen.getByLabelText("Agenda semanal")).getAllByRole("button", { name: "Editar consulta de Marina Souza" }).map(button => button.parentElement!.parentElement!);
+    expect(cards[0].parentElement).toBe(cards[1].parentElement);
+    expect(cards[1].parentElement).toBe(cards[2].parentElement);
+    expect(cards[0].parentElement!.style.gridTemplateColumns).toBe("repeat(3, minmax(0, 1fr))");
+    expect(cards[3]).toHaveTextContent("Confirmado");
+    expect(cards[3].parentElement).not.toBe(cards[0].parentElement);
+    expect(cards[4].parentElement).not.toBe(cards[0].parentElement);
+    expect(cards[3].parentElement!.style.gridTemplateColumns).toBe("repeat(1, minmax(0, 1fr))");
+    fireEvent.click(within(cards[1]).getByRole("button", { name: "Editar consulta de Marina Souza" }));
+    expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+  });
+
   it("positions simultaneous appointments side by side and opens editing", () => {
     renderWithProviders(<AppointmentBoard {...baseProps} appointments={[
       { id: "a", patientId: "patient-1", doctorId: "doctor-1", startAt: "2026-05-07T12:00:00Z", endAt: "2026-05-07T13:20:00Z", status: "Scheduled" },

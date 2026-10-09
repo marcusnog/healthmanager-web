@@ -568,7 +568,7 @@ export function AppointmentBoard({
         </Modal>
       ) : null}
 
-      <section className={cn("panel p-5 md:p-6", isExpanded && "fixed inset-0 z-40 overflow-auto rounded-none")} aria-label="Quadro de atendimentos" onKeyDown={(event) => { if (isExpanded && event.key === "Escape") setIsExpanded(false); }}>
+      <section className={cn("panel min-w-0 p-5 md:p-6", isExpanded && "fixed inset-0 z-40 overflow-auto rounded-none")} aria-label="Quadro de atendimentos" onKeyDown={(event) => { if (isExpanded && event.key === "Escape") setIsExpanded(false); }}>
         <div className="section-heading">
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -1096,9 +1096,9 @@ function WeekGrid({
 
   if (isLoading) {
     return (
-      <div className="mt-5 grid min-h-[560px] grid-cols-7 overflow-x-auto rounded-lg border border-[var(--border)]">
+      <div className="mt-5 grid min-h-[560px] grid-cols-[repeat(7,minmax(180px,1fr))] overflow-x-auto rounded-lg border border-[var(--border)]">
         {weekDays.map((_, i) => (
-          <div key={i} className="min-w-[130px] border-r border-[var(--border)] p-2">
+          <div key={i} className="min-w-0 border-r border-[var(--border)] p-2">
             <div className="skeleton h-14 rounded" />
             <div className="skeleton mt-3 h-20 rounded" />
             <div className="skeleton mt-2 h-16 rounded" />
@@ -1109,7 +1109,7 @@ function WeekGrid({
   }
 
   return (
-    <div className="mt-5 grid min-h-[560px] grid-cols-7 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Agenda semanal">
+    <div className="mt-5 grid min-h-[560px] grid-cols-[repeat(7,minmax(180px,1fr))] overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Agenda semanal">
       {weekDays.map((day) => {
         const dateObj = new Date(day + "T12:00:00");
         const dayName = WEEKDAY_NAMES[dateObj.getDay()];
@@ -1117,9 +1117,14 @@ function WeekGrid({
         const month = MONTH_NAMES[dateObj.getMonth()];
         const isToday = day === todayDate;
         const apts = dayAppointments[day] ?? [];
+        const timeGroups = Object.values(apts.reduce<Record<string, AppointmentResponse[]>>((groups, apt) => {
+          const time = apt.startAt ? String(new Date(apt.startAt).getTime()) : apt.id ?? "unknown";
+          (groups[time] ??= []).push(apt);
+          return groups;
+        }, {})).sort((a, b) => new Date(a[0].startAt ?? 0).getTime() - new Date(b[0].startAt ?? 0).getTime());
 
         return (
-          <div key={day} className={cn("min-w-[130px] border-r border-[var(--border)]", isToday && "bg-[var(--brand-wash)]/40")}>
+          <div key={day} className={cn("min-w-0 border-r border-[var(--border)]", isToday && "bg-[var(--brand-wash)]/40")}>
             <button
               className={cn(
                 "flex min-h-16 w-full flex-col items-center border-b border-[var(--border)] p-2 text-sm transition-colors",
@@ -1138,58 +1143,62 @@ function WeekGrid({
               {apts.length === 0 && !isLoading && (
                 <p className="text-[11px] text-[var(--muted)] text-center py-2">—</p>
               )}
-              {apts.map((apt) => {
-                const patient = patientMap[apt.patientId ?? ""];
-                const statusVariant = resolveAppointmentStatus(apt.status);
-                const isCancelled = statusVariant === "cancelled";
-                return (
-                  <div
-                    key={apt.id}
-                    style={appointmentColorStyle(apt.status)}
-                    className={cn(
-                      "rounded-md border bg-[var(--surface)] p-2 text-[11px] leading-tight transition-colors hover:bg-[var(--bg)]",
-                      isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
-                    )}
-                  >
-                    <div className="font-semibold text-[var(--ink)]">
-                      {formatTime(apt.startAt ?? "")}
-                    </div>
-                    <div className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
-                      {patient?.name ?? "—"}
-                    </div>
-                    <div className="truncate text-[var(--muted)]">
-                      {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <StatusBadge variant={statusVariant} />
-                      {apt.source && apt.source !== "Internal" && (
-                        <span className="text-[9px] font-semibold text-[var(--brand)]">{apt.source}</span>
-                      )}
-                    </div>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        <button
-                          aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
-                          className="min-h-11 text-[var(--brand)] underline"
-                          onClick={() => onEdit(apt)}
-                          type="button"
-                        >
-                          Editar
-                        </button>
-                        {apt.status === "Scheduled" ? (
-                          <button
-                            aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
-                            className="min-h-11 text-[var(--brand)] underline"
-                            disabled={processingAppointmentId === apt.id}
-                            onClick={() => onConfirm(apt)}
-                            type="button"
-                          >
-                            Confirmar
-                          </button>
-                        ) : null}
+              {timeGroups.map(group => (
+                <div key={group[0].startAt ?? group[0].id} className="grid min-w-0 gap-1.5" style={{ gridTemplateColumns: `repeat(${group.length}, minmax(0, 1fr))` }}>
+                  {group.map((apt) => {
+                    const patient = patientMap[apt.patientId ?? ""];
+                    const statusVariant = resolveAppointmentStatus(apt.status);
+                    const isCancelled = statusVariant === "cancelled";
+                    return (
+                      <div
+                        key={apt.id}
+                        style={appointmentColorStyle(apt.status)}
+                        className={cn(
+                          "min-w-0 rounded-md border bg-[var(--surface)] p-2 text-xs leading-tight transition-colors hover:bg-[var(--bg)]",
+                          isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
+                        )}
+                      >
+                        <div className="font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--ink)]">
+                          {formatTime(apt.startAt ?? "")}
+                        </div>
+                        <div title={patient?.name} className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
+                          {patient?.name ?? "—"}
+                        </div>
+                        <div title={doctorMap[apt.doctorId ?? ""]?.name} className="truncate text-[var(--muted)]">
+                          {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <StatusBadge variant={statusVariant} className="min-w-0 max-w-full [overflow-wrap:anywhere]" />
+                          {apt.source && apt.source !== "Internal" && (
+                            <span className="min-w-0 text-[9px] font-semibold text-[var(--brand)] [overflow-wrap:anywhere]">{apt.source}</span>
+                          )}
+                        </div>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            <button
+                              aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
+                              className="min-h-11 min-w-0 max-w-full text-left text-[var(--brand)] underline [overflow-wrap:anywhere]"
+                              onClick={() => onEdit(apt)}
+                              type="button"
+                            >
+                              Editar
+                            </button>
+                            {apt.status === "Scheduled" ? (
+                              <button
+                                aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
+                                className="min-h-11 min-w-0 max-w-full text-left text-[var(--brand)] underline [overflow-wrap:anywhere]"
+                                disabled={processingAppointmentId === apt.id}
+                                onClick={() => onConfirm(apt)}
+                                type="button"
+                              >
+                                Confirmar
+                              </button>
+                            ) : null}
+                          </div>
                       </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         );

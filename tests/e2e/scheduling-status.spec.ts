@@ -35,6 +35,38 @@ for (const width of [1280, 390]) {
       await route.fulfill({ contentType: "application/json", body: JSON.stringify({ items, page: 1, pageSize: 20, total: items.length }) });
     });
     await page.goto("/");
+    await page.getByLabel("Data da agenda").fill("2026-10-03");
+    await page.getByRole("button", { name: "Semana", exact: true }).click();
+    for (const section of ["dashboard", "agenda"]) {
+      if (section === "agenda") {
+        if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+        await page.locator(".nav-item").filter({ hasText: /^Agenda$/ }).click();
+      }
+      const week = page.getByLabel("Agenda semanal");
+      await expect(week.getByRole("button", { name: "Editar consulta de Marina Souza", exact: true })).toHaveCount(1);
+      expect(await week.evaluate(element => {
+        const columns = Array.from(element.children);
+        return columns.length === 7 && columns.every(column => {
+          const bounds = column.getBoundingClientRect();
+          return bounds.width >= 180 && Array.from(column.querySelectorAll("button, .status-badge")).every(item => {
+            const card = item.getBoundingClientRect();
+            return card.left >= bounds.left && card.right <= bounds.right + 1;
+          });
+        });
+      })).toBe(true);
+      const first = await week.getByRole("button", { name: "Editar consulta de Marina Souza", exact: true }).locator("../..").boundingBox();
+      const second = await week.getByRole("button", { name: "Editar consulta de Ana Nova", exact: true }).locator("../..").boundingBox();
+      expect(first!.y).toBe(second!.y);
+      expect(first!.x + first!.width).toBeLessThanOrEqual(second!.x);
+      expect(first!.width).toBeCloseTo(second!.width, 0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await week.getByRole("button", { name: "Editar consulta de Marina Souza", exact: true }).scrollIntoViewIfNeeded();
+      await week.screenshot({ path: `${test.info().outputDir}/week-${section}-${width}.png`, animations: "disabled" });
+      await week.getByRole("button", { name: "Editar consulta de Marina Souza", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+      await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    }
+    await page.getByRole("button", { name: "Dia", exact: true }).click();
     const status = page.getByRole("combobox", { name: "Alterar status de Marina Souza" });
     await expect(status).toHaveValue("Scheduled");
     const ruler = page.getByLabel("Regua de horarios do dia");
