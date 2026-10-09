@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.use({ timezoneId: "America/Sao_Paulo" });
 
-for (const width of [1280, 390]) {
+for (const width of [1280, 768, 390]) {
   test(`corrects status and expands simultaneous appointments at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1280 ? 720 : 900 });
     await page.addInitScript(() => localStorage.setItem("healthmanager.auth", JSON.stringify({
@@ -39,7 +39,7 @@ for (const width of [1280, 390]) {
     await page.getByRole("button", { name: "Semana", exact: true }).click();
     for (const section of ["dashboard", "agenda"]) {
       if (section === "agenda") {
-        if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+        if (width < 1024) await page.getByRole("button", { name: "Menu", exact: true }).click();
         await page.locator(".nav-item").filter({ hasText: /^Agenda$/ }).click();
       }
       const week = page.getByLabel("Agenda semanal");
@@ -48,12 +48,13 @@ for (const width of [1280, 390]) {
         const columns = Array.from(element.children);
         return columns.length === 7 && columns.every(column => {
           const bounds = column.getBoundingClientRect();
-          return bounds.width >= 180 && Array.from(column.querySelectorAll("button, .status-badge")).every(item => {
+          return bounds.width > 0 && Array.from(column.querySelectorAll("button, .status-badge")).every(item => {
             const card = item.getBoundingClientRect();
             return card.left >= bounds.left && card.right <= bounds.right + 1;
           });
         });
       })).toBe(true);
+      expect(await week.evaluate(element => element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1)).toBe(true);
       const first = await week.getByRole("button", { name: "Editar consulta de Marina Souza", exact: true }).locator("../..").boundingBox();
       const second = await week.getByRole("button", { name: "Editar consulta de Ana Nova", exact: true }).locator("../..").boundingBox();
       expect(first!.y).toBe(second!.y);
@@ -66,6 +67,9 @@ for (const width of [1280, 390]) {
       await expect(page.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
       await page.getByRole("button", { name: "Cancelar", exact: true }).click();
     }
+    await page.getByRole("button", { name: "Mes", exact: true }).click();
+    const month = page.getByLabel("Agenda mensal");
+    expect(await month.evaluate(element => element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1)).toBe(true);
     await page.getByRole("button", { name: "Dia", exact: true }).click();
     const status = page.getByRole("combobox", { name: "Alterar status de Marina Souza" });
     await expect(status).toHaveValue("Scheduled");

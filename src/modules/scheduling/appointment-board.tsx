@@ -568,7 +568,7 @@ export function AppointmentBoard({
         </Modal>
       ) : null}
 
-      <section className={cn("panel min-w-0 p-5 md:p-6", isExpanded && "fixed inset-0 z-40 overflow-auto rounded-none")} aria-label="Quadro de atendimentos" onKeyDown={(event) => { if (isExpanded && event.key === "Escape") setIsExpanded(false); }}>
+      <section className={cn("@container panel min-w-0 p-5 md:p-6", isExpanded && "fixed inset-0 z-40 overflow-auto rounded-none")} aria-label="Quadro de atendimentos" onKeyDown={(event) => { if (isExpanded && event.key === "Escape") setIsExpanded(false); }}>
         <div className="section-heading">
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -1048,7 +1048,7 @@ function MonthGrid({ appointments, patientMap, doctorMap, monthDays, todayDate, 
       const items = byDay[day] ?? [];
       return <button className={cn("flex min-w-0 flex-col items-stretch rounded-md border p-1.5 text-left min-h-20 sm:min-h-40 sm:p-2 transition-colors hover:border-[var(--brand)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-strong)]", day === todayDate ? "border-[var(--brand)] bg-[var(--brand-wash)]" : items.length ? "border-[var(--border-strong)] bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--bg)]")} key={day} onClick={() => onDayClick(day)} type="button">
         <span className={cn("text-base font-bold", day === todayDate ? "text-[var(--brand-strong)]" : "text-[var(--ink)]")}>{Number(day.slice(-2))}</span>
-        <span className={cn("mt-1 block text-xs", items.length ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]")}>{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
+        <span className={cn("mt-1 block min-w-0 truncate text-xs", items.length ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]")}>{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
         <span className="mt-2 hidden space-y-2 sm:block">
           {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
             <span className="block font-bold tabular-nums">{formatTime(apt.startAt ?? "")}</span>
@@ -1096,7 +1096,7 @@ function WeekGrid({
 
   if (isLoading) {
     return (
-      <div className="mt-5 grid min-h-[560px] grid-cols-[repeat(7,minmax(180px,1fr))] overflow-x-auto rounded-lg border border-[var(--border)]">
+      <div className="mt-5 grid grid-cols-1 @md:grid-cols-2 @4xl:grid-cols-7 rounded-lg border border-[var(--border)]">
         {weekDays.map((_, i) => (
           <div key={i} className="min-w-0 border-r border-[var(--border)] p-2">
             <div className="skeleton h-14 rounded" />
@@ -1109,7 +1109,7 @@ function WeekGrid({
   }
 
   return (
-    <div className="mt-5 grid min-h-[560px] grid-cols-[repeat(7,minmax(180px,1fr))] overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Agenda semanal">
+    <div className="mt-5 grid grid-cols-1 @md:grid-cols-2 @4xl:grid-cols-7 rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Agenda semanal">
       {weekDays.map((day) => {
         const dateObj = new Date(day + "T12:00:00");
         const dayName = WEEKDAY_NAMES[dateObj.getDay()];
@@ -1124,7 +1124,7 @@ function WeekGrid({
         }, {})).sort((a, b) => new Date(a[0].startAt ?? 0).getTime() - new Date(b[0].startAt ?? 0).getTime());
 
         return (
-          <div key={day} className={cn("min-w-0 border-r border-[var(--border)]", isToday && "bg-[var(--brand-wash)]/40")}>
+          <div key={day} className={cn("min-w-0 border-b border-r border-[var(--border)]", isToday && "bg-[var(--brand-wash)]/40")}>
             <button
               className={cn(
                 "flex min-h-16 w-full flex-col items-center border-b border-[var(--border)] p-2 text-sm transition-colors",
@@ -1154,11 +1154,11 @@ function WeekGrid({
                         key={apt.id}
                         style={appointmentColorStyle(apt.status)}
                         className={cn(
-                          "min-w-0 rounded-md border bg-[var(--surface)] p-2 text-xs leading-tight transition-colors hover:bg-[var(--bg)]",
+                          "week-appointment min-w-0 rounded-md border bg-[var(--surface)] p-1.5 text-xs leading-tight transition-colors hover:bg-[var(--bg)]",
                           isCancelled ? "border-[var(--border)] opacity-60" : statusBorderClass(apt.status),
                         )}
                       >
-                        <div className="font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--ink)]">
+                        <div className="truncate font-semibold tabular-nums text-[var(--ink)]">
                           {formatTime(apt.startAt ?? "")}
                         </div>
                         <div title={patient?.name} className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
@@ -1167,7 +1167,7 @@ function WeekGrid({
                         <div title={doctorMap[apt.doctorId ?? ""]?.name} className="truncate text-[var(--muted)]">
                           {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
                         </div>
-                        <div className="flex flex-wrap items-center gap-1">
+                        <div title={STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"} className="flex min-w-0 flex-wrap items-center gap-1">
                           <StatusBadge variant={statusVariant} className="min-w-0 max-w-full [overflow-wrap:anywhere]" />
                           {apt.source && apt.source !== "Internal" && (
                             <span className="min-w-0 text-[9px] font-semibold text-[var(--brand)] [overflow-wrap:anywhere]">{apt.source}</span>
@@ -1176,7 +1176,7 @@ function WeekGrid({
                           <div className="mt-1 flex flex-wrap gap-2">
                             <button
                               aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
-                              className="min-h-11 min-w-0 max-w-full text-left text-[var(--brand)] underline [overflow-wrap:anywhere]"
+                              className="min-h-11 min-w-0 max-w-full truncate text-left text-[var(--brand)] underline"
                               onClick={() => onEdit(apt)}
                               type="button"
                             >
@@ -1185,7 +1185,7 @@ function WeekGrid({
                             {apt.status === "Scheduled" ? (
                               <button
                                 aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
-                                className="min-h-11 min-w-0 max-w-full text-left text-[var(--brand)] underline [overflow-wrap:anywhere]"
+                                className="min-h-11 min-w-0 max-w-full truncate text-left text-[var(--brand)] underline"
                                 disabled={processingAppointmentId === apt.id}
                                 onClick={() => onConfirm(apt)}
                                 type="button"

@@ -103,6 +103,8 @@ tests/
 
 See `CLAUDE.md` for full design system — no glassmorphism, no gradients, no generic AI aesthetic. B2B SaaS style with neutral background, subtle borders, moderate radius, sober typography, clear hierarchy.
 
+Agenda no dashboard e na aba Agenda: nenhuma visualização (dia, semana ou mês) pode ter rolagem interna horizontal ou vertical. Priorizar a largura da agenda e adaptar a disposição ao espaço disponível; consultas no mesmo dia e horário permanecem lado a lado.
+
 ## API contract
 
 Backend publishes `docs/openapi.json` and canonical specs in `spec/` (backend/spec/entities.yaml, state-machines.yaml, business-rules.yaml, auth-flow.yaml, api-endpoints.yaml). Frontend regenerates client via `npm run generate:api` (`openapi-typescript-codegen --client fetch`). When backend changes request/response, update openapi.json and regenerate.

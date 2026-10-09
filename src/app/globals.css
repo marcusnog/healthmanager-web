@@ -1424,13 +1424,14 @@ textarea.input-field {
 
 @media (min-width: 1024px) {
   .dashboard-grid-main {
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.8fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
   }
 
   .dashboard-right-col {
-    min-width: 320px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-width: 0;
   }
 }
 
@@ -1639,4 +1640,19 @@ textarea.input-field {
   .modal-body {
     padding: 1rem;
   }
+}
+
+.week-appointment .status-badge {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.625rem;
+}
+
+.week-appointment .status-badge::before {
+  display: inline-block;
+  margin-right: 0.25rem;
 }
