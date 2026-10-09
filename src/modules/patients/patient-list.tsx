@@ -27,8 +27,8 @@ function isValidCpf(cpf: string): boolean {
 
 const schema = z.object({
   name: z.string().min(3, "Informe o nome do paciente."),
-  cpf: z.string().refine((v) => isValidCpf(v), { message: "CPF invalido." }),
-  phone: z.string().min(10, "Informe um telefone valido."),
+  cpf: z.string().refine((v) => !v.trim() || isValidCpf(v), { message: "CPF invalido." }),
+  phone: z.string().refine((v) => !v.trim() || v.replace(/\D/g, "").length >= 10, { message: "Informe um telefone valido." }),
   email: z.union([z.string().email("Informe um email valido."), z.literal("")]),
   birthDate: z.string().optional(),
   healthInsuranceId: z.string().optional(),
@@ -203,6 +203,7 @@ export function PatientCreateModal({
   return (
     <Modal title="Novo paciente" onClose={onClose} size="xl">
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((values) => { setFeedback(null); createPatient.mutate(values); })}>
+        <p className="text-sm text-[var(--muted)] md:col-span-2">CPF e telefone são opcionais.</p>
         <Field error={errors.name?.message} label="Nome"><input className="input-field" {...register("name")} /></Field>
         <Field error={errors.cpf?.message} label="CPF"><input className="input-field" placeholder="000.000.000-00" {...register("cpf", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyCpfMask(e.currentTarget.value); }} /></Field>
         <Field error={errors.phone?.message} label="Telefone"><input className="input-field" placeholder="(11) 98888-0000" {...register("phone", { setValueAs: (v: string) => v.replace(/\D/g, "") })} onInput={(e) => { e.currentTarget.value = applyPhoneMask(e.currentTarget.value); }} /></Field>

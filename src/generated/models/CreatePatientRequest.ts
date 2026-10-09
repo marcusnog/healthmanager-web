@@ -5,9 +5,9 @@
 import type { PatientDetails } from './PatientDetails';
 export type CreatePatientRequest = {
     name: string;
-    cpf: string;
+    cpf?: string | null;
     birthDate?: string;
-    phone: string;
+    phone?: string | null;
     email?: string;
     healthInsurance?: string;
     healthInsuranceId?: string;

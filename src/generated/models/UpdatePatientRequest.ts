@@ -5,7 +5,7 @@
 import type { PatientDetails } from './PatientDetails';
 export type UpdatePatientRequest = {
     name: string;
-    phone: string;
+    phone?: string | null;
     email?: string;
     healthInsurance?: string;
     healthInsuranceId?: string;

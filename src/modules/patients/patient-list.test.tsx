@@ -275,6 +275,27 @@ describe("PatientList", () => {
     expect(screen.getByLabelText("Estado")).toHaveValue("SP");
   });
 
+  it("creates a patient with only their name", async () => {
+    patientsCreate.mockResolvedValueOnce({ id: "quick-patient", name: "Maria Silva", cpf: "", phone: "" });
+    renderWithProviders(<PatientList {...baseProps} patients={[]} total={0} />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo paciente" }));
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Maria Silva" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar paciente" }));
+    await waitFor(() => expect(patientsCreate).toHaveBeenCalledWith(expect.objectContaining({ name: "Maria Silva", cpf: "", phone: "" })));
+  });
+
+  it("still rejects an invalid CPF or phone when supplied", async () => {
+    renderWithProviders(<PatientList {...baseProps} patients={[]} total={0} />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo paciente" }));
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Maria Silva" } });
+    fireEvent.change(screen.getByLabelText("CPF"), { target: { value: "123" } });
+    fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar paciente" }));
+    expect(await screen.findByText("CPF invalido.")).toBeVisible();
+    expect(await screen.findByText("Informe um telefone valido.")).toBeVisible();
+    expect(patientsCreate).not.toHaveBeenCalled();
+  });
+
   it("shows the API reason when patient creation is rejected", async () => {
     patientsCreate.mockRejectedValueOnce({
       body: { detail: "Paciente ja cadastrado para esta clinica." },
