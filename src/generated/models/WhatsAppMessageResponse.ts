@@ -9,6 +9,7 @@ export type WhatsAppMessageResponse = {
     status: WhatsAppMessageResponse.status;
     direction: WhatsAppMessageResponse.direction;
     createdAt: string;
+    providerTimestamp?: string | null;
 };
 export namespace WhatsAppMessageResponse {
     export enum status {
@@ -16,6 +17,7 @@ export namespace WhatsAppMessageResponse {
         SENT = 'Sent',
         DELIVERED = 'Delivered',
         FAILED = 'Failed',
+        READ = 'Read',
     }
     export enum direction {
         INBOUND = 'Inbound',

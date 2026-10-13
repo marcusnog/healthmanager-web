@@ -1,8 +1,9 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
-import { DefaultService } from "@/generated";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FormEvent, useRef, useState } from "react";
+import { DefaultService, type WhatsAppConversationResponse } from "@/generated";
+import { apiErrorMessage } from "@/lib/api-error";
 
 const timeFormatter = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const dayFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
@@ -31,30 +32,54 @@ export function AtendimentoPanel() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [phone, setPhone] = useState<string>();
-  const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState("");
-  const conversations = useQuery({ queryKey: ["whatsapp-conversations", search], queryFn: () => DefaultService.whatsappConversationsList(1, 100, search) });
-  const messages = useQuery({ queryKey: ["whatsapp-messages", phone], queryFn: () => DefaultService.whatsappMessagesList(phone!), enabled: Boolean(phone), refetchInterval: 10_000 });
-  const selected = conversations.data?.items.find((item) => item.phone === phone);
+  const [page, setPage] = useState(1);
+  const [activeConversation, setActiveConversation] = useState<WhatsAppConversationResponse>();
+  const [drafts, setDrafts] = useState<Record<string, { text: string; key: string; error?: string }>>({});
+  const [sendingPhones, setSendingPhones] = useState<Record<string, boolean>>({});
+  const inFlight = useRef(new Set<string>());
+  const message = phone ? drafts[phone]?.text ?? "" : "";
+  const sending = phone ? Boolean(sendingPhones[phone]) : false;
+  const sendError = phone ? drafts[phone]?.error : undefined;
+  const conversations = useQuery({ queryKey: ["whatsapp-conversations", search, page], queryFn: () => DefaultService.whatsappConversationsList(page, 20, search), refetchInterval: 10_000 });
+  const messages = useInfiniteQuery({
+    queryKey: ["whatsapp-messages", phone],
+    queryFn: ({ pageParam }) => DefaultService.whatsappMessagesList(phone!, pageParam, 50),
+    initialPageParam: 1,
+    getNextPageParam: (last) => last.page * last.pageSize < last.total ? last.page + 1 : undefined,
+    enabled: Boolean(phone), refetchInterval: 10_000,
+  });
+  const history = [...new Map((messages.data?.pages.flatMap((item) => item.items) ?? []).map((item) => [item.id, item])).values()].reverse();
+  const selected = conversations.data?.items.find((item) => item.phone === phone) ?? activeConversation;
   const displayName = selected?.patientName || phone || "";
+  const lastInboundAt = Math.max(selected?.lastInboundAt ? new Date(selected.lastInboundAt).getTime() : 0,
+    ...history.filter((item) => item.direction === "Inbound" && item.providerTimestamp).map((item) => new Date(item.providerTimestamp!).getTime()));
+  const windowOpen = lastInboundAt > Date.now() - 86_400_000;
+
+  function setMessage(text: string) {
+    if (phone) setDrafts((current) => ({ ...current, [phone]: { text, key: crypto.randomUUID() } }));
+  }
 
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (!phone || !message.trim()) return;
-    setSending(true);
-    setSendError("");
+    if (!phone || !message.trim() || inFlight.current.has(phone)) return;
+    const recipient = phone;
+    const draft = drafts[recipient];
+    inFlight.current.add(recipient);
+    setSendingPhones((current) => ({ ...current, [recipient]: true }));
     try {
-      await DefaultService.whatsappMessageSend(phone, { message: message.trim() });
-      setMessage("");
+      const result = await DefaultService.whatsappMessageSend(recipient, { message: draft.text.trim(), clientRequestId: draft.key });
+      setDrafts((current) => ({ ...current, [recipient]: result.status === "Failed"
+        ? { text: draft.text, key: crypto.randomUUID(), error: "Envio recusado pelo WhatsApp. Verifique a configuração antes de tentar novamente." }
+        : { text: "", key: crypto.randomUUID(), error: result.status === "Pending" ? "Resultado do envio desconhecido. Confira o histórico antes de enviar outra mensagem." : undefined } }));
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", phone] }),
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", recipient] }),
         queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations"] }),
       ]);
-    } catch {
-      setSendError("Não foi possível enviar. Tente novamente.");
+    } catch (error) {
+      setDrafts((current) => ({ ...current, [recipient]: { ...draft, error: apiErrorMessage(error, "Não foi possível confirmar o envio. Tente novamente para verificar a mesma tentativa.") } }));
     } finally {
-      setSending(false);
+      inFlight.current.delete(recipient);
+      setSendingPhones((current) => ({ ...current, [recipient]: false }));
     }
   }
 
@@ -71,7 +96,7 @@ export function AtendimentoPanel() {
           </div>
           <label className="flex items-center gap-2 rounded-lg border border-border bg-bg px-3 text-muted focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
             <Icon name="search" className="h-4 w-4 shrink-0" />
-            <input className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-muted-light" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar conversa" aria-label="Buscar conversas" />
+            <input className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-muted-light" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Buscar conversa" aria-label="Buscar conversas" />
           </label>
         </div>
 
@@ -82,7 +107,7 @@ export function AtendimentoPanel() {
             const name = item.patientName || item.phone;
             const active = phone === item.phone;
             return (
-              <button key={item.phone} type="button" onClick={() => setPhone(item.phone)} className={`group flex w-full gap-3 border-b border-border/60 px-4 py-3.5 text-left transition-colors hover:bg-brand/5 ${active ? "bg-brand/10" : ""}`}>
+              <button key={item.phone} type="button" onClick={() => { setPhone(item.phone); setActiveConversation(item); }} className={`group flex w-full gap-3 border-b border-border/60 px-4 py-3.5 text-left transition-colors hover:bg-brand/5 ${active ? "bg-brand/10" : ""}`}>
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${active ? "bg-brand text-white" : "bg-brand-soft text-brand-strong"}`}>{initials(name)}</span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
@@ -99,6 +124,11 @@ export function AtendimentoPanel() {
           })}
           {!conversations.isLoading && !conversations.isError && !conversations.data?.items.length && <p className="p-8 text-center text-sm text-muted">Nenhuma conversa encontrada.</p>}
         </div>
+        <nav aria-label="Páginas de conversas" className="flex items-center justify-between border-t border-border p-3 text-sm">
+          <button type="button" className="btn min-h-11" disabled={page === 1 || conversations.isFetching} onClick={() => setPage((value) => value - 1)}>Anterior</button>
+          <span>Página {page}</span>
+          <button type="button" className="btn min-h-11" disabled={!conversations.data || page * 20 >= conversations.data.total || conversations.isFetching} onClick={() => setPage((value) => value + 1)}>Próxima</button>
+        </nav>
       </aside>
 
       <section className={`${phone ? "flex" : "hidden md:flex"} min-h-0 min-w-0 flex-col bg-bg`}>
@@ -122,26 +152,28 @@ export function AtendimentoPanel() {
             <div className="mx-auto mb-2 rounded-full bg-surface px-3 py-1 text-[11px] font-medium text-muted shadow-sm">Histórico da conversa</div>
             {messages.isLoading && <p className="m-auto text-sm text-muted">Carregando mensagens...</p>}
             {messages.isError && <p className="m-auto text-sm text-danger">Não foi possível carregar as mensagens.</p>}
-            {messages.data?.map((item) => {
+            {messages.hasNextPage && <button type="button" className="btn mx-auto min-h-11" disabled={messages.isFetchingNextPage} onClick={() => void messages.fetchNextPage()}>Carregar mensagens anteriores</button>}
+            {history.map((item) => {
               const outbound = item.direction === "Outbound";
               return (
                 <div key={item.id} className={`max-w-[86%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm md:max-w-[72%] ${outbound ? "ml-auto rounded-br-md bg-brand text-white" : "rounded-bl-md border border-border/70 bg-surface text-ink"}`}>
                   <p className="whitespace-pre-wrap break-words leading-5">{item.message}</p>
                   <span className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${outbound ? "text-white/75" : "text-muted"}`}>
                     {timeFormatter.format(new Date(item.createdAt))}
-                    {outbound && <Icon name="check" className={`h-3 w-3 ${item.status === "Failed" ? "text-red-200" : ""}`} />}
+                    {outbound && <span>{({ Pending: "Envio não confirmado", Sent: "Enviada", Delivered: "Entregue", Read: "Lida", Failed: "Falha no envio" })[item.status]}</span>}
                   </span>
                 </div>
               );
             })}
-            {!messages.isLoading && !messages.isError && !messages.data?.length && <p className="m-auto text-sm text-muted">Ainda não há mensagens nesta conversa.</p>}
+            {!messages.isLoading && !messages.isError && !history.length && <p className="m-auto text-sm text-muted">Ainda não há mensagens nesta conversa.</p>}
           </div>
 
           <form onSubmit={send} className="shrink-0 border-t border-border bg-surface p-3 md:px-4">
+            {!windowOpen && <p className="mb-2 text-xs text-muted" role="status">Janela de resposta encerrada. Aguarde uma nova mensagem do paciente.</p>}
             {sendError && <p className="mb-2 text-xs text-danger" role="alert">{sendError}</p>}
             <div className="flex items-end gap-2">
-              <textarea className="input-field max-h-28 min-h-11 flex-1 resize-none py-2.5" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} maxLength={4096} placeholder="Digite uma mensagem" aria-label="Mensagem" />
-              <button className="btn btn-primary h-11 w-11 shrink-0 rounded-full p-0" type="submit" disabled={sending || !message.trim()} aria-label={sending ? "Enviando mensagem" : "Enviar mensagem"}><Icon name="send" className="h-5 w-5" /></button>
+              <textarea className="input-field max-h-28 min-h-11 flex-1 resize-none py-2.5" rows={1} disabled={sending} value={message} onChange={(event) => setMessage(event.target.value)} maxLength={4096} placeholder="Digite uma mensagem" aria-label="Mensagem" />
+              <button className="btn btn-primary h-11 w-11 shrink-0 rounded-full p-0" type="submit" disabled={sending || !message.trim() || !windowOpen} aria-label={sending ? "Enviando mensagem" : "Enviar mensagem"}><Icon name="send" className="h-5 w-5" /></button>
             </div>
           </form>
         </>}

@@ -49,6 +49,7 @@ export type { PagedPaymentResponse } from './models/PagedPaymentResponse';
 export type { PagedProductResponse } from './models/PagedProductResponse';
 export type { PagedReceivableResponse } from './models/PagedReceivableResponse';
 export type { PagedWhatsAppConversationResponse } from './models/PagedWhatsAppConversationResponse';
+export type { PagedWhatsAppMessageResponse } from './models/PagedWhatsAppMessageResponse';
 export type { PatientApplicationBalanceResponse } from './models/PatientApplicationBalanceResponse';
 export type { PatientApplicationRequest } from './models/PatientApplicationRequest';
 export type { PatientApplicationResponse } from './models/PatientApplicationResponse';

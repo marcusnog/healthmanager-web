@@ -8,6 +8,7 @@ export type WhatsAppConversationResponse = {
     lastMessage: string;
     lastMessageAt: string;
     lastDirection: WhatsAppConversationResponse.lastDirection;
+    lastInboundAt?: string | null;
 };
 export namespace WhatsAppConversationResponse {
     export enum lastDirection {

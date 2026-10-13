@@ -4,5 +4,6 @@
 /* eslint-disable */
 export type SendWhatsAppMessageRequest = {
     message: string;
+    clientRequestId?: string | null;
 };
 

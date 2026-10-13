@@ -41,6 +41,7 @@ import type { PagedPaymentResponse } from '../models/PagedPaymentResponse';
 import type { PagedProductResponse } from '../models/PagedProductResponse';
 import type { PagedReceivableResponse } from '../models/PagedReceivableResponse';
 import type { PagedWhatsAppConversationResponse } from '../models/PagedWhatsAppConversationResponse';
+import type { PagedWhatsAppMessageResponse } from '../models/PagedWhatsAppMessageResponse';
 import type { PatientDocumentResponse } from '../models/PatientDocumentResponse';
 import type { PatientPortalAppointmentResponse } from '../models/PatientPortalAppointmentResponse';
 import type { PatientPortalAuthResponse } from '../models/PatientPortalAuthResponse';
@@ -1151,18 +1152,27 @@ export class DefaultService {
         });
     }
     /**
+     * Pass page or pageSize for a paged response. During rollout, omitting both returns the latest 50 messages as a chronological legacy array.
      * @param phone
-     * @returns WhatsAppMessageResponse OK
+     * @param page
+     * @param pageSize
+     * @returns PagedWhatsAppMessageResponse OK
      * @throws ApiError
      */
     public static whatsappMessagesList(
         phone: string,
-    ): CancelablePromise<Array<WhatsAppMessageResponse>> {
+        page: number = 1,
+        pageSize: number = 50,
+    ): CancelablePromise<PagedWhatsAppMessageResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/whatsapp/conversations/{phone}/messages',
             path: {
                 'phone': phone,
+            },
+            query: {
+                'page': page,
+                'pageSize': pageSize,
             },
         });
     }
@@ -1468,6 +1478,62 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param hubMode
+     * @param hubVerifyToken
+     * @param hubChallenge
+     * @returns string Challenge
+     * @throws ApiError
+     */
+    public static whatsappWebhookVerify(
+        hubMode: string,
+        hubVerifyToken: string,
+        hubChallenge: string,
+    ): CancelablePromise<string> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/whatsapp/webhook',
+            query: {
+                'hub.mode': hubMode,
+                'hub.verify_token': hubVerifyToken,
+                'hub.challenge': hubChallenge,
+            },
+            errors: {
+                401: `Invalid challenge`,
+            },
+        });
+    }
+    /**
+     * Native Meta envelope; HMAC SHA256 of raw body required. No legacy clinicId/appointmentId DTO. Maximum 1 MiB.
+     * @param xHubSignature256
+     * @param requestBody
+     * @returns any Accepted
+     * @throws ApiError
+     */
+    public static whatsappWebhookReceive(
+        xHubSignature256: string,
+        requestBody: {
+            object: 'whatsapp_business_account';
+            entry: Array<Record<string, any>>;
+        },
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/whatsapp/webhook',
+            headers: {
+                'X-Hub-Signature-256': xHubSignature256,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Malformed envelope`,
+                401: `Invalid signature`,
+                409: `Concurrent delivery; safe to retry`,
+                413: `Payload too large`,
+                503: `App secret not configured`,
+            },
         });
     }
 }
