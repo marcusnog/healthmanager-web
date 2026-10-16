@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AccessProfileResponse } from '../models/AccessProfileResponse';
 import type { AppointmentResponse } from '../models/AppointmentResponse';
 import type { AppointmentTypeRequest } from '../models/AppointmentTypeRequest';
 import type { AppointmentTypeResponse } from '../models/AppointmentTypeResponse';
@@ -19,6 +20,7 @@ import type { CreateAppointmentRequest } from '../models/CreateAppointmentReques
 import type { CreateClinicalRecordRequest } from '../models/CreateClinicalRecordRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
 import type { CreateGroupAppointmentRequest } from '../models/CreateGroupAppointmentRequest';
+import type { CreateManagedUserRequest } from '../models/CreateManagedUserRequest';
 import type { CreateManualReceivableRequest } from '../models/CreateManualReceivableRequest';
 import type { CreatePatientDocumentRequest } from '../models/CreatePatientDocumentRequest';
 import type { CreatePatientRequest } from '../models/CreatePatientRequest';
@@ -27,6 +29,7 @@ import type { CreatePaymentRequest } from '../models/CreatePaymentRequest';
 import type { DashboardSummaryResponse } from '../models/DashboardSummaryResponse';
 import type { DoctorResponse } from '../models/DoctorResponse';
 import type { LoginRequest } from '../models/LoginRequest';
+import type { ManagedUserResponse } from '../models/ManagedUserResponse';
 import type { NotificationConfigRequest } from '../models/NotificationConfigRequest';
 import type { NotificationConfigResponse } from '../models/NotificationConfigResponse';
 import type { OwnerSettlementRequest } from '../models/OwnerSettlementRequest';
@@ -68,6 +71,7 @@ import type { UpdateAppointmentRequest } from '../models/UpdateAppointmentReques
 import type { UpdateAppointmentStatusRequest } from '../models/UpdateAppointmentStatusRequest';
 import type { UpdateClinicalRecordRequest } from '../models/UpdateClinicalRecordRequest';
 import type { UpdateDoctorRequest } from '../models/UpdateDoctorRequest';
+import type { UpdateManagedUserRequest } from '../models/UpdateManagedUserRequest';
 import type { UpdatePatientRequest } from '../models/UpdatePatientRequest';
 import type { UpdateTenantSettingsRequest } from '../models/UpdateTenantSettingsRequest';
 import type { UploadPatientDocumentForm } from '../models/UploadPatientDocumentForm';
@@ -1534,6 +1538,61 @@ export class DefaultService {
                 413: `Payload too large`,
                 503: `App secret not configured`,
             },
+        });
+    }
+    /**
+     * @returns ManagedUserResponse Success
+     * @throws ApiError
+     */
+    public static usersList(): CancelablePromise<Array<ManagedUserResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/users',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns ManagedUserResponse Success
+     * @throws ApiError
+     */
+    public static usersCreate(
+        requestBody: CreateManagedUserRequest,
+    ): CancelablePromise<ManagedUserResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/users',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @returns AccessProfileResponse Success
+     * @throws ApiError
+     */
+    public static usersAccessProfiles(): CancelablePromise<Array<AccessProfileResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/users/access-profiles',
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns ManagedUserResponse Success
+     * @throws ApiError
+     */
+    public static usersUpdate(
+        id: string,
+        requestBody: UpdateManagedUserRequest,
+    ): CancelablePromise<ManagedUserResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/users/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

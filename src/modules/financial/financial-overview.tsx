@@ -207,8 +207,8 @@ export function FinancialOverview({
   permissions?: string[];
   initialTab?: Tab;
 }) {
-  const hasView = (tab: Tab) => !TAB_VIEW_PERM[tab] || permissions.length === 0 || permissions.includes(TAB_VIEW_PERM[tab]);
-  const hasManage = (perm: string) => permissions.length === 0 || permissions.includes(perm);
+  const hasView = (tab: Tab) => !TAB_VIEW_PERM[tab] || permissions.includes(TAB_VIEW_PERM[tab]);
+  const hasManage = (perm: string) => permissions.includes(perm);
   const canManageReceivables = hasManage(Permissions.FinanceReceivablesManage);
   const canManagePayables = hasManage(Permissions.FinancePayablesManage);
   const canManageSettlements = hasManage(Permissions.FinanceSettlements);

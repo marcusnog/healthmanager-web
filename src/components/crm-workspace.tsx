@@ -18,6 +18,7 @@ import { SpecialtyList } from "@/modules/specialties/specialty-list";
 import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { AtendimentoPanel } from "@/modules/atendimento/atendimento-panel";
 import { CatalogManager } from "@/modules/catalog/catalog-manager";
+import { UserManager } from "@/modules/users/user-manager";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
 import { ApiError } from "@/generated/core/ApiError";
@@ -41,6 +42,7 @@ type Section =
   | "convenios"
   | "especialidades"
   | "agenda-medicos"
+  | "usuarios"
   | "configuracoes";
 
 /* ─── Icons ─────────────────────────────────────────────────────── */
@@ -154,10 +156,14 @@ const NAV: { section: Section; icon: React.ReactNode; label: string; permission?
   { section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
   { section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
   { section: "agenda-medicos",icon: <ClockIcon />,      label: "Agenda Médicos" },
+  { section: "usuarios", icon: <MedicosIcon />, label: "Usuários" },
   { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
 ];
 
 const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
+  if (permissions?.some(p => p.startsWith("screen."))) {
+    return NAV.filter(n => permissions.includes(`screen.${n.section}`) && (n.section !== "usuarios" || role === "Admin"));
+  }
   const hasGranular = (permissions?.length ?? 0) > 0;
   const base = role === "Doctor"
     ? ["dashboard", "agenda", "pacientes", "agenda-medicos"]
@@ -170,6 +176,7 @@ const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
       // finance items when the role has the granular permission for them
       return n.permission !== undefined && hasGranular && (permissions ?? []).includes(n.permission);
     }
+    if (n.section === "usuarios") return role === "Admin";
     if (!n.permission) return true;
     return !hasGranular || (permissions ?? []).includes(n.permission);
   });
@@ -190,6 +197,7 @@ financeiro:     { title: "Contas a receber", subtitle: "Recebíveis, pagamentos 
   convenios:      { title: "Convênios",        subtitle: "Cadastro de convênios e contatos" },
   especialidades: { title: "Especialidades",   subtitle: "Especialidades e vínculo com médicos" },
   "agenda-medicos": { title: "Agenda por Médico", subtitle: "Horários disponíveis por profissional" },
+  usuarios: { title: "Usuários e acessos", subtitle: "Cadastros, perfis e telas liberadas" },
   configuracoes:  { title: "Configurações",    subtitle: "Configurações operacionais" },
 };
 
@@ -278,25 +286,26 @@ export function CrmWorkspace() {
   }, [session]);
 
   const authenticated = !!session;
+  const canLoad = (...screens: string[]) => authenticated && (!session?.permissions?.some(p => p.startsWith("screen.")) || screens.some(screen => session.permissions.includes(`screen.${screen}`)));
 
   const isDoctor = session?.role === "Doctor";
   const patientsListQuery = useQuery({
     queryKey: ["patients-list", patientSearch, patientPage, patientSortBy, patientSortDirection, patientEmail, patientHealthInsurance],
     queryFn: () => guardedQuery(() => DefaultService.patientsList(patientPage, PATIENTS_PAGE_SIZE, patientSearch || undefined, patientSortBy || undefined, patientSortDirection || undefined, patientEmail || undefined, patientHealthInsurance || undefined), { items: [], page: 1, pageSize: PATIENTS_PAGE_SIZE, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: PATIENTS_PAGE_SIZE, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("pacientes", "dashboard"),
   });
   const patientsCatalogQuery = useQuery({
     queryKey: ["patients-catalog"],
     queryFn: () => guardedQuery(async () => { const r = await DefaultService.patientsList(1, 100, ""); return r.items ?? []; }, []),
     placeholderData: [],
-    enabled: authenticated,
+    enabled: canLoad("pacientes", "agenda", "dashboard", "financeiro"),
   });
   const doctorsQuery = useQuery({
     queryKey: ["doctors", doctorSearch, doctorPage],
     queryFn: () => guardedQuery(() => DefaultService.doctorsList(doctorPage, 10, doctorSearch || undefined), { items: [], page: 1, pageSize: 10, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 10, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("medicos", "agenda", "dashboard", "agenda-medicos", "especialidades", "financeiro-repasses"),
   });
   const currentDoctorId = !isDoctor || !session?.name
     ? undefined
@@ -308,13 +317,13 @@ export function CrmWorkspace() {
     queryKey: ["dashboard-summary", currentDoctorId],
     queryFn: () => guardedQuery(() => DefaultService.dashboardSummary(currentDoctorId), { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 }),
     placeholderData: { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 },
-    enabled: authenticated,
+    enabled: canLoad("dashboard"),
   });
 
   // ponytail: doctor auto-filters appointments; non-doctor uses the manual filter
   const resolvedAppointmentDoctorId = isDoctor ? currentDoctorId : appointmentDoctorId;
-  const doctorAllowedSections = ["dashboard", "agenda", "pacientes", "agenda-medicos", "financeiro"];
-  const resolvedActiveSection = isDoctor && !doctorAllowedSections.includes(activeSection) ? "dashboard" as Section : activeSection;
+  const allowedNav = session ? NAV_FOR_ROLE(session.role, session.permissions) : [];
+  const resolvedActiveSection = allowedNav.some(n => n.section === activeSection) ? activeSection : allowedNav[0]?.section ?? "dashboard";
 
   const appointmentDateFrom = appointmentViewMode === "week"
     ? (() => { const d = new Date(appointmentDate + "T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })()
@@ -331,7 +340,7 @@ export function CrmWorkspace() {
     queryKey: ["payments", paymentPage, paymentReceivableId, paymentDateFrom, paymentDateTo, paymentDestinationBank],
         queryFn: () => guardedQuery(() => DefaultService.paymentsList(paymentPage, 20, paymentReceivableId, paymentDateFrom, paymentDateTo, paymentDestinationBank), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro"),
   });
   const appointmentsQuery = useQuery({
     queryKey: ["appointments", appointmentViewMode, appointmentDate, appointmentPage, resolvedAppointmentDoctorId, appointmentStatus],
@@ -342,70 +351,70 @@ export function CrmWorkspace() {
       return DefaultService.appointmentsList(appointmentPage, APPOINTMENTS_PAGE_SIZE, appointmentDate, resolvedAppointmentDoctorId, appointmentStatus);
     }, { items: [], page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: APPOINTMENTS_PAGE_SIZE, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("agenda", "dashboard"),
   });
   const receivablesQuery = useQuery({
     queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo],
     queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro"),
   });
 
   const expensesQuery = useQuery({
     queryKey: ["expenses", expensePage, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo],
         queryFn: () => guardedQuery(() => expensesList(expensePage, 20, expenseCategory, expenseStatus, expenseDateFrom, expenseDateTo), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro-pagar"),
   });
   const expenseCategoriesQuery = useQuery({
     queryKey: ["expense-categories"],
     queryFn: () => guardedQuery(() => expenseCategoriesList(), { items: [], page: 1, pageSize: 100, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("categorias-despesa", "financeiro-pagar"),
   });
   const appointmentReceivablesQuery = useQuery({
     queryKey: ["appointment-receivables", appointmentDateFrom, appointmentDateTo],
     queryFn: () => guardedQuery(() => DefaultService.receivablesList(1, 100, undefined, appointmentDateFrom, appointmentDateTo), { items: [], page: 1, pageSize: 100, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro"),
   });
   const appointmentTypesQuery = useQuery({
     queryKey: ["appointment-types"],
     queryFn: () => guardedQuery(() => DefaultService.appointmentTypesList(1, 100), { items: [], page: 1, pageSize: 100, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 100, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("tipos-consulta", "agenda", "dashboard"),
   });
 
   const healthInsQuery = useQuery({
     queryKey: ["healthInsurances", hiSearch, hiPage],
     queryFn: () => guardedQuery(() => healthInsurancesList(hiPage, 20, hiSearch || undefined), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("convenios", "pacientes"),
   });
   const specialtiesQuery = useQuery({
     queryKey: ["specialties", specSearch, specPage],
     queryFn: () => guardedQuery(() => specialtiesList(specPage, 20, specSearch || undefined), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("especialidades", "medicos"),
   });
   const availabilitiesQuery = useQuery({
     queryKey: ["availabilities", availPage, availDoctorId],
     queryFn: () => guardedQuery(() => availabilitiesList(availPage, 50, availDoctorId), { items: [], page: 1, pageSize: 50, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 50, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("agenda-medicos"),
   });
   const financialSummaryQuery = useQuery({
     queryKey: ["financial-summary", paymentDestinationBank],
     queryFn: () => guardedQuery(() => financialSummary(paymentDestinationBank), { totalReceived: 0, totalExpenses: 0, balance: 0, grossReceived: 0, professionalLiability: 0, ownerReceivable: 0 }),
     placeholderData: { totalReceived: 0, totalExpenses: 0, balance: 0, grossReceived: 0, professionalLiability: 0, ownerReceivable: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro"),
   });
 
   const paymentIntentsQuery = useQuery({
     queryKey: ["payment-intents", paymentIntentPage, paymentIntentStatus],
     queryFn: () => guardedQuery(() => DefaultService.paymentIntentList(paymentIntentPage, 20, undefined, paymentIntentStatus), { items: [], page: 1, pageSize: 20, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: 20, total: 0 },
-    enabled: authenticated,
+    enabled: canLoad("financeiro"),
   });
 
   useEffect(() => {
@@ -602,6 +611,7 @@ export function CrmWorkspace() {
   const currentNav = NAV_FOR_ROLE(sessionRole, session.permissions);
 
   function renderSection() {
+    if (!currentNav.length) return <p role="status">Nenhuma tela liberada. Solicite acesso ao administrador da clínica.</p>;
     switch (resolvedActiveSection) {
       case "dashboard":
         return (
@@ -621,6 +631,8 @@ export function CrmWorkspace() {
         );
       case "agenda":
         return <AppointmentBoard {...appointmentBoardProps} />;
+      case "usuarios":
+        return <UserManager />;
       case "atendimento":
         return <AtendimentoPanel />;
       case "tipos-consulta":
@@ -732,7 +744,7 @@ case "financeiro":
           {currentNav.map(({ section, icon, label }) => (
             <button
               key={section}
-              className={`nav-item ${activeSection === section ? "active" : ""}`}
+              className={`nav-item ${resolvedActiveSection === section ? "active" : ""}`}
               onClick={() => { setActiveSection(section); if (section === "agenda") setAppointmentViewMode("week"); setSidebarOpen(false); }}
               type="button"
             >
@@ -785,7 +797,7 @@ case "financeiro":
           </div>
           <div className="topbar-right">
             <span className="topbar-date">{today}</span>
-            {activeSection === "dashboard" && (
+            {currentNav.length > 0 && resolvedActiveSection === "dashboard" && (
               <div className="topbar-actions">
                 <button
                   className="btn btn-ghost btn-sm"

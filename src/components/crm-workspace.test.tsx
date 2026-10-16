@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
+import { Permissions } from "@/lib/permissions";
 import { CrmWorkspace } from "@/components/crm-workspace";
 import { renderWithProviders } from "@/test/render";
 
@@ -84,6 +85,7 @@ describe("CrmWorkspace", () => {
           name: "Admin Local",
           role: "Admin",
           clinicName: "Clinica Aurora",
+          permissions: Object.values(Permissions),
           ...session,
         },
       }),
@@ -101,6 +103,24 @@ describe("CrmWorkspace", () => {
     financialSummary.mockReset();
     professionalSettlementsList.mockReset();
     window.localStorage.clear();
+  });
+
+  it("denies every screen for an explicit empty screen selection", () => {
+    seedSession({ role: "Secretary", permissions: ["screen.restricted"] });
+    renderWithProviders(<CrmWorkspace />);
+    expect(screen.getByRole("status")).toHaveTextContent("Nenhuma tela liberada");
+    expect(patientsList).not.toHaveBeenCalled();
+    expect(dashboardSummary).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Agenda", exact: true })).not.toBeInTheDocument();
+  });
+
+  it("opens the first granted screen instead of a forbidden dashboard", () => {
+    seedSession({ role: "Secretary", permissions: ["screen.restricted", "screen.pacientes"] });
+    patientsList.mockResolvedValue({ items: [], total: 0 });
+    renderWithProviders(<CrmWorkspace />);
+    expect(screen.getByRole("button", { name: "Pacientes", exact: true })).toHaveClass("active");
+    expect(dashboardSummary).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Dashboard", exact: true })).not.toBeInTheDocument();
   });
 
   it("renders API-backed operational data when the endpoints respond", async () => {

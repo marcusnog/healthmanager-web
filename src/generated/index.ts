@@ -7,6 +7,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export { AccessProfileResponse } from './models/AccessProfileResponse';
 export type { AppointmentResponse } from './models/AppointmentResponse';
 export type { AppointmentTypeRequest } from './models/AppointmentTypeRequest';
 export type { AppointmentTypeResponse } from './models/AppointmentTypeResponse';
@@ -24,6 +25,7 @@ export type { CreateAppointmentRequest } from './models/CreateAppointmentRequest
 export type { CreateClinicalRecordRequest } from './models/CreateClinicalRecordRequest';
 export type { CreateDoctorRequest } from './models/CreateDoctorRequest';
 export type { CreateGroupAppointmentRequest } from './models/CreateGroupAppointmentRequest';
+export { CreateManagedUserRequest } from './models/CreateManagedUserRequest';
 export { CreateManualReceivableRequest } from './models/CreateManualReceivableRequest';
 export type { CreatePatientDocumentRequest } from './models/CreatePatientDocumentRequest';
 export type { CreatePatientRequest } from './models/CreatePatientRequest';
@@ -33,6 +35,7 @@ export type { DashboardSummaryResponse } from './models/DashboardSummaryResponse
 export type { DoctorResponse } from './models/DoctorResponse';
 export type { GrantApplicationBalanceRequest } from './models/GrantApplicationBalanceRequest';
 export type { LoginRequest } from './models/LoginRequest';
+export { ManagedUserResponse } from './models/ManagedUserResponse';
 export type { NotificationConfigRequest } from './models/NotificationConfigRequest';
 export type { NotificationConfigResponse } from './models/NotificationConfigResponse';
 export type { OwnerSettlementRequest } from './models/OwnerSettlementRequest';
@@ -82,6 +85,7 @@ export type { UpdateAppointmentRequest } from './models/UpdateAppointmentRequest
 export { UpdateAppointmentStatusRequest } from './models/UpdateAppointmentStatusRequest';
 export type { UpdateClinicalRecordRequest } from './models/UpdateClinicalRecordRequest';
 export type { UpdateDoctorRequest } from './models/UpdateDoctorRequest';
+export { UpdateManagedUserRequest } from './models/UpdateManagedUserRequest';
 export type { UpdatePatientRequest } from './models/UpdatePatientRequest';
 export type { UpdateTenantSettingsRequest } from './models/UpdateTenantSettingsRequest';
 export type { UploadPatientDocumentForm } from './models/UploadPatientDocumentForm';
