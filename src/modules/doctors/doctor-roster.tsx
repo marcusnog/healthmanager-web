@@ -291,7 +291,7 @@ function DoctorEditForm({
         email: values.email || undefined,
         isActive: values.isActive,
         clinicSharePercentage: values.clinicSharePercentage,
-        specialtyIds: specialtyIds.length > 0 ? specialtyIds : undefined,
+        specialtyIds,
       }),
     onSuccess: async (updatedDoctor) => {
       setFeedback("Medico atualizado com sucesso.");

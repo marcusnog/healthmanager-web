@@ -34,6 +34,7 @@ describe("DoctorRoster", () => {
     doctorsCreate.mockReset();
     doctorsUpdate.mockReset();
     doctorsDelete.mockReset();
+    specialtiesList.mockResolvedValue({ items: [], page: 1, pageSize: 200, total: 0 });
   });
 
   it("creates a doctor through the operational roster form", async () => {
@@ -79,6 +80,30 @@ describe("DoctorRoster", () => {
     expect(
       await screen.findByText("Medico cadastrado com sucesso."),
     ).toBeVisible();
+  });
+
+  it.each([false, true])("updates doctor specialties (replace: %s)", async (replace) => {
+    specialtiesList.mockResolvedValue({
+      items: [{ id: "spec-1", name: "Cardiologia" }, { id: "spec-2", name: "Dermatologia" }],
+      page: 1, pageSize: 200, total: 2,
+    });
+    doctorsUpdate.mockResolvedValue({ name: "Dr. Henrique Lima" });
+    renderWithProviders(
+      <DoctorRoster {...defaultProps} total={1} doctors={[{
+        id: "doctor-1", name: "Dr. Henrique Lima", isActive: true,
+        specialties: [{ id: "spec-1", name: "Cardiologia" }],
+      }]} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    const current = await screen.findByRole("checkbox", { name: "Cardiologia" });
+    expect(current).toBeChecked();
+    fireEvent.click(current);
+    if (replace) fireEvent.click(screen.getByRole("checkbox", { name: "Dermatologia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await waitFor(() => expect(doctorsUpdate).toHaveBeenCalledWith(
+      "doctor-1", expect.objectContaining({ specialtyIds: replace ? ["spec-2"] : [] }),
+    ));
+    expect(await screen.findByText("Dr. Henrique Lima atualizado com sucesso.")).toBeVisible();
   });
 
   it("updates an existing doctor inline", async () => {
