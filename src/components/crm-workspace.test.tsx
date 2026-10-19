@@ -111,16 +111,16 @@ describe("CrmWorkspace", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Nenhuma tela liberada");
     expect(patientsList).not.toHaveBeenCalled();
     expect(dashboardSummary).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Agenda", exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Agenda" })).not.toBeInTheDocument();
   });
 
   it("opens the first granted screen instead of a forbidden dashboard", () => {
     seedSession({ role: "Secretary", permissions: ["screen.restricted", "screen.pacientes"] });
     patientsList.mockResolvedValue({ items: [], total: 0 });
     renderWithProviders(<CrmWorkspace />);
-    expect(screen.getByRole("button", { name: "Pacientes", exact: true })).toHaveClass("active");
+    expect(screen.getByRole("button", { name: "Pacientes" })).toHaveClass("active");
     expect(dashboardSummary).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Dashboard", exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dashboard" })).not.toBeInTheDocument();
   });
 
   it("renders API-backed operational data when the endpoints respond", async () => {

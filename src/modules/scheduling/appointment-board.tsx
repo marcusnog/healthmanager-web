@@ -25,6 +25,7 @@ import type {
 import { ClinicalRecordModal } from "./clinical-record-modal";
 import { PatientCreateModal } from "../patients/patient-list";
 import { PatientSearch } from "./patient-search";
+import { PrintDailyAgenda } from "./print-daily-agenda";
 
 const schema = z.object({
   patientId: z.string().min(1, "Selecione um paciente."),
@@ -573,6 +574,7 @@ export function AppointmentBoard({
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-base font-semibold text-[var(--ink)]">Agenda</h3>
+              {appointmentViewMode === "day" && <PrintDailyAgenda date={appointmentDate} doctorId={appointmentDoctorId} doctorName={doctorMap[appointmentDoctorId ?? ""]?.name} status={appointmentStatus} disabled={isLoading} />}
               <button className="btn btn-ghost min-h-11" type="button" aria-pressed={isExpanded} onClick={() => setIsExpanded(!isExpanded)}>{isExpanded ? "Sair da tela ampliada" : "Ampliar quadro"}</button>
             </div>
             <p className="mt-1 text-sm text-[var(--muted)]">
