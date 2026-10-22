@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { Permissions } from "@/lib/permissions";
 import { CrmWorkspace } from "@/components/crm-workspace";
@@ -448,6 +448,12 @@ describe("CrmWorkspace", () => {
     renderWithProviders(<CrmWorkspace />);
 
     expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
+    const menu = screen.getByRole("navigation", { name: "Menu principal" });
+    expect(within(menu).getAllByRole("group").map(group => group.getAttribute("aria-label")))
+      .toEqual(["Rotina", "Financeiro", "Cadastros", "Administração"]);
+    expect(within(screen.getByRole("group", { name: "Rotina" })).getAllByRole("button").map(button => button.textContent))
+      .toEqual(["Dashboard", "Agenda", "Pacientes", "Atendimento", "Disponibilidade"]);
+    expect(within(menu).getByRole("button", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Contas a pagar" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Repasses" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Categorias de despesa" })).toBeVisible();
@@ -504,6 +510,8 @@ describe("CrmWorkspace", () => {
 
     expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Contas a pagar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Cadastros" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Administração" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Repasses" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Categorias de despesa" })).not.toBeInTheDocument();
   });

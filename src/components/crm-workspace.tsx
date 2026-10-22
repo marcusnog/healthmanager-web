@@ -141,23 +141,25 @@ function CrossIcon() {
 
 /* ─── Nav config ─────────────────────────────────────────────────── */
 
-const NAV: { section: Section; icon: React.ReactNode; label: string; permission?: string }[] = [
-  { section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
-  { section: "atendimento",   icon: <AtendimentoIcon />, label: "Atendimento" },
-  { section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
-  { section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
-  { section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
-  { section: "produtos-pacotes", icon: <TagIcon />, label: "Produtos e pacotes" },
-  { section: "financeiro",    icon: <FinanceiroIcon />, label: "Contas a receber", permission: Permissions.FinanceReceivablesView },
-  { section: "financeiro-pagar", icon: <FinanceiroIcon />, label: "Contas a pagar", permission: Permissions.FinancePayablesView },
-  { section: "financeiro-repasses", icon: <FinanceiroIcon />, label: "Repasses", permission: Permissions.FinanceSettlements },
-  { section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa", permission: Permissions.FinanceCategoriesView },
-  { section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
-  { section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
-  { section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
-  { section: "agenda-medicos",icon: <ClockIcon />,      label: "Agenda Médicos" },
-  { section: "usuarios", icon: <MedicosIcon />, label: "Usuários" },
-  { section: "configuracoes", icon: <ConfigIcon />,     label: "Config" },
+const NAV_GROUPS = ["Rotina", "Financeiro", "Cadastros", "Administração"] as const;
+
+const NAV: { group: typeof NAV_GROUPS[number]; section: Section; icon: React.ReactNode; label: string; permission?: string }[] = [
+  { group: "Rotina", section: "dashboard",     icon: <DashboardIcon />,  label: "Dashboard" },
+  { group: "Rotina", section: "agenda",        icon: <AgendaIcon />,     label: "Agenda" },
+  { group: "Rotina", section: "pacientes",     icon: <PacientesIcon />,  label: "Pacientes" },
+  { group: "Rotina", section: "atendimento",   icon: <AtendimentoIcon />, label: "Atendimento" },
+  { group: "Rotina", section: "agenda-medicos",icon: <ClockIcon />,      label: "Disponibilidade" },
+  { group: "Financeiro", section: "financeiro",    icon: <FinanceiroIcon />, label: "Contas a receber", permission: Permissions.FinanceReceivablesView },
+  { group: "Financeiro", section: "financeiro-pagar", icon: <FinanceiroIcon />, label: "Contas a pagar", permission: Permissions.FinancePayablesView },
+  { group: "Financeiro", section: "financeiro-repasses", icon: <FinanceiroIcon />, label: "Repasses", permission: Permissions.FinanceSettlements },
+  { group: "Financeiro", section: "categorias-despesa", icon: <TagIcon />, label: "Categorias de despesa", permission: Permissions.FinanceCategoriesView },
+  { group: "Cadastros", section: "medicos",       icon: <MedicosIcon />,    label: "Médicos" },
+  { group: "Cadastros", section: "tipos-consulta", icon: <TagIcon />,       label: "Tipos de consulta" },
+  { group: "Cadastros", section: "produtos-pacotes", icon: <TagIcon />, label: "Produtos e pacotes" },
+  { group: "Cadastros", section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
+  { group: "Cadastros", section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
+  { group: "Administração", section: "usuarios", icon: <MedicosIcon />, label: "Usuários" },
+  { group: "Administração", section: "configuracoes", icon: <ConfigIcon />,     label: "Configurações" },
 ];
 
 const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
@@ -740,18 +742,28 @@ case "financeiro":
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 scrollbar-hide">
-          {currentNav.map(({ section, icon, label }) => (
-            <button
-              key={section}
-              className={`nav-item ${resolvedActiveSection === section ? "active" : ""}`}
-              onClick={() => { setActiveSection(section); if (section === "agenda") setAppointmentViewMode("week"); setSidebarOpen(false); }}
-              type="button"
-            >
-              {icon}
-              <span className="nav-item-label">{label}</span>
-            </button>
-          ))}
+        <nav className="sidebar-nav" aria-label="Menu principal">
+          {NAV_GROUPS.map((group) => {
+            const items = currentNav.filter((item) => item.group === group);
+            if (!items.length) return null;
+            return (
+              <div key={group} className="sidebar-nav-group" role="group" aria-label={group}>
+                <p className="sidebar-nav-heading" aria-hidden="true">{group}</p>
+                {items.map(({ section, icon, label }) => (
+                  <button
+                    key={section}
+                    className={`nav-item ${resolvedActiveSection === section ? "active" : ""}`}
+                    aria-current={resolvedActiveSection === section ? "page" : undefined}
+                    onClick={() => { setActiveSection(section); if (section === "agenda") setAppointmentViewMode("week"); setSidebarOpen(false); }}
+                    type="button"
+                  >
+                    <span className="shrink-0" aria-hidden="true">{icon}</span>
+                    <span className="nav-item-label">{label}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* User */}
