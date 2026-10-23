@@ -9,6 +9,7 @@ import { readAuthSession } from "@/lib/auth-session";
 import { apiErrorMessage } from "@/lib/api-error";
 
 const labels: Record<string, string> = {
+  "clinical-settings": "Configurações clínicas",
   dashboard: "Dashboard", atendimento: "Atendimento", agenda: "Agenda", "tipos-consulta": "Tipos de consulta",
   pacientes: "Pacientes", "produtos-pacotes": "Produtos e pacotes", financeiro: "Contas a receber e resumo",
   "financeiro-pagar": "Contas a pagar", "financeiro-repasses": "Repasses", "categorias-despesa": "Categorias de despesa",

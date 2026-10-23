@@ -13,11 +13,13 @@ export function Modal({
   title,
   onClose,
   children,
+  footer,
   size = "md",
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   size?: "md" | "lg" | "xl";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -32,7 +34,7 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <dialog ref={ref} className={`modal-panel modal-panel-${size}`}>
+    <dialog ref={ref} className={`modal-panel modal-panel-${size}`} onCancel={event => { event.preventDefault(); onClose(); }}>
       <div className="modal-header">
         <h2 className="modal-title">{title}</h2>
         <button
@@ -45,6 +47,7 @@ export function Modal({
         </button>
       </div>
       <div className="modal-body">{children}</div>
+      {footer && <div className="shrink-0 max-h-[25dvh] overflow-y-auto border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3">{footer}</div>}
     </dialog>
   );
 }

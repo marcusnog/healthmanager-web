@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { formatCurrency, formatTime } from "@/lib/formatters";
@@ -22,7 +22,7 @@ import type {
   PatientResponse,
   ReceivableResponse,
 } from "@/generated";
-import { ClinicalRecordModal } from "./clinical-record-modal";
+import { ClinicalWorkspace } from "@/modules/clinical/clinical-workspace";
 import { PatientCreateModal } from "../patients/patient-list";
 import { PatientSearch } from "./patient-search";
 import { PrintDailyAgenda } from "./print-daily-agenda";
@@ -176,6 +176,9 @@ export function AppointmentBoard({
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [createdPatient, setCreatedPatient] = useState<PatientResponse | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
+  const [contextAppointment, setContextAppointment] = useState<AppointmentResponse | null>(null);
+  const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
+  const [viewingPatient, setViewingPatient] = useState<PatientResponse | null>(null);
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
   const [deletingAppointment, setDeletingAppointment] = useState<AppointmentResponse | null>(null);
@@ -403,7 +406,24 @@ export function AppointmentBoard({
   });
 
   return (
-    <>
+    <div onContextMenu={event => {
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-appointment-id]")?.dataset.appointmentId;
+      const appointment = appointments.find(item => item.id === id);
+      if (!appointment) return;
+      event.preventDefault();
+      setContextPosition({ x: Math.max(8, Math.min(event.clientX, window.innerWidth - 288)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 360)) });
+      setContextAppointment(appointment);
+    }}>
+      {contextAppointment && <AppointmentContextMenu position={contextPosition} onClose={() => setContextAppointment(null)}>
+        <div className="grid gap-2">
+          <p className="mb-2 font-medium">{patientMap[contextAppointment.patientId ?? ""]?.name ?? contextAppointment.patientName}</p>
+          <button className="btn btn-ghost justify-start" onClick={() => { setEditingAppointment(contextAppointment); setContextAppointment(null); }}>Mudar status</button>
+          <button className="btn btn-ghost justify-start" onClick={() => { setEditingAppointment(contextAppointment); setContextAppointment(null); }}>Editar agendamento</button>
+          <button className="btn btn-primary justify-start" onClick={() => { setClinicalRecordAppointment(contextAppointment); setContextAppointment(null); }}>Abrir prontuário</button>
+          <button className="btn btn-ghost justify-start" disabled={!patientMap[contextAppointment.patientId ?? ""]} onClick={() => { setViewingPatient(patientMap[contextAppointment.patientId ?? ""]); setContextAppointment(null); }}>Abrir ficha cadastral</button>
+        </div>
+      </AppointmentContextMenu>}
+      {viewingPatient && <Modal title="Ficha cadastral" onClose={() => setViewingPatient(null)}><dl className="space-y-3">{[["Nome", viewingPatient.name], ["CPF", viewingPatient.cpf], ["Telefone", viewingPatient.phone], ["E-mail", viewingPatient.email]].map(([label, value]) => <div key={label}><dt className="text-sm text-[var(--muted)]">{label}</dt><dd>{value || "Não informado"}</dd></div>)}</dl></Modal>}
       {deletingAppointment ? (
         <Modal title="Excluir agendamento" onClose={() => { if (!deleteAppointment.isPending) setDeletingAppointment(null); }}>
           <p className="text-sm">
@@ -494,6 +514,7 @@ export function AppointmentBoard({
 
       {editingAppointment ? (
         <Modal title="Editar consulta" onClose={() => setEditingAppointment(null)}>
+          <button className="btn btn-primary mb-4" type="button" onClick={() => { setClinicalRecordAppointment(editingAppointment); setEditingAppointment(null); }}>Abrir prontuário</button>
           <label className="mb-4 flex flex-wrap items-center gap-2 text-sm font-medium">
             Alterar status
             <select className="input-field min-h-11 w-auto" aria-label="Alterar status da consulta selecionada"
@@ -523,7 +544,7 @@ export function AppointmentBoard({
       ) : null}
 
       {clinicalRecordAppointment ? (
-        <ClinicalRecordModal
+        <ClinicalWorkspace
           appointment={clinicalRecordAppointment}
           canWrite={canWriteClinicalRecord}
           onClose={() => setClinicalRecordAppointment(null)}
@@ -735,6 +756,7 @@ export function AppointmentBoard({
                     className={cn("data-card appt-card", statusBorderClass(appointment.status))}
                     style={appointmentColorStyle(appointment.status, true)}
                     key={appointment.id ?? appointment.startAt ?? appointment.notes}
+                    data-appointment-id={appointment.id}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex items-baseline gap-3">
@@ -832,7 +854,7 @@ export function AppointmentBoard({
           </button>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -905,7 +927,7 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
               return placements.map(({ apt, lane, duration }) => {
                 const patient = patientMap[apt.patientId ?? ""];
                 const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}${apt.endAt ? ` - ${formatTime(apt.endAt)}` : ""}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
-                return <button type="button" key={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="@container absolute flex flex-col justify-center overflow-hidden rounded-sm border px-1.5 text-left text-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), fontSize: "12px", lineHeight: "12px", top: position(minutes(apt.startAt!)), height: `calc(${duration / (end - start) * 100}% - 2px)`, left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
+                return <button type="button" key={apt.id} data-appointment-id={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="@container absolute flex flex-col justify-center overflow-hidden rounded-sm border px-1.5 text-left text-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), fontSize: "12px", lineHeight: "12px", top: position(minutes(apt.startAt!)), height: `calc(${duration / (end - start) * 100}% - 2px)`, left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
                   <span className="flex w-full min-w-0 shrink-0 items-center gap-1">
                     <strong className="min-w-0 flex-1 truncate">{patient?.name ?? "Paciente"}</strong>
                     <span className="hidden shrink-0 tabular-nums @[120px]:inline">{formatTime(apt.startAt!)}</span>
@@ -1052,7 +1074,7 @@ function MonthGrid({ appointments, patientMap, doctorMap, monthDays, todayDate, 
         <span className={cn("text-base font-bold", day === todayDate ? "text-[var(--brand-strong)]" : "text-[var(--ink)]")}>{Number(day.slice(-2))}</span>
         <span className={cn("mt-1 block min-w-0 truncate text-xs", items.length ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]")}>{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
         <span className="mt-2 hidden space-y-2 sm:block">
-          {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
+          {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} data-appointment-id={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
             <span className="block font-bold tabular-nums">{formatTime(apt.startAt ?? "")}</span>
             <span className="block truncate font-medium">{patientMap[apt.patientId ?? ""]?.name ?? "Paciente"}</span>
           </span>)}
@@ -1154,6 +1176,7 @@ function WeekGrid({
                     return (
                       <div
                         key={apt.id}
+                        data-appointment-id={apt.id}
                         style={appointmentColorStyle(apt.status)}
                         className={cn(
                           "week-appointment min-w-0 rounded-md border bg-[var(--surface)] p-1.5 text-xs leading-tight transition-colors hover:bg-[var(--bg)]",
@@ -1225,4 +1248,14 @@ function AppointmentSkeleton() {
       ))}
     </div>
   );
+}
+
+
+function AppointmentContextMenu({ position, onClose, children }: { position: { x: number; y: number }; onClose: () => void; children: React.ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { ref.current?.showModal(); }, []);
+  return <dialog ref={ref} aria-label="Opções da consulta" onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }} className="fixed m-0 w-72 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-[var(--ink)] shadow-lg backdrop:bg-transparent" style={{ left: position.x, top: position.y }}>
+    {children}
+    <button className="btn btn-ghost mt-2 w-full" onClick={onClose}>Fechar menu</button>
+  </dialog>;
 }

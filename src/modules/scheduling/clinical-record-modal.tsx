@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DefaultService } from "@/services/api";
-import { Modal } from "@/components/ui/modal";
+import { ClinicalPanel } from "@/modules/clinical/clinical-panel";
 import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { AppointmentResponse } from "@/generated";
@@ -27,10 +27,12 @@ type CreateFormValues = z.infer<typeof createSchema>;
 type AddendumFormValues = z.infer<typeof addendumSchema>;
 
 export function ClinicalRecordModal({
+  inline = false,
   appointment,
   canWrite,
   onClose,
 }: {
+  inline?: boolean;
   appointment: AppointmentResponse;
   canWrite: boolean;
   onClose: () => void;
@@ -63,7 +65,7 @@ export function ClinicalRecordModal({
     onSuccess: async () => {
       setFeedback("Prontuario criado com sucesso.");
       setIsEditing(false);
-      await queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] }), queryClient.invalidateQueries({ queryKey: ["patient-clinical-records", appointment.patientId] }), queryClient.invalidateQueries({ queryKey: ["clinical-records", appointment.patientId] })]);
     },
     onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel criar o prontuario.")),
   });
@@ -80,7 +82,7 @@ export function ClinicalRecordModal({
     onSuccess: async () => {
       setFeedback("Prontuario atualizado com sucesso.");
       setIsEditing(false);
-      await queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] }), queryClient.invalidateQueries({ queryKey: ["patient-clinical-records", appointment.patientId] }), queryClient.invalidateQueries({ queryKey: ["clinical-records", appointment.patientId] })]);
     },
     onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel atualizar o prontuario.")),
   });
@@ -106,27 +108,27 @@ export function ClinicalRecordModal({
 
   if (clinicalRecordQuery.isLoading) {
     return (
-      <Modal title="Prontuario" onClose={onClose} size="lg">
+      <ClinicalPanel inline={inline} title="Prontuario" onClose={onClose} size="lg">
         <div className="flex items-center justify-center py-12">
           <span className="spinner" />
         </div>
-      </Modal>
+      </ClinicalPanel>
     );
   }
 
   if (clinicalRecordQuery.isError && queryStatus !== 404) {
     return (
-      <Modal title="Prontuario" onClose={onClose} size="lg">
+      <ClinicalPanel inline={inline} title="Prontuario" onClose={onClose} size="lg">
         <div className="empty-state py-8">
           <p className="text-sm font-semibold">{apiErrorMessage(clinicalRecordQuery.error, "Nao foi possivel carregar o prontuario.")}</p>
         </div>
-      </Modal>
+      </ClinicalPanel>
     );
   }
 
   if (!record && !isEditing) {
     return (
-      <Modal title="Prontuario" onClose={onClose} size="lg">
+      <ClinicalPanel inline={inline} title="Prontuario" onClose={onClose} size="lg">
         <div className="empty-state py-8">
           <p className="text-sm font-semibold mb-4">Nenhum prontuario registrado para esta consulta.</p>
           {canWrite ? (
@@ -135,13 +137,13 @@ export function ClinicalRecordModal({
             </button>
           ) : null}
         </div>
-      </Modal>
+      </ClinicalPanel>
     );
   }
 
   if (isEditing || !record) {
     return (
-      <Modal title={record ? "Editar prontuario" : "Novo prontuario"} onClose={onClose} size="lg">
+      <ClinicalPanel inline={inline} title={record ? "Editar prontuario" : "Novo prontuario"} onClose={onClose} size="lg">
         <ClinicalRecordForm
           defaultValues={record ? {
             chiefComplaint: record.chiefComplaint ?? "",
@@ -162,12 +164,12 @@ export function ClinicalRecordModal({
           onCancel={() => { setIsEditing(false); setFeedback(null); }}
           feedback={feedback}
         />
-      </Modal>
+      </ClinicalPanel>
     );
   }
 
   return (
-    <Modal title="Prontuario" onClose={onClose} size="lg">
+    <ClinicalPanel inline={inline} title="Prontuario" onClose={onClose} size="lg">
       <div className="space-y-4">
         {feedback ? (
           <div className="rounded-md border border-[var(--border)] bg-[var(--brand-wash)] px-4 py-3 text-sm text-[var(--muted)]">
@@ -225,7 +227,7 @@ export function ClinicalRecordModal({
           </div>
         ) : null}
       </div>
-    </Modal>
+    </ClinicalPanel>
   );
 }
 

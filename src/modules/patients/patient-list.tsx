@@ -1,3 +1,4 @@
+import { ClinicalWorkspace } from "@/modules/clinical/clinical-workspace";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -223,6 +224,7 @@ export function PatientCreateModal({
 }
 
 export function PatientList({
+  canWriteClinicalRecord = false,
   patients,
   page,
   pageSize,
@@ -240,6 +242,7 @@ export function PatientList({
   onHealthInsuranceChange,
   onPageChange,
 }: {
+  canWriteClinicalRecord?: boolean;
   patients: PatientResponse[];
   page: number;
   pageSize: number;
@@ -328,6 +331,7 @@ export function PatientList({
 
       {clinicalRecordsPatient ? (
         <PatientClinicalRecordsModal
+          canWrite={canWriteClinicalRecord}
           patientId={clinicalRecordsPatient.id ?? ""}
           patientName={clinicalRecordsPatient.name ?? "Paciente"}
           onClose={() => setClinicalRecordsPatient(null)}
@@ -947,23 +951,28 @@ function DocumentCard({
 }
 
 function PatientClinicalRecordsModal({
+  canWrite = false,
   patientId,
   patientName,
   onClose,
 }: {
+  canWrite?: boolean;
   patientId: string;
   patientName: string;
   onClose: () => void;
 }) {
-  const { data: records, isLoading } = useQuery({
+  const [selectedRecord, setSelectedRecord] = useState<import("@/generated").ClinicalRecordResponse | null>(null);
+  const { data: records, isLoading, error } = useQuery({
     queryKey: ["clinical-records", patientId],
     queryFn: () => DefaultService.clinicalRecordListByPatient(patientId),
     enabled: !!patientId,
   });
 
+  if (selectedRecord) return <ClinicalWorkspace appointment={{ id: selectedRecord.appointmentId, patientId, patientName, doctorId: selectedRecord.doctorId, doctorName: selectedRecord.doctorName ?? undefined }} canWrite={canWrite} onClose={() => setSelectedRecord(null)} />;
+
   return (
     <Modal title={`Prontuarios — ${patientName}`} onClose={onClose} size="lg">
-      {isLoading ? (
+      {error ? <p role="alert">{apiErrorMessage(error, "Não foi possível carregar o prontuário.")}</p> : isLoading ? (
         <div className="flex items-center justify-center py-12"><span className="spinner" /></div>
       ) : !records?.length ? (
         <div className="empty-state py-8">
@@ -973,6 +982,7 @@ function PatientClinicalRecordsModal({
         <div className="space-y-4">
           {records.map((r) => (
             <article key={r.id} className="rounded-md border border-[var(--border)] p-4">
+              <button className="btn btn-primary mb-3" disabled={!r.appointmentId} onClick={() => setSelectedRecord(r)}>Abrir prontuário</button>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                   Consulta #{r.appointmentId?.slice(0, 8) ?? "-"}

@@ -18,6 +18,7 @@ import { SpecialtyList } from "@/modules/specialties/specialty-list";
 import { AvailabilityList } from "@/modules/availabilities/availability-list";
 import { AtendimentoPanel } from "@/modules/atendimento/atendimento-panel";
 import { CatalogManager } from "@/modules/catalog/catalog-manager";
+import { ClinicalCatalog } from "@/modules/clinical/clinical-catalog";
 import { UserManager } from "@/modules/users/user-manager";
 import { Avatar } from "@/components/ui/avatar";
 import { DefaultService, expensesList, expenseCategoriesList, financialSummary, healthInsurancesList, specialtiesList, availabilitiesList } from "@/services/api";
@@ -43,7 +44,9 @@ type Section =
   | "especialidades"
   | "agenda-medicos"
   | "usuarios"
-  | "configuracoes";
+  | "configuracoes"
+  | "clinical-settings"
+  | "prescription-documents";
 
 /* ─── Icons ─────────────────────────────────────────────────────── */
 
@@ -158,17 +161,19 @@ const NAV: { group: typeof NAV_GROUPS[number]; section: Section; icon: React.Rea
   { group: "Cadastros", section: "produtos-pacotes", icon: <TagIcon />, label: "Produtos e pacotes" },
   { group: "Cadastros", section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
   { group: "Cadastros", section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
+  { group: "Cadastros", section: "prescription-documents", icon: <TagIcon />, label: "Cadastro de receituários" },
+  { group: "Administração", section: "clinical-settings", icon: <HealthIcon />, label: "Config. clínicas" },
   { group: "Administração", section: "usuarios", icon: <MedicosIcon />, label: "Usuários" },
   { group: "Administração", section: "configuracoes", icon: <ConfigIcon />,     label: "Configurações" },
 ];
 
 const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
   if (permissions?.some(p => p.startsWith("screen."))) {
-    return NAV.filter(n => permissions.includes(`screen.${n.section}`) && (n.section !== "usuarios" || role === "Admin"));
+    return NAV.filter(n => permissions.includes(`screen.${n.section === "prescription-documents" ? "clinical-settings" : n.section}`) && (n.section !== "usuarios" || role === "Admin"));
   }
   const hasGranular = (permissions?.length ?? 0) > 0;
   const base = role === "Doctor"
-    ? ["dashboard", "agenda", "pacientes", "agenda-medicos"]
+    ? ["dashboard", "agenda", "pacientes", "agenda-medicos", "clinical-settings", "prescription-documents"]
     : role === "Secretary"
       ? ["dashboard", "atendimento", "agenda", "pacientes", "produtos-pacotes"]
       : null;
@@ -185,6 +190,8 @@ const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
 };
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
+  "prescription-documents": { title: "Cadastro de receituários", subtitle: "Modelos organizados em pastas para usar nos atendimentos" },
+  "clinical-settings": { title: "Configurações clínicas", subtitle: "Exames, alimentos e formulários" },
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
   atendimento:    { title: "Atendimento",      subtitle: "Conversas da clínica pelo WhatsApp" },
   agenda:         { title: "Agenda",           subtitle: "Consultas, confirmações e cancelamentos" },
@@ -462,6 +469,7 @@ export function CrmWorkspace() {
   const summary = summaryQuery.data ?? { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 };
 
   const patientListProps = {
+    canWriteClinicalRecord: isDoctor,
     email: patientEmail,
     healthInsurance: patientHealthInsurance,
     isLoading: patientsListQuery.isLoading,
@@ -633,6 +641,10 @@ export function CrmWorkspace() {
         );
       case "agenda":
         return <AppointmentBoard {...appointmentBoardProps} />;
+      case "clinical-settings":
+        return <ClinicalCatalog key="clinical" isDoctor={isDoctor} mode="clinical" />;
+      case "prescription-documents":
+        return <ClinicalCatalog key="documents" isDoctor={isDoctor} mode="documents" />;
       case "usuarios":
         return <UserManager />;
       case "atendimento":

@@ -13,10 +13,14 @@ import type { CepAddressResponse } from '../models/CepAddressResponse';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
 import type { CheckoutRequest } from '../models/CheckoutRequest';
 import type { CheckoutResponse } from '../models/CheckoutResponse';
+import type { ClinicalCatalogResponse } from '../models/ClinicalCatalogResponse';
+import type { ClinicalEntryResponse } from '../models/ClinicalEntryResponse';
+import type { ClinicalEntryResponsePagedResult } from '../models/ClinicalEntryResponsePagedResult';
 import type { ClinicalRecordAddendumResponse } from '../models/ClinicalRecordAddendumResponse';
 import type { ClinicalRecordResponse } from '../models/ClinicalRecordResponse';
 import type { CreateAddendumRequest } from '../models/CreateAddendumRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
+import type { CreateClinicalEntryRequest } from '../models/CreateClinicalEntryRequest';
 import type { CreateClinicalRecordRequest } from '../models/CreateClinicalRecordRequest';
 import type { CreateDoctorRequest } from '../models/CreateDoctorRequest';
 import type { CreateGroupAppointmentRequest } from '../models/CreateGroupAppointmentRequest';
@@ -63,6 +67,7 @@ import type { ProfessionalSettlementRequest } from '../models/ProfessionalSettle
 import type { ProfessionalSettlementResponse } from '../models/ProfessionalSettlementResponse';
 import type { ReceivableResponse } from '../models/ReceivableResponse';
 import type { RefreshTokenRequest } from '../models/RefreshTokenRequest';
+import type { SaveClinicalCatalogRequest } from '../models/SaveClinicalCatalogRequest';
 import type { SendWhatsAppMessageRequest } from '../models/SendWhatsAppMessageRequest';
 import type { SettlementResponse } from '../models/SettlementResponse';
 import type { TenantIntegrationResponse } from '../models/TenantIntegrationResponse';
@@ -1593,6 +1598,144 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param kind
+     * @param search
+     * @returns ClinicalCatalogResponse OK
+     * @throws ApiError
+     */
+    public static clinicalCatalogList(
+        kind?: string,
+        search?: string,
+    ): CancelablePromise<Array<ClinicalCatalogResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/clinical-catalog',
+            query: {
+                'kind': kind,
+                'search': search,
+            },
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns ClinicalCatalogResponse OK
+     * @throws ApiError
+     */
+    public static clinicalCatalogCreate(
+        requestBody?: SaveClinicalCatalogRequest,
+    ): CancelablePromise<ClinicalCatalogResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/clinical-catalog',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns ClinicalCatalogResponse OK
+     * @throws ApiError
+     */
+    public static clinicalCatalogUpdate(
+        id: string,
+        requestBody?: SaveClinicalCatalogRequest,
+    ): CancelablePromise<ClinicalCatalogResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/clinical-catalog/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @param revision
+     * @returns any OK
+     * @throws ApiError
+     */
+    public static clinicalCatalogDelete(
+        id: string,
+        revision?: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/clinical-catalog/{id}',
+            path: {
+                'id': id,
+            },
+            query: {
+                'revision': revision,
+            },
+        });
+    }
+    /**
+     * @param appointmentId
+     * @returns ClinicalEntryResponse OK
+     * @throws ApiError
+     */
+    public static clinicalEntriesList(
+        appointmentId: string,
+    ): CancelablePromise<Array<ClinicalEntryResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/appointments/{appointmentId}/clinical-entries',
+            path: {
+                'appointmentId': appointmentId,
+            },
+        });
+    }
+    /**
+     * @param appointmentId
+     * @param requestBody
+     * @returns ClinicalEntryResponse OK
+     * @throws ApiError
+     */
+    public static clinicalEntriesCreate(
+        appointmentId: string,
+        requestBody?: CreateClinicalEntryRequest,
+    ): CancelablePromise<ClinicalEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{appointmentId}/clinical-entries',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param patientId
+     * @param page
+     * @param pageSize
+     * @param kind
+     * @returns ClinicalEntryResponsePagedResult OK
+     * @throws ApiError
+     */
+    public static clinicalEntriesHistory(
+        patientId: string,
+        page: number = 1,
+        pageSize: number = 50,
+        kind?: string,
+    ): CancelablePromise<ClinicalEntryResponsePagedResult> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/patients/{patientId}/clinical-entries',
+            path: {
+                'patientId': patientId,
+            },
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+                'kind': kind,
+            },
         });
     }
 }

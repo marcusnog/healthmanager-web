@@ -510,8 +510,9 @@ describe("CrmWorkspace", () => {
 
     expect(await screen.findByRole("button", { name: "Contas a receber" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Contas a pagar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Cadastros" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Administração" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cadastro de receituários" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Config. clínicas" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Usuários" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Repasses" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Categorias de despesa" })).not.toBeInTheDocument();
   });
