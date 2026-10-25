@@ -1,3 +1,4 @@
+import { paymentInPeriod, printSettlementReport } from "./settlement-report";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field } from "@/components/ui/field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -238,7 +239,7 @@ export function FinancialOverview({
   const expenseTotalPages = Math.max(1, Math.ceil(expenseTotal / 20));
 
   const patientReceivables = selectedPatientId
-    ? receivables.filter((r) => r.patientId === selectedPatientId && r.status !== "Paid")
+    ? receivables.filter((r) => r.patientId === selectedPatientId && (r.status === "Pending" || r.status === "Partial"))
     : [];
 
   const {
@@ -286,10 +287,14 @@ export function FinancialOverview({
   ]);
 
   const registerPaymentMutation = useMutation({
-    mutationFn: async ({ receivableId, values }: { receivableId: string; values: PaymentFormValues }) =>
-      DefaultService.paymentsCreate({
+    mutationFn: async ({ receivableId, values }: { receivableId?: string; values: PaymentFormValues }) =>
+      receivableId ? DefaultService.paymentsCreate({
         receivableId, amount: values.amount, paymentMethod: values.paymentMethod,
         paidAt: new Date(values.paidAt).toISOString(), destinationBank: values.destinationBank || undefined, fundsRecipient: (values.paymentMethod === "CreditCard" || values.paymentMethod === "DebitCard" ? "Owner" : values.fundsRecipient) as CreatePaymentRequest.fundsRecipient, notes: values.notes || undefined,
+      }) : DefaultService.receivablesManual({
+        patientId: selectedPatientId, amount: values.amount, description: "Pagamento sem consulta",
+        paymentMethod: values.paymentMethod, paidAt: new Date(values.paidAt).toISOString(),
+        destinationBank: values.destinationBank || undefined, fundsRecipient: values.fundsRecipient as CreatePaymentRequest.fundsRecipient, notes: values.notes || undefined,
       }),
     onSuccess: async () => {
       setFeedback("Pagamento registrado com sucesso.");
@@ -303,9 +308,9 @@ export function FinancialOverview({
   });
 
   const onPaymentFormSubmit = handlePaymentSubmit(async (values) => {
-    if (!selectedPatientReceivable?.id) return;
+    if (!selectedPatientId) return;
     setFeedback(null);
-    await registerPaymentMutation.mutateAsync({ receivableId: selectedPatientReceivable.id, values });
+    await registerPaymentMutation.mutateAsync({ receivableId: selectedPatientReceivable?.id, values });
   });
 
   const saveExpenseMutation = useMutation({
@@ -571,6 +576,7 @@ export function FinancialOverview({
       {/* Receivable register modal */}
       {showReceivableRegister ? (
         <Modal title="Registrar pagamento" onClose={() => { setShowReceivableRegister(false); setSelectedPatientId(undefined); setSelectedPatientReceivable(undefined); }}>
+          {feedback ? <p role="status" className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
           <div className="toolbar-inline mb-4">
             <button className={cn("btn btn-sm", registerMode === "patient" ? "btn-brand-outline" : "btn-ghost")} onClick={() => { setRegisterMode("patient"); setSelectedPatientReceivable(undefined); }} type="button">Paciente</button>
             <button className={cn("btn btn-sm", registerMode === "expense" ? "btn-brand-outline" : "btn-ghost")} onClick={() => { setRegisterMode("expense"); openNewExpense(); }} type="button">Despesa da clinica</button>
@@ -583,6 +589,7 @@ export function FinancialOverview({
                   {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </Field>
+              {selectedPatientId ? <button className="btn btn-ghost btn-sm justify-self-start" type="button" onClick={() => setSelectedPatientReceivable(undefined)}>Registrar sem consulta</button> : null}
               {selectedPatientId && patientReceivables.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">Nenhum recebivel pendente para este paciente.</p>
               ) : null}
@@ -619,15 +626,15 @@ export function FinancialOverview({
                   </div>
                 </div>
               ) : null}
-              {selectedPatientReceivable ? (
+              {selectedPatientId ? (
                 <form className="grid gap-4 md:grid-cols-2 border-t border-[var(--border)] pt-4" onSubmit={onPaymentFormSubmit}>
                   <div className="md:col-span-2">
                     <p className="text-sm font-semibold text-[var(--ink)]">
-                      Pagamento: {selectedPatientReceivable.patientName} — {formatCurrency(selectedPatientReceivable.outstandingAmount ?? 0)} em aberto
+                      {selectedPatientReceivable ? `Pagamento: ${selectedPatientReceivable.patientName} - ${formatCurrency(selectedPatientReceivable.outstandingAmount ?? 0)} em aberto` : "Pagamento sem consulta"}
                     </p>
                   </div>
                   <Field error={paymentErrors.amount?.message} label="Valor">
-                    <input className="input-field" max={selectedPatientReceivable.outstandingAmount ?? undefined} min={0.01} step="0.01" type="number" {...registerPayment("amount")} />
+                    <input className="input-field" max={selectedPatientReceivable?.outstandingAmount ?? undefined} min={0.01} step="0.01" type="number" {...registerPayment("amount")} />
                   </Field>
                   <Field error={paymentErrors.paymentMethod?.message} label="Forma de pagamento">
                     <select className="input-field" {...registerPayment("paymentMethod")}>
@@ -1068,6 +1075,7 @@ export function FinancialOverview({
             ) : null}
           </div>
           {feedback ? <p className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
+          <div className="mb-4 flex flex-wrap gap-2">{visibleSettlementGroups.filter((group) => (group.settledItems ?? []).length > 0).map((group) => <button key={group.professionalId} className="btn btn-ghost btn-sm" type="button" onClick={() => { try { printSettlementReport(group, settlementDateFrom, settlementDateTo); } catch (error) { setFeedback(error instanceof Error ? error.message : "Nao foi possivel gerar o relatorio."); } }}>Relatorio de repasses - {group.professionalName}</button>)}</div>
           <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos repasses">
             <div className="rounded-lg border border-[var(--border)] p-3"><p className="text-xs font-semibold text-[var(--muted)]">Acumulado</p><p className="mt-1 text-lg font-bold">{formatCurrency(settlementTotals.accrued)}</p></div>
             <div className="rounded-lg border border-[var(--border)] p-3"><p className="text-xs font-semibold text-[var(--muted)]">Ja repassado</p><p className="mt-1 text-lg font-bold text-green-700">{formatCurrency(settlementTotals.paid)}</p></div>
@@ -1080,7 +1088,7 @@ export function FinancialOverview({
           </div>
           {canManageSettlements ? <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3"><span className="text-sm text-[var(--muted)]">{selectedSettlementIds.length} consulta{selectedSettlementIds.length === 1 ? "" : "s"} selecionada{selectedSettlementIds.length === 1 ? "" : "s"}</span><button className="btn btn-primary btn-sm" disabled={!selectedSettlementGroup || settleProfessional.isPending} onClick={() => selectedSettlementGroup && settleProfessional.mutate({ professionalId: selectedSettlementGroup.professionalId, paymentIds: selectedSettlementIds })} type="button">Repassar selecionadas</button></div> : null}
           <div className="overflow-x-auto"><table className="data-table"><thead><tr><th className="w-12"><span className="sr-only">Selecionar</span></th><th>Paciente</th><th>Profissional</th><th>Pagamento</th><th className="numeric">Valor do repasse</th></tr></thead><tbody>
-            {visibleSettlementGroups.flatMap((group) => group.items.filter((item) => (!settlementDateFrom || item.paidAt.slice(0, 10) >= settlementDateFrom) && (!settlementDateTo || item.paidAt.slice(0, 10) <= settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
+            {visibleSettlementGroups.flatMap((group) => group.items.filter((item) => paymentInPeriod(item.paidAt, settlementDateFrom, settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
           </tbody></table></div>
         </section>
       ) : null}

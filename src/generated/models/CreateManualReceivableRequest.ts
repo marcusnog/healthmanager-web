@@ -11,6 +11,7 @@ export type CreateManualReceivableRequest = {
     destinationBank?: string | null;
     fundsRecipient?: CreateManualReceivableRequest.fundsRecipient;
     notes?: string;
+    patientId?: string | null;
 };
 export namespace CreateManualReceivableRequest {
     export enum fundsRecipient {

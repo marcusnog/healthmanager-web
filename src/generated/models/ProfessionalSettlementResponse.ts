@@ -10,5 +10,6 @@ export type ProfessionalSettlementResponse = {
     paid?: number;
     outstanding?: number;
     items?: Array<ProfessionalSettlementItemResponse>;
+    settledItems?: Array<ProfessionalSettlementItemResponse>;
 };
 

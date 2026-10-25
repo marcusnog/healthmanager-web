@@ -9,5 +9,6 @@ export type ProfessionalSettlementItemResponse = {
     paidAt?: string;
     amount?: number;
     isOverdue?: boolean;
+    professionalPaidAt?: string | null;
 };
 

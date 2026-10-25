@@ -201,7 +201,16 @@ export async function financialSummary(destinationBank?: string) {
   }>;
 }
 
+export interface SettledPaymentItem {
+  paymentId: string;
+  patientName: string;
+  paidAt: string;
+  amount: number;
+  professionalPaidAt: string;
+}
+
 export interface ProfessionalSettlementResponse {
+  settledItems?: SettledPaymentItem[];
   professionalId: string;
   professionalName: string;
   accrued: number;
