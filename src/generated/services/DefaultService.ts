@@ -908,6 +908,7 @@ export class DefaultService {
                 'appointmentId': appointmentId,
             },
             errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
                 404: `Not Found`,
             },
         });
@@ -930,6 +931,9 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -950,6 +954,9 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -965,6 +972,9 @@ export class DefaultService {
             url: '/appointments/{appointmentId}/clinical-record/finalize',
             path: {
                 'appointmentId': appointmentId,
+            },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
             },
         });
     }
@@ -986,6 +996,9 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1002,6 +1015,9 @@ export class DefaultService {
             path: {
                 'appointmentId': appointmentId,
             },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1017,6 +1033,9 @@ export class DefaultService {
             url: '/patients/{patientId}/clinical-records',
             path: {
                 'patientId': patientId,
+            },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
             },
         });
     }
@@ -1617,6 +1636,9 @@ export class DefaultService {
                 'kind': kind,
                 'search': search,
             },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1632,6 +1654,9 @@ export class DefaultService {
             url: '/clinical-catalog',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1652,6 +1677,9 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1673,6 +1701,9 @@ export class DefaultService {
             query: {
                 'revision': revision,
             },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1688,6 +1719,9 @@ export class DefaultService {
             url: '/appointments/{appointmentId}/clinical-entries',
             path: {
                 'appointmentId': appointmentId,
+            },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
             },
         });
     }
@@ -1709,6 +1743,9 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
         });
     }
     /**
@@ -1735,6 +1772,9 @@ export class DefaultService {
                 'page': page,
                 'pageSize': pageSize,
                 'kind': kind,
+            },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
             },
         });
     }
