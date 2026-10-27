@@ -9,9 +9,11 @@ import { Field } from "@/components/ui/field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { AppointmentResponse } from "@/generated";
 import { apiErrorMessage } from "@/lib/api-error";
-import { formatCurrency } from "@/lib/formatters";
+import { PrescriptionCatalog } from "@/modules/clinical/prescription-catalog";
 
 const createSchema = z.object({
+  content: z.string().optional(),
+  prescription: z.string().optional(),
   chiefComplaint: z.string().optional(),
   history: z.string().optional(),
   physicalExam: z.string().optional(),
@@ -56,11 +58,13 @@ export function ClinicalRecordModal({
   const createMutation = useMutation({
     mutationFn: (values: CreateFormValues) =>
       DefaultService.clinicalRecordCreate(appointment.id!, {
-        chiefComplaint: values.chiefComplaint || undefined,
-        history: values.history || undefined,
-        physicalExam: values.physicalExam || undefined,
-        assessment: values.assessment || undefined,
-        plan: values.plan || undefined,
+        content: values.content,
+        prescription: values.prescription,
+        chiefComplaint: values.chiefComplaint,
+        history: values.history,
+        physicalExam: values.physicalExam,
+        assessment: values.assessment,
+        plan: values.plan,
       }),
     onSuccess: async () => {
       setFeedback("Prontuario criado com sucesso.");
@@ -73,11 +77,13 @@ export function ClinicalRecordModal({
   const updateMutation = useMutation({
     mutationFn: (values: CreateFormValues) =>
       DefaultService.clinicalRecordUpdate(appointment.id!, {
-        chiefComplaint: values.chiefComplaint || undefined,
-        history: values.history || undefined,
-        physicalExam: values.physicalExam || undefined,
-        assessment: values.assessment || undefined,
-        plan: values.plan || undefined,
+        content: values.content,
+        prescription: values.prescription,
+        chiefComplaint: values.chiefComplaint,
+        history: values.history,
+        physicalExam: values.physicalExam,
+        assessment: values.assessment,
+        plan: values.plan,
       }),
     onSuccess: async () => {
       setFeedback("Prontuario atualizado com sucesso.");
@@ -146,6 +152,8 @@ export function ClinicalRecordModal({
       <ClinicalPanel inline={inline} title={record ? "Editar prontuario" : "Novo prontuario"} onClose={onClose} size="lg">
         <ClinicalRecordForm
           defaultValues={record ? {
+            content: record.content ?? "",
+            prescription: record.prescription ?? "",
             chiefComplaint: record.chiefComplaint ?? "",
             history: record.history ?? "",
             physicalExam: record.physicalExam ?? "",
@@ -156,9 +164,9 @@ export function ClinicalRecordModal({
           onSubmit={async (values) => {
             setFeedback(null);
             if (record) {
-              await updateMutation.mutateAsync(values);
+              updateMutation.mutate(values);
             } else {
-              await createMutation.mutateAsync(values);
+              createMutation.mutate(values);
             }
           }}
           onCancel={() => { setIsEditing(false); setFeedback(null); }}
@@ -203,6 +211,8 @@ export function ClinicalRecordModal({
         </div>
 
         <div className="space-y-3">
+          {record.content ? <ClinicalRecordField label="Prontuário" value={record.content} /> : null}
+          {record.prescription ? <ClinicalRecordField label="Receituário" value={record.prescription} /> : null}
           {record.chiefComplaint ? (
             <ClinicalRecordField label="Queixa principal" value={record.chiefComplaint} />
           ) : null}
@@ -247,7 +257,7 @@ function ClinicalRecordForm({
   onCancel,
   feedback,
 }: {
-  defaultValues?: { chiefComplaint?: string; history?: string; physicalExam?: string; assessment?: string; plan?: string };
+  defaultValues?: CreateFormValues;
   isPending: boolean;
   onSubmit: (values: CreateFormValues) => Promise<void>;
   onCancel: () => void;
@@ -261,48 +271,38 @@ function ClinicalRecordForm({
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: defaultValues ?? { chiefComplaint: "", history: "", physicalExam: "", assessment: "", plan: "" },
+    defaultValues: defaultValues ?? { content: "", prescription: "", chiefComplaint: "", history: "", physicalExam: "", assessment: "", plan: "" },
   });
-  const productsQuery = useQuery({ queryKey: ["products"], queryFn: () => DefaultService.productsList(1, 100) });
-  const packagesQuery = useQuery({ queryKey: ["packages"], queryFn: () => DefaultService.packagesList(1, 100) });
-  const offers = [
-    ...(productsQuery.data?.items ?? []).filter(item => item.isActive).map(item => ({ id: `product-${item.id}`, label: item.name ?? "Produto", detail: `${item.applicationCount ?? 1} aplicacao(oes)`, price: item.price ?? 0 })),
-    ...(packagesQuery.data?.items ?? []).filter(item => item.isActive).map(item => ({ id: `package-${item.id}`, label: item.name ?? "Pacote", detail: `${item.items?.length ?? 0} produto(s)`, price: item.price ?? 0 })),
-  ];
-  const addOfferToPlan = (label: string, price: number) => {
-    const current = getValues("plan")?.trim();
-    setValue("plan", [current, `Oferta: ${label} - ${formatCurrency(price)}`].filter(Boolean).join("\n"), { shouldDirty: true });
-  };
 
   return (
     <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
-      <Field error={errors.chiefComplaint?.message} label="Queixa principal">
-        <textarea className="input-field min-h-20" {...register("chiefComplaint")} />
+      <Field className="md:col-span-2" error={errors.content?.message} label="Prontuário — texto livre">
+        <textarea className="input-field min-h-72 leading-relaxed" disabled={isPending} {...register("content")} placeholder="Escreva o atendimento livremente..." />
       </Field>
-      <Field error={errors.history?.message} label="Historia">
-        <textarea className="input-field min-h-20" {...register("history")} />
+      <details className="md:col-span-2" open={Object.entries(defaultValues ?? {}).some(([key, value]) => !["content", "prescription"].includes(key) && !!value)}>
+        <summary className="cursor-pointer text-sm font-semibold">Campos estruturados / registros anteriores</summary>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Field error={errors.chiefComplaint?.message} label="Queixa principal">
+            <textarea className="input-field min-h-20" {...register("chiefComplaint")} />
+          </Field>
+          <Field error={errors.history?.message} label="Historia">
+            <textarea className="input-field min-h-20" {...register("history")} />
+          </Field>
+          <Field error={errors.physicalExam?.message} label="Exame fisico">
+            <textarea className="input-field min-h-20" {...register("physicalExam")} />
+          </Field>
+          <Field error={errors.assessment?.message} label="Avaliacao">
+            <textarea className="input-field min-h-20" {...register("assessment")} />
+          </Field>
+          <Field className="md:col-span-2" error={errors.plan?.message} label="Plano">
+            <textarea className="input-field min-h-20" {...register("plan")} />
+          </Field>
+        </div>
+      </details>
+      <Field className="md:col-span-2" error={errors.prescription?.message} label="Receituário">
+        <textarea className="input-field min-h-48 leading-relaxed" disabled={isPending} {...register("prescription")} placeholder="Informe a prescrição e as orientações de uso..." />
       </Field>
-      <Field error={errors.physicalExam?.message} label="Exame fisico">
-        <textarea className="input-field min-h-20" {...register("physicalExam")} />
-      </Field>
-      <Field error={errors.assessment?.message} label="Avaliacao">
-        <textarea className="input-field min-h-20" {...register("assessment")} />
-      </Field>
-      <Field className="md:col-span-2" error={errors.plan?.message} label="Plano">
-        <textarea className="input-field min-h-20" {...register("plan")} />
-      </Field>
-      <fieldset className="md:col-span-2 rounded-md border border-[var(--border)] p-4">
-        <legend className="px-1 text-sm font-semibold">Ofertas de produtos e pacotes</legend>
-        <p className="mb-3 text-xs text-[var(--muted)]">Adicione uma opcao ao plano apresentado ao paciente.</p>
-        {productsQuery.isLoading || packagesQuery.isLoading ? <span className="spinner" /> : offers.length ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {offers.map(offer => <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] p-3" key={offer.id}>
-              <div><p className="text-sm font-semibold">{offer.label}</p><p className="text-xs text-[var(--muted)]">{offer.detail} · {formatCurrency(offer.price)}</p></div>
-              <button className="btn btn-brand-outline btn-sm" onClick={() => addOfferToPlan(offer.label, offer.price)} type="button">Ofertar</button>
-            </div>)}
-          </div>
-        ) : <p className="text-sm text-[var(--muted)]">Nenhuma oferta ativa cadastrada.</p>}
-      </fieldset>
+      <PrescriptionCatalog disabled={isPending} onSelect={text => setValue("prescription", [getValues("prescription"), text].filter(Boolean).join("\n"), { shouldDirty: true })} />
       {feedback ? (
         <p className="md:col-span-2 text-sm text-[var(--muted)]">{feedback}</p>
       ) : null}

@@ -4,7 +4,7 @@ import { ClinicalWorkspace, ClinicalDocumentPreview } from "./clinical-workspace
 import { ClinicalCatalog } from "./clinical-catalog";
 import { renderWithProviders } from "@/test/render";
 
-const api = vi.hoisted(() => ({ clinicalRecordGet: vi.fn(), clinicalEntriesHistory: vi.fn(), clinicalRecordListByPatient: vi.fn(), clinicalCatalogList: vi.fn(), clinicalEntriesCreate: vi.fn(), clinicalCatalogCreate: vi.fn() }));
+const api = vi.hoisted(() => ({ productsList: vi.fn().mockResolvedValue({ items: [] }), packagesList: vi.fn().mockResolvedValue({ items: [] }), clinicalRecordGet: vi.fn(), clinicalEntriesHistory: vi.fn(), clinicalRecordListByPatient: vi.fn(), clinicalCatalogList: vi.fn(), clinicalEntriesCreate: vi.fn(), clinicalCatalogCreate: vi.fn() }));
 vi.mock("@/services/api", () => ({ DefaultService: api }));
 const appointment = { id: "appointment", patientId: "patient", patientName: "Paciente", doctorName: "Médico" };
 beforeEach(() => {

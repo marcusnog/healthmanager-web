@@ -8,5 +8,7 @@ export type UpdateClinicalRecordRequest = {
     physicalExam?: string | null;
     assessment?: string | null;
     plan?: string | null;
+    content?: string | null;
+    prescription?: string | null;
 };
 

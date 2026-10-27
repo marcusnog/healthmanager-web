@@ -809,7 +809,7 @@ export function AppointmentBoard({
                         <summary className="btn btn-ghost btn-sm cursor-pointer list-none">Mais acoes</summary>
                         <div className="mt-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2">
                           <button className="btn btn-ghost btn-sm" disabled={isProcessing} onClick={() => { setFeedback(null); setEditingAppointment(appointment); }} type="button">Editar / Remarcar</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); setClinicalRecordAppointment(appointment); }} type="button">Prontuario</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setFeedback(null); setClinicalRecordAppointment(appointment); }} type="button">Prontuário / Receituário</button>
                           {(receivable?.receivedAmount ?? 0) > 0 && (receivable?.outstandingAmount ?? 0) > 0 ? <button className="btn btn-primary btn-sm" onClick={() => openPayment(receivable)} type="button">Receber saldo</button> : null}
                         </div>
                       </details>

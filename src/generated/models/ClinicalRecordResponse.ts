@@ -16,6 +16,8 @@ export type ClinicalRecordResponse = {
     finalizedAt?: string | null;
     patientName?: string | null;
     doctorName?: string | null;
+    content?: string | null;
+    prescription?: string | null;
 };
 export namespace ClinicalRecordResponse {
     export enum status {

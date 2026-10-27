@@ -3,8 +3,9 @@ import { vi } from "vitest";
 import { ClinicalRecordModal } from "@/modules/scheduling/clinical-record-modal";
 import { renderWithProviders } from "@/test/render";
 
-const { clinicalRecordCreate, clinicalRecordGet, clinicalRecordListAddendums, productsList, packagesList } = vi.hoisted(() => ({
+const { clinicalRecordCreate, clinicalRecordUpdate, clinicalRecordGet, clinicalRecordListAddendums, productsList, packagesList } = vi.hoisted(() => ({
   clinicalRecordCreate: vi.fn(),
+  clinicalRecordUpdate: vi.fn(),
   clinicalRecordGet: vi.fn(),
   clinicalRecordListAddendums: vi.fn(),
   productsList: vi.fn(),
@@ -14,6 +15,7 @@ const { clinicalRecordCreate, clinicalRecordGet, clinicalRecordListAddendums, pr
 vi.mock("@/services/api", () => ({
   DefaultService: {
     clinicalRecordCreate,
+    clinicalRecordUpdate,
     clinicalRecordGet,
     clinicalRecordListAddendums,
     productsList,
@@ -29,7 +31,7 @@ describe("ClinicalRecordModal", () => {
     clinicalRecordGet.mockReset();
     clinicalRecordListAddendums.mockReset();
     productsList.mockResolvedValue({ items: [{ id: "product-1", name: "Vitamina D", price: 90, applicationCount: 1, isActive: true }] });
-    packagesList.mockResolvedValue({ items: [{ id: "package-1", name: "Plano Vitamina", price: 320, isActive: true, items: [{ productId: "product-1" }] }] });
+    packagesList.mockResolvedValue({ items: [{ id: "package-1", name: "Plano Vitamina", price: 320, isActive: true, items: [{ productId: "product-1", productName: "Vitamina D", applicationCount: 4 }] }] });
   });
 
   it("keeps an empty record read-only for administrative staff", async () => {
@@ -51,25 +53,40 @@ describe("ClinicalRecordModal", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Criar prontuario" }));
     fireEvent.change(screen.getByLabelText("Queixa principal"), { target: { value: "Dor" } });
+    fireEvent.change(screen.getByLabelText("Prontuário — texto livre"), { target: { value: "Texto livre\nSegunda linha" } });
+    fireEvent.change(screen.getByLabelText("Receituário"), { target: { value: "Orientações" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(clinicalRecordCreate).toHaveBeenCalledWith("appointment-1", {
       chiefComplaint: "Dor",
-      history: undefined,
-      physicalExam: undefined,
-      assessment: undefined,
-      plan: undefined,
+      content: "Texto livre\nSegunda linha",
+      prescription: "Orientações",
+      history: "",
+      physicalExam: "",
+      assessment: "",
+      plan: "",
     }));
   });
 
-  it("adds a catalog offer to the consultation plan", async () => {
+  it("clears saved text while preserving legacy fields", async () => {
+    clinicalRecordGet.mockResolvedValue({ id: "record-1", status: "Draft", content: "Anterior", prescription: "Anterior", chiefComplaint: "Dor" });
+    clinicalRecordUpdate.mockResolvedValue({ id: "record-1", status: "Draft" });
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Prontuário — texto livre"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Receituário"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(clinicalRecordUpdate).toHaveBeenCalledWith("appointment-1", expect.objectContaining({ content: "", prescription: "", chiefComplaint: "Dor" })));
+  });
+
+  it("adds a catalog package to the prescription", async () => {
     clinicalRecordGet.mockRejectedValueOnce({ status: 404 });
     renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite onClose={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Criar prontuario" }));
     expect(await screen.findByText("Plano Vitamina")).toBeVisible();
-    fireEvent.click(screen.getAllByRole("button", { name: "Ofertar" })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Anexar" })[1]);
 
-    expect(screen.getByLabelText("Plano")).toHaveValue("Oferta: Plano Vitamina - R$\u00a0320,00");
+    expect(screen.getByLabelText("Receituário")).toHaveValue("Plano Vitamina — Vitamina D: 4 aplicação(ões)");
   });
 });

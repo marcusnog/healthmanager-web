@@ -991,6 +991,8 @@ function PatientClinicalRecordsModal({
                   {r.status === "Finalized" ? "Finalizado" : "Rascunho"}
                 </span>
               </div>
+              {r.content ? <p className="text-sm mb-2 whitespace-pre-wrap"><strong>Prontuário:</strong> {r.content}</p> : null}
+              {r.prescription ? <p className="text-sm mb-2 whitespace-pre-wrap"><strong>Receituário:</strong> {r.prescription}</p> : null}
               {r.chiefComplaint ? <p className="text-sm mb-2"><strong>Queixa:</strong> {r.chiefComplaint}</p> : null}
               {r.history ? <p className="text-sm mb-2"><strong>Historia:</strong> {r.history}</p> : null}
               {r.physicalExam ? <p className="text-sm mb-2"><strong>Exame:</strong> {r.physicalExam}</p> : null}
