@@ -225,6 +225,7 @@ export function PatientCreateModal({
 
 export function PatientList({
   canWriteClinicalRecord = false,
+  canFinalizeClinicalRecord = canWriteClinicalRecord,
   patients,
   page,
   pageSize,
@@ -243,6 +244,7 @@ export function PatientList({
   onPageChange,
 }: {
   canWriteClinicalRecord?: boolean;
+  canFinalizeClinicalRecord?: boolean;
   patients: PatientResponse[];
   page: number;
   pageSize: number;
@@ -332,6 +334,7 @@ export function PatientList({
       {clinicalRecordsPatient ? (
         <PatientClinicalRecordsModal
           canWrite={canWriteClinicalRecord}
+          canFinalize={canFinalizeClinicalRecord}
           patientId={clinicalRecordsPatient.id ?? ""}
           patientName={clinicalRecordsPatient.name ?? "Paciente"}
           onClose={() => setClinicalRecordsPatient(null)}
@@ -952,11 +955,13 @@ function DocumentCard({
 
 function PatientClinicalRecordsModal({
   canWrite = false,
+  canFinalize = canWrite,
   patientId,
   patientName,
   onClose,
 }: {
   canWrite?: boolean;
+  canFinalize?: boolean;
   patientId: string;
   patientName: string;
   onClose: () => void;
@@ -968,7 +973,7 @@ function PatientClinicalRecordsModal({
     enabled: !!patientId,
   });
 
-  if (selectedRecord) return <ClinicalWorkspace appointment={{ id: selectedRecord.appointmentId, patientId, patientName, doctorId: selectedRecord.doctorId, doctorName: selectedRecord.doctorName ?? undefined }} canWrite={canWrite} onClose={() => setSelectedRecord(null)} />;
+  if (selectedRecord) return <ClinicalWorkspace appointment={{ id: selectedRecord.appointmentId, patientId, patientName, doctorId: selectedRecord.doctorId, doctorName: selectedRecord.doctorName ?? undefined }} canWrite={canWrite} canFinalize={canFinalize} onClose={() => setSelectedRecord(null)} />;
 
   return (
     <Modal title={`Prontuarios — ${patientName}`} onClose={onClose} size="lg">

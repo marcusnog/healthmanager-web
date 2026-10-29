@@ -32,11 +32,13 @@ export function ClinicalRecordModal({
   inline = false,
   appointment,
   canWrite,
+  canFinalize = canWrite,
   onClose,
 }: {
   inline?: boolean;
   appointment: AppointmentResponse;
   canWrite: boolean;
+  canFinalize?: boolean;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -193,14 +195,14 @@ export function ClinicalRecordModal({
                 <button className="btn btn-ghost btn-sm" onClick={() => setIsEditing(true)} type="button">
                   Editar
                 </button>
-                <button
+                {canFinalize && <button
                   className="btn btn-primary btn-sm"
                   disabled={finalizeMutation.isPending}
                   onClick={() => finalizeMutation.mutateAsync()}
                   type="button"
                 >
                   {finalizeMutation.isPending ? <span className="spinner" /> : "Finalizar"}
-                </button>
+                </button>}
               </>
             ) : (
               <span className="text-xs text-[var(--muted)]">
@@ -233,7 +235,7 @@ export function ClinicalRecordModal({
         {isFinalized ? (
           <div className="border-t border-[var(--border)] pt-4 mt-4">
             <h4 className="text-sm font-semibold text-[var(--ink)] mb-3">Addendums</h4>
-            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} canWrite={canWrite} />
+            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} canWrite={canWrite && canFinalize} />
           </div>
         ) : null}
       </div>

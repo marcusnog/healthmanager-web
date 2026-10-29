@@ -133,6 +133,7 @@ export function AppointmentBoard({
   doctors,
   appointmentTypes = [],
   canWriteClinicalRecord = false,
+  canFinalizeClinicalRecord = canWriteClinicalRecord,
   appointmentDate,
   appointmentViewMode = "day",
   appointmentDateFrom,
@@ -155,6 +156,7 @@ export function AppointmentBoard({
   doctors: DoctorResponse[];
   appointmentTypes?: AppointmentTypeResponse[];
   canWriteClinicalRecord?: boolean;
+  canFinalizeClinicalRecord?: boolean;
   appointmentDate: string;
   appointmentViewMode?: "day" | "week" | "month";
   appointmentDateFrom?: string;
@@ -547,6 +549,7 @@ export function AppointmentBoard({
         <ClinicalWorkspace
           appointment={clinicalRecordAppointment}
           canWrite={canWriteClinicalRecord}
+          canFinalize={canFinalizeClinicalRecord}
           onClose={() => setClinicalRecordAppointment(null)}
         />
       ) : null}

@@ -34,7 +34,7 @@ describe("ClinicalRecordModal", () => {
     packagesList.mockResolvedValue({ items: [{ id: "package-1", name: "Plano Vitamina", price: 320, isActive: true, items: [{ productId: "product-1", productName: "Vitamina D", applicationCount: 4 }] }] });
   });
 
-  it("keeps an empty record read-only for administrative staff", async () => {
+  it("keeps an empty record read-only for read-only staff", async () => {
     clinicalRecordGet.mockRejectedValueOnce({ status: 404 });
 
     renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite={false} onClose={vi.fn()} />);
@@ -43,13 +43,13 @@ describe("ClinicalRecordModal", () => {
     expect(screen.queryByRole("button", { name: "Criar prontuario" })).not.toBeInTheDocument();
   });
 
-  it("allows the responsible doctor to create the record", async () => {
+  it.each([true, false])("allows creation with finalize permission %s", async (canFinalize) => {
     clinicalRecordGet
       .mockRejectedValueOnce({ status: 404 })
       .mockResolvedValue({ id: "record-1", status: "Draft", chiefComplaint: "Dor" });
     clinicalRecordCreate.mockResolvedValueOnce({ id: "record-1", status: "Draft" });
 
-    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite onClose={vi.fn()} />);
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite canFinalize={canFinalize} onClose={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Criar prontuario" }));
     fireEvent.change(screen.getByLabelText("Queixa principal"), { target: { value: "Dor" } });
@@ -68,11 +68,13 @@ describe("ClinicalRecordModal", () => {
     }));
   });
 
-  it("clears saved text while preserving legacy fields", async () => {
+  it.each([true, false])("edits draft text with finalize permission %s", async (canFinalize) => {
     clinicalRecordGet.mockResolvedValue({ id: "record-1", status: "Draft", content: "Anterior", prescription: "Anterior", chiefComplaint: "Dor" });
     clinicalRecordUpdate.mockResolvedValue({ id: "record-1", status: "Draft" });
-    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite onClose={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite canFinalize={canFinalize} onClose={vi.fn()} />);
+    const edit = await screen.findByRole("button", { name: "Editar" });
+    expect(!!screen.queryByRole("button", { name: "Finalizar" })).toBe(canFinalize);
+    fireEvent.click(edit);
     fireEvent.change(screen.getByLabelText("Prontuário — texto livre"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Receituário"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));

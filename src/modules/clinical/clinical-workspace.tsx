@@ -17,7 +17,7 @@ import { OpenAPI } from "@/generated/core/OpenAPI";
 export const clinicalEntryLabels: Record<string, string> = { Document: "Receituário e documentos", ExamOrder: "Solicitação de exames", ExamResult: "Resultados de exames", Anamnesis: "Anamnese", Questionnaire: "Questionários", Nutrition: "Planejamento alimentar", Summary: "Resumo clínico" };
 const summaryFields: ClinicalField[] = ["Diagnósticos", "Antecedentes", "Medicamentos em uso", "Alergias", "Observações"].map(label => ({ label, type: "Text" }));
 
-export function ClinicalWorkspace({ appointment, canWrite, onClose }: { appointment: AppointmentResponse; canWrite: boolean; onClose: () => void }) {
+export function ClinicalWorkspace({ appointment, canWrite, canFinalize = canWrite, onClose }: { appointment: AppointmentResponse; canWrite: boolean; canFinalize?: boolean; onClose: () => void }) {
   const [editRecord, setEditRecord] = useState(false);
   const [entryDirty, setEntryDirty] = useState(false);
   const [entryPending, setEntryPending] = useState(false);
@@ -46,8 +46,8 @@ export function ClinicalWorkspace({ appointment, canWrite, onClose }: { appointm
 
   return <Modal title={`${appointment.patientName ?? "Paciente"} · Atendimento`} size="xl" onClose={() => leaveEntry(onClose)} footer={<nav aria-label="Opções do atendimento" className="flex flex-wrap gap-2">{Object.entries(clinicalEntryLabels).map(([key, label]) => <button type="button" key={key} className="btn btn-ghost min-h-11" disabled={!canRegister || entryPending} onClick={() => leaveEntry(() => { setCorrection(null); setEditRecord(false); setKind(key); })}>{label}</button>)}<button className="btn btn-ghost min-h-11" onClick={() => setAttachments(true)}>Imagens e anexos</button></nav>}>
     <div className="space-y-5">
-      <div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-[var(--muted)]">{appointment.doctorName} · {appointment.startAt ? new Date(appointment.startAt).toLocaleString("pt-BR") : ""}</p><button className="btn btn-primary" onClick={() => leaveEntry(() => { setKind(null); setEditRecord(true); })}>{canWrite ? "Abrir evolução e finalização" : "Consultar prontuário"}</button></div>
-      {canWrite && !canRegister && <p className="rounded-md border border-[var(--border)] p-3 text-sm">{record.data?.status === "Finalized" ? "Prontuário finalizado. Use um adendo na evolução para registrar correções. Finalizar prontuário e concluir agendamento são ações separadas." : "Abra a evolução e salve o prontuário em rascunho para registrar documentos e formulários."}</p>}
+      <div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-[var(--muted)]">{appointment.doctorName} · {appointment.startAt ? new Date(appointment.startAt).toLocaleString("pt-BR") : ""}</p><button className="btn btn-primary" onClick={() => leaveEntry(() => { setKind(null); setEditRecord(true); })}>{canWrite ? (canFinalize ? "Abrir evolução e finalização" : "Editar prontuário") : "Consultar prontuário"}</button></div>
+      {canWrite && !canRegister && <p className="rounded-md border border-[var(--border)] p-3 text-sm">{record.data?.status === "Finalized" ? (canFinalize ? "Prontuário finalizado. Use um adendo na evolução para registrar correções. Finalizar prontuário e concluir agendamento são ações separadas." : "Prontuário finalizado. Solicite um adendo ao médico responsável para registrar correções.") : "Abra a evolução e salve o prontuário em rascunho para registrar documentos e formulários."}</p>}
       {record.error && !(typeof record.error === "object" && "status" in record.error && record.error.status === 404) && <p role="alert">{apiErrorMessage(record.error, "Não foi possível carregar o prontuário.")}</p>}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" role="region" aria-label="Histórico e digitação do prontuário">
         <section aria-label="Histórico do paciente" className="min-w-0 space-y-5 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-2">
@@ -62,7 +62,7 @@ export function ClinicalWorkspace({ appointment, canWrite, onClose }: { appointm
         <section aria-label="Digitação do prontuário" className="min-w-0 space-y-4 lg:sticky lg:top-0">
           <h2 className="font-semibold">Digitação do prontuário</h2>
           <p className="text-sm text-[var(--muted)]">Escolha o tipo de registro na barra inferior. Ao salvar, ele aparece no histórico à esquerda.</p>
-        {editRecord && <ClinicalRecordModal inline appointment={appointment} canWrite={canWrite} onClose={() => setEditRecord(false)} />}
+        {editRecord && <ClinicalRecordModal inline appointment={appointment} canWrite={canWrite} canFinalize={canFinalize} onClose={() => setEditRecord(false)} />}
         {kind && <ClinicalEntryEditor key={`${kind}-${correction?.id ?? "new"}`} appointmentId={appointment.id!} kind={kind} correction={correction} onDirtyChange={setEntryDirty} onPendingChange={setEntryPending} onSaved={() => { setKind(null); setCorrection(null); }} onClose={() => leaveEntry(() => { setKind(null); setCorrection(null); })} />}
           {!editRecord && !kind && <div className="rounded-lg border border-[var(--border)] p-5"><p className="mb-4 text-sm text-[var(--muted)]">Abra a evolução para digitar ou selecione uma opção na barra inferior.</p><button className="btn btn-primary" onClick={() => setEditRecord(true)}>{canWrite ? "Digitar evolução" : "Consultar evolução"}</button></div>}
         </section>

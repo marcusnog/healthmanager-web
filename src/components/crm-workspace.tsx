@@ -469,7 +469,8 @@ export function CrmWorkspace() {
   const summary = summaryQuery.data ?? { appointmentsToday: 0, cancelledToday: 0, confirmedToday: 0, monthlyRevenue: 0, noShowRate: 0, confirmationRate: 0 };
 
   const patientListProps = {
-    canWriteClinicalRecord: isDoctor,
+    canWriteClinicalRecord: isDoctor || session?.role === "Admin",
+    canFinalizeClinicalRecord: isDoctor,
     email: patientEmail,
     healthInsurance: patientHealthInsurance,
     isLoading: patientsListQuery.isLoading,
@@ -489,7 +490,8 @@ export function CrmWorkspace() {
   };
   const doctorsData = doctorsQuery.data ?? { items: [], page: 1, pageSize: 10, total: 0 };
   const appointmentBoardProps = {
-    canWriteClinicalRecord: isDoctor,
+    canWriteClinicalRecord: isDoctor || session?.role === "Admin",
+    canFinalizeClinicalRecord: isDoctor,
     appointmentDate,
     appointmentViewMode,
     appointmentDateFrom,
