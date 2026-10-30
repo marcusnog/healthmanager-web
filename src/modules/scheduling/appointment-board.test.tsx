@@ -313,6 +313,24 @@ describe("AppointmentBoard", () => {
     expect(screen.getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
   });
 
+  it("shows scheduling errors inside the dialog and preserves the draft for retry", async () => {
+    const detail = "Consulta fora do expediente da clinica.";
+    appointmentsCreate.mockRejectedValueOnce({ body: { detail } }).mockResolvedValueOnce({});
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Inicio"), { target: { value: "2026-05-07T20:00" } });
+    fireEvent.change(within(dialog).getByLabelText("Observacoes"), { target: { value: "Retorno preservado" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar consulta" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(detail);
+    expect(within(dialog).getByLabelText("Inicio")).toHaveValue("2026-05-07T20:00");
+    expect(within(dialog).getByLabelText("Observacoes")).toHaveValue("Retorno preservado");
+    fireEvent.change(within(dialog).getByLabelText("Inicio"), { target: { value: "2026-05-07T17:00" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar consulta" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(appointmentsCreate).toHaveBeenCalledTimes(2);
+  });
+
   it("uses individual scheduling without a group option", async () => {
     appointmentsCreate.mockResolvedValueOnce({});
     renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);

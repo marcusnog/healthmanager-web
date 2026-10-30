@@ -402,9 +402,9 @@ export function AppointmentBoard({
     resetPayment({ amount: receivable.outstandingAmount ?? 0, paymentMethod: "Pix" });
   };
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = handleSubmit((values) => {
     setFeedback(null);
-    await createAppointment.mutateAsync(values);
+    createAppointment.mutate(values);
   });
 
   return (
@@ -494,6 +494,7 @@ export function AppointmentBoard({
             <Field className="md:col-span-2" error={errors.notes?.message} label="Observacoes">
               <textarea className="input-field min-h-24" {...register("notes")} />
             </Field>
+            {feedback ? <p role="alert" className="md:col-span-2 text-sm">{feedback}</p> : null}
             <div className="md:col-span-2 flex justify-end gap-3">
               <button
                 className="btn btn-ghost btn-sm"
