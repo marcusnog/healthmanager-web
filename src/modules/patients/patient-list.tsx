@@ -224,6 +224,7 @@ export function PatientCreateModal({
 }
 
 export function PatientList({
+  canDeletePatient = false,
   canWriteClinicalRecord = false,
   canFinalizeClinicalRecord = canWriteClinicalRecord,
   patients,
@@ -243,6 +244,7 @@ export function PatientList({
   onHealthInsuranceChange,
   onPageChange,
 }: {
+  canDeletePatient?: boolean;
   canWriteClinicalRecord?: boolean;
   canFinalizeClinicalRecord?: boolean;
   patients: PatientResponse[];
@@ -284,8 +286,8 @@ export function PatientList({
         queryClient.invalidateQueries({ queryKey: ["patients-catalog"] }),
       ]);
     },
-    onError: () => {
-      setFeedback("Nao foi possivel excluir o paciente agora.");
+    onError: (error) => {
+      setFeedback(apiErrorMessage(error, "Nao foi possivel excluir o paciente agora."));
     },
     onSettled: () => {
       setDeletingPatientId(null);
@@ -520,19 +522,19 @@ export function PatientList({
                     >
                       Aplicacoes
                     </button>
-                    <button
+                    {canDeletePatient ? <button
                       className="btn btn-danger btn-sm"
                       disabled={deletingPatientId === patient.id}
                       onClick={() => {
                         if (window.confirm(`Excluir paciente ${patient.name}?`)) {
                           setFeedback(null);
-                          void deletePatient.mutateAsync(patient.id ?? "");
+                          deletePatient.mutate(patient.id ?? "");
                         }
                       }}
                       type="button"
                     >
                       {deletingPatientId === patient.id ? "Excluindo..." : "Excluir"}
-                    </button>
+                    </button> : null}
                   </div>
                 ) : null}
               </article>

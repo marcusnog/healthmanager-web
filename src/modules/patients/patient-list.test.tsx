@@ -4,6 +4,7 @@ import { PatientList } from "@/modules/patients/patient-list";
 import { renderWithProviders } from "@/test/render";
 
 const {
+  patientsDelete,
   patientsCreate,
   patientsDocumentsDelete,
   patientsDocumentsList,
@@ -13,6 +14,7 @@ const {
   addressFindByCep,
   healthInsurancesList,
 } = vi.hoisted(() => ({
+  patientsDelete: vi.fn(),
   patientsCreate: vi.fn(),
   patientsDocumentsDelete: vi.fn(),
   patientsDocumentsList: vi.fn(),
@@ -25,6 +27,7 @@ const {
 
 vi.mock("@/services/api", () => ({
   DefaultService: {
+    patientsDelete,
     patientsCreate,
     patientsDocumentsDelete,
     patientsDocumentsList,
@@ -58,6 +61,7 @@ describe("PatientList", () => {
   };
 
   beforeEach(() => {
+    patientsDelete.mockReset();
     patientsCreate.mockReset();
     patientsDocumentsDelete.mockReset();
     patientsDocumentsList.mockReset();
@@ -257,6 +261,22 @@ describe("PatientList", () => {
     expect(
       await screen.findByText("Ana Martins Atualizada atualizado com sucesso."),
     ).toBeVisible();
+  });
+
+  it("hides patient deletion from non-admin users", () => {
+    renderWithProviders(<PatientList {...baseProps} patients={[{ id: "patient-1", name: "Paciente" }]} />);
+    expect(screen.queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
+  });
+
+  it("shows the pending payment reason when admin deletion is blocked", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    patientsDelete.mockRejectedValueOnce({ body: { detail: "Nao e possivel excluir paciente com pagamento pendente." } });
+    renderWithProviders(<PatientList {...baseProps} canDeletePatient patients={[{ id: "patient-1", name: "Paciente" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
+    expect(await screen.findByText("Nao e possivel excluir paciente com pagamento pendente.")).toBeVisible();
+    expect(patientsDelete).toHaveBeenCalledWith("patient-1");
+    expect(screen.getByText("Paciente")).toBeVisible();
+    confirm.mockRestore();
   });
 
   it("fills address fields after looking up a CEP", async () => {

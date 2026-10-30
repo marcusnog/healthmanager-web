@@ -88,6 +88,29 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class DefaultService {
     /**
+     * Soft delete an unsettled payment and recalculate the receivable balance. Requires FinanceReceivablesManage. Does not refund a gateway charge.
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static paymentsDelete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/financial/payments/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                400: `Settled payment or inconsistent balance`,
+                403: `Permission denied`,
+                404: `Payment not found`,
+                409: `Concurrent update`,
+            },
+        });
+    }
+    /**
      * @param id
      * @param requestBody
      * @returns AppointmentResponse OK
@@ -253,6 +276,7 @@ export class DefaultService {
         });
     }
     /**
+     * ClinicAdmin only. Rejects patients with outstanding non-cancelled receivables.
      * @param id
      * @returns void
      * @throws ApiError

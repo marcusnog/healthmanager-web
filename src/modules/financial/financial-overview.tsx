@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/lib/api-error";
 import { paymentInPeriod, printSettlementReport } from "./settlement-report";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field } from "@/components/ui/field";
@@ -279,12 +280,30 @@ export function FinancialOverview({
 
   const invalidateFinancial = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ["receivables"] }),
+    queryClient.invalidateQueries({ queryKey: ["appointment-receivables"] }),
+    queryClient.invalidateQueries({ queryKey: ["professional-settlements"] }),
     queryClient.invalidateQueries({ queryKey: ["payments"] }),
     queryClient.invalidateQueries({ queryKey: ["expenses"] }),
     queryClient.invalidateQueries({ queryKey: ["financial-summary"] }),
     queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
     queryClient.invalidateQueries({ queryKey: ["payment-intents"] }),
   ]);
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (id: string) => DefaultService.paymentsDelete(id),
+    onSuccess: async () => {
+      setFeedback("Pagamento excluido. Saldo atualizado.");
+      await invalidateFinancial();
+    },
+    onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel excluir o pagamento.")),
+  });
+
+  const deletePayment = (payment: PaymentResponse) => {
+    if (!payment.id || !canManageReceivables) return;
+    if (!window.confirm(`Excluir o pagamento de ${formatCurrency(payment.amount ?? 0)}? O saldo sera recalculado. Esta acao nao realiza estorno bancario.`)) return;
+    setFeedback(null);
+    deletePaymentMutation.mutate(payment.id);
+  };
 
   const registerPaymentMutation = useMutation({
     mutationFn: async ({ receivableId, values }: { receivableId?: string; values: PaymentFormValues }) =>
@@ -676,6 +695,7 @@ export function FinancialOverview({
       {/* Payments modal */}
       {showPayments ? (
         <Modal title="Historico de pagamentos" onClose={() => { setShowPayments(false); onPaymentReceivableIdChange(undefined); }}>
+          {feedback ? <p role="status" className="mb-4 text-sm">{feedback}</p> : null}
           <div className="toolbar-inline flex-wrap gap-3 mb-4">
             <label className="min-w-0 flex-1">
               <span className="mb-2 block text-sm font-semibold">Data de</span>
@@ -700,6 +720,7 @@ export function FinancialOverview({
                     <th>Metodo</th>
                     <th>Banco</th>
                     <th>Data</th>
+                    {canManageReceivables ? <th>Acoes</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -710,6 +731,7 @@ export function FinancialOverview({
                       <td>{p.paymentMethod}</td>
                       <td>{p.destinationBank ?? "-"}</td>
                       <td>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("pt-BR") : "-"}</td>
+                      {canManageReceivables ? <td><button className="btn btn-danger btn-sm" type="button" disabled={deletePaymentMutation.isPending} onClick={() => deletePayment(p)}>Excluir pagamento</button></td> : null}
                     </tr>
                   ))}
                 </tbody>
@@ -1016,6 +1038,7 @@ export function FinancialOverview({
             <div>
               <h3 className="text-base font-semibold text-[var(--ink)]">Historico de pagamentos</h3>
               <p className="text-sm text-[var(--muted)]">{payments.length} registro(s)</p>
+              {feedback ? <p role="status" className="text-sm">{feedback}</p> : null}
             </div>
           </div>
 
@@ -1047,6 +1070,7 @@ export function FinancialOverview({
                     <th>Metodo</th>
                     <th>Banco</th>
                     <th>Data</th>
+                    {canManageReceivables ? <th>Acoes</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -1057,6 +1081,7 @@ export function FinancialOverview({
                       <td>{p.paymentMethod}</td>
                       <td>{p.destinationBank ?? "-"}</td>
                       <td>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("pt-BR") : "-"}</td>
+                      {canManageReceivables ? <td><button className="btn btn-danger btn-sm" type="button" disabled={deletePaymentMutation.isPending} onClick={() => deletePayment(p)}>Excluir pagamento</button></td> : null}
                     </tr>
                   ))}
                 </tbody>
