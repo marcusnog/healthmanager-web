@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getValidAccessToken } from "@/lib/auth-session";
 import { patientsDocumentsDownload } from "./api";
@@ -6,7 +7,10 @@ vi.mock("@/lib/auth-session", () => ({
   getValidAccessToken: vi.fn(),
 }));
 
-beforeEach(() => vi.mocked(getValidAccessToken).mockResolvedValue("document-token"));
+beforeEach(() => {
+  vi.mocked(getValidAccessToken).mockResolvedValue("document-token");
+  vi.stubGlobal("window", { dispatchEvent: vi.fn() });
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,13 +26,7 @@ it.each(["application/pdf", "image/png", "application/octet-stream"])("downloads
 
   expect(file.type).toBe(contentType);
   expect(file).toBeInstanceOf(Blob);
-  const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsArrayBuffer(file);
-  });
-  expect(new Uint8Array(buffer)).toEqual(bytes);
+  expect(new Uint8Array(await file.arrayBuffer())).toEqual(bytes);
   expect(fetchMock).toHaveBeenCalledWith("/backend/patients/patient-1/documents/document-1/download", expect.objectContaining({
     headers: expect.objectContaining({ Authorization: "Bearer document-token" }),
   }));
