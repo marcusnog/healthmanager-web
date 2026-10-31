@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/render";
 import { FinancialOverview } from "./financial-overview";
 import { DefaultService, professionalSettlementsList } from "@/services/api";
-import { Permissions } from "@/lib/permissions";
+import { Permissions, type Permission } from "@/lib/permissions";
 
 vi.mock("@/services/api", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/services/api")>(),
@@ -27,7 +27,7 @@ it("registra um pagamento para paciente sem recebível ou consulta", async () =>
   vi.restoreAllMocks();
 });
 
-function renderOverview(payments: import("@/generated").PaymentResponse[] = [], permissions = [Permissions.FinanceReceivablesView, Permissions.FinanceReceivablesManage]) {
+function renderOverview(payments: import("@/generated").PaymentResponse[] = [], permissions: Permission[] = [Permissions.FinanceReceivablesView, Permissions.FinanceReceivablesManage]) {
   const noop = () => {};
   renderWithProviders(<FinancialOverview
     receivables={[]} patients={[{ id: "patient-1", name: "Paciente avulso" }]} payments={payments}
@@ -68,6 +68,7 @@ it("hides payment deletion for read-only finance users", () => {
 
 
 it("opens commissions inside settlements and preserves professional settlements", async () => {
+  vi.spyOn(DefaultService, "usersList").mockResolvedValue([]);
   vi.spyOn(DefaultService, "commissionSettingsGet").mockResolvedValue({
     appointmentSale: { enabled: false, mode: "Fixed", value: 0, basis: "Deposit" },
     completedAppointment: { enabled: false, mode: "Fixed", value: 0, basis: "Consultation" },

@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CommissionRule = {
+    professionalId?: string | null;
     enabled: boolean;
     mode: CommissionRule.mode;
     value: number;
