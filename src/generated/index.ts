@@ -24,6 +24,8 @@ export type { ClinicalEntryResponsePagedResult } from './models/ClinicalEntryRes
 export type { ClinicalField } from './models/ClinicalField';
 export type { ClinicalRecordAddendumResponse } from './models/ClinicalRecordAddendumResponse';
 export { ClinicalRecordResponse } from './models/ClinicalRecordResponse';
+export { CommissionRule } from './models/CommissionRule';
+export type { CommissionSettings } from './models/CommissionSettings';
 export type { CreateAddendumRequest } from './models/CreateAddendumRequest';
 export type { CreateAppointmentRequest } from './models/CreateAppointmentRequest';
 export type { CreateClinicalEntryRequest } from './models/CreateClinicalEntryRequest';

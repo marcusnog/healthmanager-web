@@ -1,3 +1,4 @@
+import { CommissionSettingsPanel } from "./commission-settings";
 import { apiErrorMessage } from "@/lib/api-error";
 import { paymentInPeriod, printSettlementReport } from "./settlement-report";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -218,6 +219,7 @@ export function FinancialOverview({
   const visibleTabs = ALL_TABS.filter(({ key }) => hasView(key));
   const requestedTab = hasView(initialTab) ? initialTab : visibleTabs[0]?.key ?? "receivables";
   const [activeTab, setActiveTab] = useState<Tab>(requestedTab);
+  const [settlementView, setSettlementView] = useState<"professionals" | "commissions">("professionals");
   const [showPayments, setShowPayments] = useState(false);
   const [showReceivableRegister, setShowReceivableRegister] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -1093,6 +1095,14 @@ export function FinancialOverview({
 
       {activeTab === "settlements" ? (
         <section className="panel rounded-lg p-5 md:p-6">
+          <nav className="mb-5 flex flex-wrap gap-2" aria-label="Abas de repasses">
+            <button type="button" className={cn("btn btn-sm", settlementView === "professionals" ? "btn-brand-outline" : "btn-ghost")} aria-pressed={settlementView === "professionals"} onClick={() => setSettlementView("professionals")}>Profissionais</button>
+            <button type="button" className={cn("btn btn-sm", settlementView === "commissions" ? "btn-brand-outline" : "btn-ghost")} aria-pressed={settlementView === "commissions"} onClick={() => setSettlementView("commissions")}>Comissões</button>
+          </nav>
+          {settlementView === "commissions" ? (
+            <CommissionSettingsPanel />
+          ) : (
+            <>
           <div className="section-heading">
             <div><h3 className="text-base font-semibold text-[var(--ink)]">Repasses aos profissionais</h3><p className="text-sm text-[var(--muted)]">Pagamento recebido − parcela da clinica = valor devido ao profissional. O repasse baixa esse passivo sem lancar despesa.</p></div>
             {canManageSettlements ? (
@@ -1115,6 +1125,8 @@ export function FinancialOverview({
           <div className="overflow-x-auto"><table className="data-table"><thead><tr><th className="w-12"><span className="sr-only">Selecionar</span></th><th>Paciente</th><th>Profissional</th><th>Pagamento</th><th className="numeric">Valor do repasse</th></tr></thead><tbody>
             {visibleSettlementGroups.flatMap((group) => group.items.filter((item) => paymentInPeriod(item.paidAt, settlementDateFrom, settlementDateTo)).map((item) => ({ ...item, professionalId: group.professionalId, professionalName: group.professionalName }))).map((item) => <tr className={item.isOverdue ? "bg-red-50 text-red-900" : undefined} key={item.paymentId}><td><input aria-label={`Selecionar repasse de ${item.patientName}`} checked={selectedSettlementIds.includes(item.paymentId)} className="h-4 w-4" disabled={!canManageSettlements} onChange={(event) => setSelectedSettlementIds((ids) => event.target.checked ? [...ids.filter((id) => (settlementsQuery.data ?? []).find((group) => group.professionalId === item.professionalId)?.items.some((candidate) => candidate.paymentId === id)), item.paymentId] : ids.filter((id) => id !== item.paymentId))} type="checkbox" /></td><td>{item.patientName}{item.isOverdue ? <span className="ml-2 text-xs font-semibold">Atrasado</span> : null}</td><td>{item.professionalName}</td><td>{new Date(item.paidAt).toLocaleDateString("pt-BR")}</td><td className="numeric">{formatCurrency(item.amount)}</td></tr>)}
           </tbody></table></div>
+            </>
+          )}
         </section>
       ) : null}
 

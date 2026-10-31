@@ -65,3 +65,28 @@ it("hides payment deletion for read-only finance users", () => {
   fireEvent.click(screen.getByRole("button", { name: "Pagamentos" }));
   expect(screen.queryByRole("button", { name: "Excluir pagamento" })).not.toBeInTheDocument();
 });
+
+
+it("opens commissions inside settlements and preserves professional settlements", async () => {
+  vi.spyOn(DefaultService, "commissionSettingsGet").mockResolvedValue({
+    appointmentSale: { enabled: false, mode: "Fixed", value: 0, basis: "Deposit" },
+    completedAppointment: { enabled: false, mode: "Fixed", value: 0, basis: "Consultation" },
+    productReferral: { enabled: false, mode: "Percentage", value: 10, basis: "ProductReceived" },
+  } as import("@/generated").CommissionSettings);
+  renderOverview([], [Permissions.FinanceSettlements]);
+  expect(screen.getByText("Repasses aos profissionais")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Comissões" }));
+  expect(screen.getByRole("button", { name: "Comissões" })).toHaveAttribute("aria-pressed", "true");
+  expect(await screen.findByText("Venda de consulta")).toBeVisible();
+  expect(screen.getByText("Consulta realizada")).toBeVisible();
+  expect(screen.getByText("Indicação de produtos")).toBeVisible();
+  expect(screen.queryByText("Repasses aos profissionais")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Profissionais" }));
+  expect(screen.getByText("Repasses aos profissionais")).toBeVisible();
+});
+
+it("hides settlements and commissions without settlement permission", () => {
+  renderOverview();
+  expect(screen.queryByRole("button", { name: "Repasses" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Comissões" })).not.toBeInTheDocument();
+});

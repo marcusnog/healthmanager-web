@@ -18,6 +18,7 @@ import type { ClinicalEntryResponse } from '../models/ClinicalEntryResponse';
 import type { ClinicalEntryResponsePagedResult } from '../models/ClinicalEntryResponsePagedResult';
 import type { ClinicalRecordAddendumResponse } from '../models/ClinicalRecordAddendumResponse';
 import type { ClinicalRecordResponse } from '../models/ClinicalRecordResponse';
+import type { CommissionSettings } from '../models/CommissionSettings';
 import type { CreateAddendumRequest } from '../models/CreateAddendumRequest';
 import type { CreateAppointmentRequest } from '../models/CreateAppointmentRequest';
 import type { CreateClinicalEntryRequest } from '../models/CreateClinicalEntryRequest';
@@ -1800,6 +1801,31 @@ export class DefaultService {
             errors: {
                 403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
             },
+        });
+    }
+    /**
+     * @returns CommissionSettings OK
+     * @throws ApiError
+     */
+    public static commissionSettingsGet(): CancelablePromise<CommissionSettings> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/financial/commission-settings',
+        });
+    }
+    /**
+     * @param requestBody
+     * @returns CommissionSettings OK
+     * @throws ApiError
+     */
+    public static commissionSettingsUpdate(
+        requestBody: CommissionSettings,
+    ): CancelablePromise<CommissionSettings> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/financial/commission-settings',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }
