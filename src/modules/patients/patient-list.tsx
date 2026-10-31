@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DefaultService, healthInsurancesList } from "@/services/api";
+import { DefaultService, healthInsurancesList, patientsDocumentsDownload } from "@/services/api";
 import type { HealthInsuranceResponse } from "@/services/api";
 import type { PatientDetails, PatientDocumentResponse, PatientResponse } from "@/generated";
 import { Field } from "@/components/ui/field";
@@ -738,7 +738,7 @@ function PatientDocumentsPanel({
       }
 
       setDownloadingDocumentId(patientDocument.id);
-      const file = await DefaultService.patientsDocumentsDownload(patientId, patientDocument.id);
+      const file = await patientsDocumentsDownload(patientId, patientDocument.id);
 
       triggerBrowserDownload(
         file,
@@ -887,7 +887,7 @@ function PatientDocumentsPanel({
               }}
               onDownload={() => {
                 setFeedback(null);
-                void downloadDocument.mutateAsync(document);
+                downloadDocument.mutate(document);
               }}
             />
           ))

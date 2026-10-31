@@ -32,11 +32,11 @@ vi.mock("@/services/api", () => ({
     patientsDocumentsDelete,
     patientsDocumentsList,
     patientsDocumentsUpload,
-    patientsDocumentsDownload,
     patientsUpdate,
     addressFindByCep,
   },
   healthInsurancesList,
+  patientsDocumentsDownload,
 }));
 
 describe("PatientList", () => {
@@ -144,6 +144,17 @@ describe("PatientList", () => {
     expect(
       await screen.findByText("Download iniciado para laudo.pdf."),
     ).toBeVisible();
+  });
+
+  it("keeps the document available for retry after a download error", async () => {
+    patientsDocumentsList.mockResolvedValueOnce([{ id: "document-1", fileName: "laudo.pdf" }]);
+    patientsDocumentsDownload.mockRejectedValueOnce(new Error("Download unavailable"));
+    renderWithProviders(<PatientList {...baseProps} patients={[{ id: "patient-1", name: "Paciente" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Documentos" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Baixar" }));
+    expect(await screen.findByText("Nao foi possivel baixar o documento agora.")).toBeVisible();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Baixar" })).toBeEnabled();
   });
 
   it("removes a listed patient document and refreshes the document list", async () => {

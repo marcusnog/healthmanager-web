@@ -268,5 +268,10 @@ export async function checkoutCreate(body: {
   return response.json();
 }
 
+export async function patientsDocumentsDownload(patientId: string, documentId: string): Promise<Blob> {
+  const response = await apiFetch(`/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/download`);
+  return response.blob();
+}
+
 export { DefaultService } from "@/generated/services/DefaultService";
 
