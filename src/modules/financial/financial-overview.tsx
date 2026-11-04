@@ -468,7 +468,7 @@ export function FinancialOverview({
         <span className="mb-2 block text-sm font-semibold">Banco para prestacao de contas</span>
         <input className="input-field" maxLength={100} placeholder="Todos os bancos" value={paymentDestinationBank ?? ""} onChange={(e) => onPaymentDestinationBankChange(e.target.value || undefined)} />
       </label>
-      <div className="mb-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={cn("mb-5 grid gap-4 sm:grid-cols-2", activeTab === "settlements" ? "lg:grid-cols-4" : "lg:grid-cols-6")}>
         <div className="rounded-lg border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Recebido dos pacientes</p>
           <p className="mt-1 text-xl font-bold text-[var(--ink)]">{formatCurrency(summary.grossReceived ?? summary.totalReceived)}</p>
@@ -485,16 +485,20 @@ export function FinancialOverview({
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">A receber do CEO</p>
           <p className="mt-1 text-xl font-bold text-blue-600">{formatCurrency(summary.ownerReceivable ?? 0)}</p>
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Abatimentos da clinica</p>
-          <p className="mt-1 text-xl font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
-        </div>
-        <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Saldo a repassar</p>
-          <p className={cn("mt-1 text-xl font-bold", summary.balance >= 0 ? "text-green-600" : "text-red-600")}>
-            {formatCurrency(summary.balance)}
-          </p>
-        </div>
+        {activeTab !== "settlements" && (
+          <>
+            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Despesas pagas no mes</p>
+              <p className="mt-1 text-xl font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Resultado do mes</p>
+              <p className={cn("mt-1 text-xl font-bold", summary.balance >= 0 ? "text-green-600" : "text-red-600")}>
+                {formatCurrency(summary.balance)}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tabs */}
