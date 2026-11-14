@@ -34,7 +34,7 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <dialog ref={ref} className={`modal-panel modal-panel-${size}`} onCancel={event => { event.preventDefault(); onClose(); }}>
+    <dialog ref={ref} className={`modal-panel modal-panel-${size}`} onCancel={event => { event.preventDefault(); event.stopPropagation(); onClose(); }}>
       <div className="modal-header">
         <h2 className="modal-title">{title}</h2>
         <button
