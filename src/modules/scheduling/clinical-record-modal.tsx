@@ -54,7 +54,7 @@ export function ClinicalRecordModal({
   const addendumsQuery = useQuery({
     queryKey: ["clinical-record-addendums", appointment.id],
     queryFn: () => DefaultService.clinicalRecordListAddendums(appointment.id!),
-    enabled: !!appointment.id && clinicalRecordQuery.data?.status === "Finalized",
+    enabled: !!appointment.id && !!clinicalRecordQuery.data,
   });
 
   const createMutation = useMutation({
@@ -102,9 +102,26 @@ export function ClinicalRecordModal({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] }),
         queryClient.invalidateQueries({ queryKey: ["clinical-record-addendums", appointment.id] }),
+        queryClient.invalidateQueries({ queryKey: ["patient-clinical-records", appointment.patientId] }),
+        queryClient.invalidateQueries({ queryKey: ["clinical-records", appointment.patientId] }),
       ]);
     },
     onError: (error) => setFeedback(apiErrorMessage(error, "Nao foi possivel finalizar o prontuario.")),
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: () => DefaultService.clinicalRecordReopen(appointment.id!),
+    onSuccess: async (record) => {
+      queryClient.setQueryData(["clinical-record", appointment.id], record);
+      setFeedback("Prontuário reaberto. O conteúdo finalizado foi preservado na auditoria.");
+      setIsEditing(true);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["clinical-record", appointment.id] }),
+        queryClient.invalidateQueries({ queryKey: ["patient-clinical-records", appointment.patientId] }),
+        queryClient.invalidateQueries({ queryKey: ["clinical-records", appointment.patientId] }),
+      ]);
+    },
+    onError: (error) => setFeedback(apiErrorMessage(error, "Não foi possível reabrir o prontuário.")),
   });
 
   const record = clinicalRecordQuery.data;
@@ -198,7 +215,7 @@ export function ClinicalRecordModal({
                 {canFinalize && <button
                   className="btn btn-primary btn-sm"
                   disabled={finalizeMutation.isPending}
-                  onClick={() => finalizeMutation.mutateAsync()}
+                  onClick={() => finalizeMutation.mutate()}
                   type="button"
                 >
                   {finalizeMutation.isPending ? <span className="spinner" /> : "Finalizar"}
@@ -209,6 +226,12 @@ export function ClinicalRecordModal({
                 Finalizado em {record.finalizedAt ? new Date(record.finalizedAt).toLocaleString("pt-BR") : "-"}
               </span>
             )}
+            {isFinalized && canWrite && canFinalize && <button
+              className="btn btn-primary btn-sm"
+              disabled={reopenMutation.isPending}
+              onClick={() => reopenMutation.mutate()}
+              type="button"
+            >{reopenMutation.isPending ? "Reabrindo…" : "Reabrir prontuário"}</button>}
           </div>
         </div>
 
@@ -232,10 +255,10 @@ export function ClinicalRecordModal({
           ) : null}
         </div>
 
-        {isFinalized ? (
+        {isFinalized || !!addendumsQuery.data?.length ? (
           <div className="border-t border-[var(--border)] pt-4 mt-4">
             <h4 className="text-sm font-semibold text-[var(--ink)] mb-3">Addendums</h4>
-            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} canWrite={canWrite && canFinalize} />
+            <AddendumSection appointmentId={appointment.id!} addendums={addendumsQuery.data ?? []} canWrite={isFinalized && canWrite && canFinalize} />
           </div>
         ) : null}
       </div>

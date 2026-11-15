@@ -38,7 +38,8 @@ export function ClinicalWorkspace({ appointment, canWrite, canFinalize = canWrit
   const record = useQuery({ queryKey: ["clinical-record", appointment.id], queryFn: () => DefaultService.clinicalRecordGet(appointment.id!), retry: false });
   const history = useQuery({ queryKey: ["clinical-history", appointment.patientId, page], queryFn: () => DefaultService.clinicalEntriesHistory(appointment.patientId!, page, 50) });
   const records = useQuery({ queryKey: ["patient-clinical-records", appointment.patientId], queryFn: () => DefaultService.clinicalRecordListByPatient(appointment.patientId!) });
-  const canRegister = canWrite && record.data?.status === "Draft";
+  const recordMissing = record.isSuccess && !record.data || !!(record.error && typeof record.error === "object" && "status" in record.error && record.error.status === 404);
+  const canRegister = canWrite && (record.data?.status === "Draft" || recordMissing);
   const summary = useQuery({ queryKey: ["clinical-history", appointment.patientId, "summary"], queryFn: () => DefaultService.clinicalEntriesHistory(appointment.patientId!, 1, 1, "Summary") });
   const recentSummary = summary.data?.items?.[0];
   const visibleEntries = (history.data?.items ?? []).filter(entry => `${entry.title} ${entry.content} ${Object.values(entry.values ?? {}).join(" ")}`.toLowerCase().includes(search.toLowerCase()));
@@ -47,7 +48,8 @@ export function ClinicalWorkspace({ appointment, canWrite, canFinalize = canWrit
   return <Modal title={`${appointment.patientName ?? "Paciente"} · Atendimento`} size="xl" onClose={() => leaveEntry(onClose)} footer={<nav aria-label="Opções do atendimento" className="flex flex-wrap gap-2">{Object.entries(clinicalEntryLabels).map(([key, label]) => <button type="button" key={key} className="btn btn-ghost min-h-11" disabled={!canRegister || entryPending} onClick={() => leaveEntry(() => { setCorrection(null); setEditRecord(false); setKind(key); })}>{label}</button>)}<button className="btn btn-ghost min-h-11" onClick={() => setAttachments(true)}>Imagens e anexos</button></nav>}>
     <div className="space-y-5">
       <div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-[var(--muted)]">{appointment.doctorName} · {appointment.startAt ? new Date(appointment.startAt).toLocaleString("pt-BR") : ""}</p><button className="btn btn-primary" onClick={() => leaveEntry(() => { setKind(null); setEditRecord(true); })}>{canWrite ? (canFinalize ? "Abrir evolução e finalização" : "Editar prontuário") : "Consultar prontuário"}</button></div>
-      {canWrite && !canRegister && <p className="rounded-md border border-[var(--border)] p-3 text-sm">{record.data?.status === "Finalized" ? (canFinalize ? "Prontuário finalizado. Use um adendo na evolução para registrar correções. Finalizar prontuário e concluir agendamento são ações separadas." : "Prontuário finalizado. Solicite um adendo ao médico responsável para registrar correções.") : "Abra a evolução e salve o prontuário em rascunho para registrar documentos e formulários."}</p>}
+      {canWrite && record.data?.status === "Finalized" && <p className="rounded-md border border-[var(--border)] p-3 text-sm">{canFinalize ? "Prontuário finalizado. Abra a evolução e use Reabrir prontuário para editar ou registrar novos documentos. Você também pode acrescentar um adendo." : "Prontuário finalizado. Solicite a reabertura ou um adendo ao médico responsável."}</p>}
+      {canWrite && recordMissing && <p className="text-sm text-[var(--muted)]">Você pode começar pelo receituário ou formulário. Ao registrar, o prontuário será criado em rascunho.</p>}
       {record.error && !(typeof record.error === "object" && "status" in record.error && record.error.status === 404) && <p role="alert">{apiErrorMessage(record.error, "Não foi possível carregar o prontuário.")}</p>}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" role="region" aria-label="Histórico e digitação do prontuário">
         <section aria-label="Histórico do paciente" className="min-w-0 space-y-5 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-2">
@@ -63,7 +65,7 @@ export function ClinicalWorkspace({ appointment, canWrite, canFinalize = canWrit
           <h2 className="font-semibold">Digitação do prontuário</h2>
           <p className="text-sm text-[var(--muted)]">Escolha o tipo de registro na barra inferior. Ao salvar, ele aparece no histórico à esquerda.</p>
         {editRecord && <ClinicalRecordModal inline appointment={appointment} canWrite={canWrite} canFinalize={canFinalize} onClose={() => setEditRecord(false)} />}
-        {kind && <ClinicalEntryEditor key={`${kind}-${correction?.id ?? "new"}`} appointmentId={appointment.id!} kind={kind} correction={correction} onDirtyChange={setEntryDirty} onPendingChange={setEntryPending} onSaved={() => { setKind(null); setCorrection(null); }} onClose={() => leaveEntry(() => { setKind(null); setCorrection(null); })} />}
+        {kind && <ClinicalEntryEditor key={`${kind}-${correction?.id ?? "new"}`} appointmentId={appointment.id!} patientId={appointment.patientId!} kind={kind} correction={correction} onDirtyChange={setEntryDirty} onPendingChange={setEntryPending} onSaved={() => { setKind(null); setCorrection(null); }} onClose={() => leaveEntry(() => { setKind(null); setCorrection(null); })} />}
           {!editRecord && !kind && <div className="rounded-lg border border-[var(--border)] p-5"><p className="mb-4 text-sm text-[var(--muted)]">Abra a evolução para digitar ou selecione uma opção na barra inferior.</p><button className="btn btn-primary" onClick={() => setEditRecord(true)}>{canWrite ? "Digitar evolução" : "Consultar evolução"}</button></div>}
         </section>
       </div>
@@ -73,7 +75,7 @@ export function ClinicalWorkspace({ appointment, canWrite, canFinalize = canWrit
   </Modal>;
 }
 
-function ClinicalEntryEditor({ appointmentId, kind, correction, onDirtyChange, onPendingChange, onSaved, onClose }: { appointmentId: string; kind: string; correction: ClinicalEntryResponse | null; onDirtyChange: (dirty: boolean) => void; onPendingChange: (pending: boolean) => void; onSaved: () => void; onClose: () => void }) {
+function ClinicalEntryEditor({ appointmentId, patientId, kind, correction, onDirtyChange, onPendingChange, onSaved, onClose }: { appointmentId: string; patientId: string; kind: string; correction: ClinicalEntryResponse | null; onDirtyChange: (dirty: boolean) => void; onPendingChange: (pending: boolean) => void; onSaved: () => void; onClose: () => void }) {
   const client = useQueryClient();
   const dirty = useRef(false);
   function markDirty() { dirty.current = true; onDirtyChange(true); }
@@ -92,7 +94,7 @@ function ClinicalEntryEditor({ appointmentId, kind, correction, onDirtyChange, o
   const save = useMutation({ mutationFn: () => {
     const body: CreateClinicalEntryRequest = { clientRequestId: requestId, kind, catalogItemId: templateId || null, title, content, values, signatureMode, correctsEntryId: correction?.id };
     return DefaultService.clinicalEntriesCreate(appointmentId, body);
-  }, onSuccess: async entry => { dirty.current = false; onDirtyChange(false); await Promise.all([client.invalidateQueries({ queryKey: ["clinical-history"] }), client.invalidateQueries({ queryKey: ["clinical-record", appointmentId] })]); if (kind === "Document") setSaved(entry); else onSaved(); }, onSettled: () => onPendingChange(false) });
+  }, onSuccess: async entry => { dirty.current = false; onDirtyChange(false); await Promise.all([client.invalidateQueries({ queryKey: ["clinical-history"] }), client.invalidateQueries({ queryKey: ["clinical-record", appointmentId] }), client.invalidateQueries({ queryKey: ["patient-clinical-records", patientId] }), client.invalidateQueries({ queryKey: ["clinical-records", patientId] })]); if (kind === "Document") setSaved(entry); else onSaved(); }, onSettled: () => onPendingChange(false) });
   if (saved) return <ClinicalDocumentPreview entry={saved} onClose={onClose} />;
   return <ClinicalPanel inline title={`${correction ? "Corrigir · " : ""}${clinicalEntryLabels[kind]}`} size="lg" onClose={onClose}><form className="space-y-4" onChange={markDirty} onSubmit={e => { e.preventDefault(); onPendingChange(true); save.mutate(); }}><fieldset disabled={save.isPending} className="space-y-4">
     {kind !== "Summary" && <label className="block">Modelo / cadastro<select className="input-field" value={templateId} required={!correction && ["Anamnesis", "Questionnaire"].includes(kind)} onChange={e => choose(catalog.data?.find(item => item.id === e.target.value))}><option value="">{["Anamnesis", "Questionnaire"].includes(kind) ? "Selecione um formulário" : "Preenchimento livre"}</option>{catalog.data?.map(item => <option key={item.id} value={item.id}>{item.folder} / {item.title}{item.ownerUserId ? " (pessoal)" : ""}</option>)}</select>{catalog.error && <p role="alert">{apiErrorMessage(catalog.error, "Não foi possível carregar os modelos.")}</p>}</label>}

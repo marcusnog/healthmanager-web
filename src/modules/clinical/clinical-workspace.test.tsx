@@ -36,12 +36,39 @@ it("registers a document snapshot with explicitly simulated digital signature", 
   expect(await screen.findByText(/ASSINATURA DIGITAL SIMULADA/)).toBeVisible();
 });
 
-it("keeps finalized records read-only and does not offer percentiles", async () => {
+it("requires explicit reopening before adding documents to finalized records", async () => {
   api.clinicalRecordGet.mockResolvedValue({ status: "Finalized" });
   renderWithProviders(<ClinicalWorkspace appointment={appointment} canWrite onClose={vi.fn()} />);
   expect(await screen.findByText(/Prontuário finalizado/)).toBeVisible();
   expect(screen.getByRole("button", { name: "Receituário e documentos" })).toBeDisabled();
   expect(screen.queryByText("Percentis")).not.toBeInTheDocument();
+});
+
+it("allows a prescription before the first evolution is saved", async () => {
+  api.clinicalRecordGet.mockRejectedValue({ status: 404 });
+  api.clinicalEntriesCreate.mockResolvedValue({ id: "entry", kind: "Document", title: "Receita", content: "Orientações", createdAt: "2026-11-15T12:00:00Z" });
+  renderWithProviders(<ClinicalWorkspace appointment={appointment} canWrite onClose={vi.fn()} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Receituário e documentos" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Receituário e documentos" }));
+  fireEvent.change(screen.getByLabelText("Conteúdo / observações"), { target: { value: "Orientações" } });
+  api.clinicalRecordGet.mockResolvedValue({ status: "Draft" });
+  fireEvent.click(screen.getByRole("button", { name: "Registrar no histórico" }));
+  await waitFor(() => expect(api.clinicalEntriesCreate).toHaveBeenCalledWith("appointment", expect.objectContaining({ content: "Orientações", kind: "Document" })));
+  await waitFor(() => expect(api.clinicalRecordListByPatient).toHaveBeenCalledTimes(2));
+});
+
+it.each([403, 500])("does not enable clinical writes after a %s error", async status => {
+  api.clinicalRecordGet.mockRejectedValue({ status });
+  renderWithProviders(<ClinicalWorkspace appointment={appointment} canWrite onClose={vi.fn()} />);
+  await screen.findByRole("alert");
+  expect(screen.getByRole("button", { name: "Receituário e documentos" })).toBeDisabled();
+});
+
+it("does not enable clinical writes for read-only staff without a record", async () => {
+  api.clinicalRecordGet.mockRejectedValue({ status: 404 });
+  renderWithProviders(<ClinicalWorkspace appointment={appointment} canWrite={false} onClose={vi.fn()} />);
+  await waitFor(() => expect(api.clinicalRecordGet).toHaveBeenCalled());
+  expect(screen.getByRole("button", { name: "Receituário e documentos" })).toBeDisabled();
 });
 
 it("saves a personal catalog item with its actual content", async () => {

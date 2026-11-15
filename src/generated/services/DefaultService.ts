@@ -1005,6 +1005,25 @@ export class DefaultService {
     }
     /**
      * @param appointmentId
+     * @returns ClinicalRecordResponse OK
+     * @throws ApiError
+     */
+    public static clinicalRecordReopen(
+        appointmentId: string,
+    ): CancelablePromise<ClinicalRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/appointments/{appointmentId}/clinical-record/reopen',
+            path: {
+                'appointmentId': appointmentId,
+            },
+            errors: {
+                403: `Authenticated user lacks clinical access or linked doctor; session remains valid.`,
+            },
+        });
+    }
+    /**
+     * @param appointmentId
      * @param requestBody
      * @returns ClinicalRecordAddendumResponse Created
      * @throws ApiError

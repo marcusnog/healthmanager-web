@@ -3,10 +3,11 @@ import { vi } from "vitest";
 import { ClinicalRecordModal } from "@/modules/scheduling/clinical-record-modal";
 import { renderWithProviders } from "@/test/render";
 
-const { clinicalRecordCreate, clinicalRecordUpdate, clinicalRecordGet, clinicalRecordListAddendums, productsList, packagesList } = vi.hoisted(() => ({
+const { clinicalRecordCreate, clinicalRecordUpdate, clinicalRecordGet, clinicalRecordReopen, clinicalRecordListAddendums, productsList, packagesList } = vi.hoisted(() => ({
   clinicalRecordCreate: vi.fn(),
   clinicalRecordUpdate: vi.fn(),
   clinicalRecordGet: vi.fn(),
+  clinicalRecordReopen: vi.fn(),
   clinicalRecordListAddendums: vi.fn(),
   productsList: vi.fn(),
   packagesList: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("@/services/api", () => ({
     clinicalRecordCreate,
     clinicalRecordUpdate,
     clinicalRecordGet,
+    clinicalRecordReopen,
     clinicalRecordListAddendums,
     productsList,
     packagesList,
@@ -30,8 +32,49 @@ describe("ClinicalRecordModal", () => {
     clinicalRecordCreate.mockReset();
     clinicalRecordGet.mockReset();
     clinicalRecordListAddendums.mockReset();
+    clinicalRecordListAddendums.mockResolvedValue([]);
+    clinicalRecordReopen.mockReset();
     productsList.mockResolvedValue({ items: [{ id: "product-1", name: "Vitamina D", price: 90, applicationCount: 1, isActive: true }] });
     packagesList.mockResolvedValue({ items: [{ id: "package-1", name: "Plano Vitamina", price: 320, isActive: true, items: [{ productId: "product-1", productName: "Vitamina D", applicationCount: 4 }] }] });
+  });
+
+  it("reopens a finalized record, edits its content and preserves existing addendums", async () => {
+    const record = { id: "record-1", status: "Finalized", content: "Original", prescription: "Receita original", chiefComplaint: "Queixa" };
+    clinicalRecordGet.mockResolvedValue(record);
+    clinicalRecordListAddendums.mockResolvedValue([{ id: "addendum", content: "Adendo anterior" }]);
+    clinicalRecordReopen.mockImplementation(async () => {
+      const draft = { ...record, status: "Draft", finalizedAt: null };
+      clinicalRecordGet.mockResolvedValue(draft);
+      return draft;
+    });
+    clinicalRecordUpdate.mockResolvedValue({ ...record, status: "Draft" });
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite canFinalize onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Reabrir prontuário" }));
+    expect(await screen.findByLabelText("Prontuário — texto livre")).toHaveValue("Original");
+    expect(screen.getByLabelText("Receituário")).toHaveValue("Receita original");
+    fireEvent.change(screen.getByLabelText("Prontuário — texto livre"), { target: { value: "Revisado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(clinicalRecordUpdate).toHaveBeenCalledWith("appointment-1", expect.objectContaining({ content: "Revisado", prescription: "Receita original", chiefComplaint: "Queixa" })));
+    expect(await screen.findByText("Adendo anterior")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "+ Adicionar addendum" })).not.toBeInTheDocument();
+    expect(clinicalRecordReopen).toHaveBeenCalledWith("appointment-1");
+  });
+
+  it("keeps finalized content visible when reopening fails", async () => {
+    clinicalRecordGet.mockResolvedValue({ id: "record-1", status: "Finalized", content: "Original" });
+    clinicalRecordReopen.mockRejectedValue(new Error("Falha"));
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite canFinalize onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Reabrir prontuário" }));
+    expect(await screen.findByText("Não foi possível reabrir o prontuário.")).toBeVisible();
+    expect(screen.getByText("Original")).toBeVisible();
+    expect(screen.queryByLabelText("Prontuário — texto livre")).not.toBeInTheDocument();
+  });
+
+  it.each([true, false])("does not offer reopening without finalize permission (canWrite=%s)", async canWrite => {
+    clinicalRecordGet.mockResolvedValue({ id: "record-1", status: "Finalized", content: "Original" });
+    renderWithProviders(<ClinicalRecordModal appointment={appointment} canWrite={canWrite} canFinalize={false} onClose={vi.fn()} />);
+    expect(await screen.findByText("Original")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Reabrir prontuário" })).not.toBeInTheDocument();
   });
 
   it("keeps an empty record read-only for read-only staff", async () => {
