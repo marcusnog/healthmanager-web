@@ -769,7 +769,7 @@ export function AppointmentBoard({
                         </span>
                         <div className="min-w-0">
                           <span className="font-semibold text-sm">
-                            {patient?.name ?? "Paciente"}
+                            {patient?.name ?? appointment.patientName ?? "Paciente"}
                           </span>
                           <div className="meta-row mt-0.5" style={{ color: "inherit" }}>
                             {doctor?.name ? <span>{doctor.name}</span> : null}
@@ -795,7 +795,7 @@ export function AppointmentBoard({
                       <label className="flex flex-wrap items-center gap-2 text-sm font-medium">
                         Alterar status
                         <select
-                          aria-label={`Alterar status de ${patient?.name ?? "Paciente"}`}
+                          aria-label={`Alterar status de ${patient?.name ?? appointment.patientName ?? "Paciente"}`}
                           className="input-field min-h-11 w-auto"
                           disabled={isProcessing || changeStatus.isPending || deleteAppointment.isPending}
                           value={appointment.status ?? "Scheduled"}
@@ -930,10 +930,10 @@ function DailyTimeRuler({ appointments, appointmentDate, patientMap, doctors, is
               });
               return placements.map(({ apt, lane, duration }) => {
                 const patient = patientMap[apt.patientId ?? ""];
-                const label = `${patient?.name ?? "Paciente"}, ${formatTime(apt.startAt!)}${apt.endAt ? ` - ${formatTime(apt.endAt)}` : ""}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
+                const label = `${patient?.name ?? apt.patientName ?? "Paciente"}, ${formatTime(apt.startAt!)}${apt.endAt ? ` - ${formatTime(apt.endAt)}` : ""}, ${STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}`;
                 return <button type="button" key={apt.id} data-appointment-id={apt.id} aria-label={`Editar consulta: ${label}`} title={label} onClick={() => onEdit(apt)} className="@container absolute flex flex-col justify-center overflow-hidden rounded-sm border px-1.5 text-left text-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" style={{ ...appointmentColorStyle(apt.status, true), fontSize: "12px", lineHeight: "12px", top: position(minutes(apt.startAt!)), height: `calc(${duration / (end - start) * 100}% - 2px)`, left: `calc(${lane / laneEnds.length * 100}% + 3px)`, width: `calc(${100 / laneEnds.length}% - 6px)` }}>
                   <span className="flex w-full min-w-0 shrink-0 items-center gap-1">
-                    <strong className="min-w-0 flex-1 truncate">{patient?.name ?? "Paciente"}</strong>
+                    <strong className="min-w-0 flex-1 truncate">{patient?.name ?? apt.patientName ?? "Paciente"}</strong>
                     <span className="hidden shrink-0 tabular-nums @[120px]:inline">{formatTime(apt.startAt!)}</span>
                   </span>
                   {duration >= 60 ? <span className="mt-0.5 block shrink-0 truncate">{apt.endAt ? `Ate ${formatTime(apt.endAt)} / ` : ""}{STATUS_FILTERS.find(status => status.key === apt.status)?.label ?? "Agendado"}</span> : null}
@@ -1078,9 +1078,9 @@ function MonthGrid({ appointments, patientMap, doctorMap, monthDays, todayDate, 
         <span className={cn("text-base font-bold", day === todayDate ? "text-[var(--brand-strong)]" : "text-[var(--ink)]")}>{Number(day.slice(-2))}</span>
         <span className={cn("mt-1 block min-w-0 truncate text-xs", items.length ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]")}>{items.length ? `${items.length} consulta${items.length === 1 ? "" : "s"}` : "Livre"}</span>
         <span className="mt-2 hidden space-y-2 sm:block">
-          {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} data-appointment-id={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
+          {items.slice(0, 2).map(apt => <span className="block rounded-sm border-l-[3px] px-1.5 py-1 text-xs leading-4" key={apt.id} data-appointment-id={apt.id} style={appointmentColorStyle(apt.status)} title={`${formatTime(apt.startAt ?? "")} - ${patientMap[apt.patientId ?? ""]?.name ?? apt.patientName ?? "Paciente"} - ${doctorMap[apt.doctorId ?? ""]?.name ?? "Medico"}`}>
             <span className="block font-bold tabular-nums">{formatTime(apt.startAt ?? "")}</span>
-            <span className="block truncate font-medium">{patientMap[apt.patientId ?? ""]?.name ?? "Paciente"}</span>
+            <span className="block truncate font-medium">{patientMap[apt.patientId ?? ""]?.name ?? apt.patientName ?? "Paciente"}</span>
           </span>)}
           {items.length > 2 ? <span className="block text-xs font-semibold text-[var(--brand-strong)]">+{items.length - 2} mais</span> : null}
         </span>
@@ -1190,8 +1190,8 @@ function WeekGrid({
                         <div className="truncate font-semibold tabular-nums text-[var(--ink)]">
                           {formatTime(apt.startAt ?? "")}
                         </div>
-                        <div title={patient?.name} className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
-                          {patient?.name ?? "—"}
+                        <div title={patient?.name ?? apt.patientName} className={cn("truncate", isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]")}>
+                          {patient?.name ?? apt.patientName ?? "—"}
                         </div>
                         <div title={doctorMap[apt.doctorId ?? ""]?.name} className="truncate text-[var(--muted)]">
                           {doctorMap[apt.doctorId ?? ""]?.name ?? "Medico nao informado"}
@@ -1204,7 +1204,7 @@ function WeekGrid({
                         </div>
                           <div className="mt-1 flex flex-wrap gap-2">
                             <button
-                              aria-label={`Editar consulta de ${patient?.name ?? "paciente"}`}
+                              aria-label={`Editar consulta de ${patient?.name ?? apt.patientName ?? "paciente"}`}
                               className="min-h-11 min-w-0 max-w-full truncate text-left text-[var(--brand)] underline"
                               onClick={() => onEdit(apt)}
                               type="button"
@@ -1213,7 +1213,7 @@ function WeekGrid({
                             </button>
                             {apt.status === "Scheduled" ? (
                               <button
-                                aria-label={`Confirmar consulta de ${patient?.name ?? "paciente"}`}
+                                aria-label={`Confirmar consulta de ${patient?.name ?? apt.patientName ?? "paciente"}`}
                                 className="min-h-11 min-w-0 max-w-full truncate text-left text-[var(--brand)] underline"
                                 disabled={processingAppointmentId === apt.id}
                                 onClick={() => onConfirm(apt)}

@@ -341,6 +341,28 @@ describe("AppointmentBoard", () => {
     expect(appointmentsCreateGroup).not.toHaveBeenCalled();
   });
 
+  it.each(["day", "week", "month"] as const)("shows an imported patient outside the catalog in the %s calendar", (viewMode) => {
+    renderWithProviders(<AppointmentBoard {...baseProps}
+      appointmentViewMode={viewMode} appointmentDateFrom="2026-05-04" appointmentDateTo="2026-05-10"
+      appointments={[{
+        id: "imported-appointment", patientId: "imported-patient", patientName: "Ana do Backup",
+        doctorId: "doctor-1", startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z",
+        status: "Scheduled", appointmentTypeId: "type-return", type: "Retorno", amount: 0,
+      }]} />);
+    expect(screen.getAllByText("Ana do Backup").length).toBeGreaterThan(0);
+    if (viewMode === "day") {
+      expect(screen.getByRole("combobox", { name: "Alterar status de Ana do Backup" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: /^Editar consulta: Ana do Backup/ }));
+      expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+    } else if (viewMode === "week") {
+      expect(screen.getByRole("button", { name: "Confirmar consulta de Ana do Backup" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Editar consulta de Ana do Backup" }));
+      expect(screen.getByRole("heading", { name: "Editar consulta" })).toBeVisible();
+    } else {
+      expect(screen.getByTitle(/Ana do Backup/)).toHaveTextContent("Ana do Backup");
+    }
+  });
+
   it("creates a return appointment with zero amount", async () => {
     appointmentsCreate.mockResolvedValueOnce({});
     renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
