@@ -33,7 +33,7 @@ const schema = z.object({
   startAt: z.string().min(1, "Informe a data e horario."),
   durationMinutes: z.coerce.number().min(15).max(180),
   appointmentTypeId: z.string().min(1, "Selecione o tipo da consulta."),
-  amount: z.coerce.number().min(1, "Informe o valor da consulta."),
+  amount: z.coerce.number().min(0, "O valor da consulta nao pode ser negativo."),
   notes: z.string().optional(),
 });
 
@@ -485,7 +485,7 @@ export function AppointmentBoard({
             <Field error={errors.amount?.message} label="Valor">
               <input
                 className="input-field"
-                min={1}
+                min={0}
                 step="0.01"
                 type="number"
                 {...register("amount")}
@@ -1035,7 +1035,7 @@ function AppointmentEditForm({
         </select>
       </Field>
       <Field error={errors.amount?.message} label="Valor">
-        <input className="input-field" min={1} step="0.01" type="number" {...register("amount")} />
+        <input className="input-field" min={0} step="0.01" type="number" {...register("amount")} />
       </Field>
       <Field className="md:col-span-2" error={errors.notes?.message} label="Observacoes">
         <textarea className="input-field min-h-24" {...register("notes")} />

@@ -341,6 +341,41 @@ describe("AppointmentBoard", () => {
     expect(appointmentsCreateGroup).not.toHaveBeenCalled();
   });
 
+  it("creates a return appointment with zero amount", async () => {
+    appointmentsCreate.mockResolvedValueOnce({});
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
+    const amount = screen.getByLabelText("Valor");
+    fireEvent.change(amount, { target: { value: "0" } });
+    expect(amount).toBeValid();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar consulta" }));
+    await waitFor(() => expect(appointmentsCreate).toHaveBeenCalledWith(expect.objectContaining({ amount: 0, appointmentTypeId: "type-return" })));
+  });
+
+  it("rejects a negative appointment amount", async () => {
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Agendar consulta" }));
+    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "-1" } });
+    fireEvent.submit(screen.getByLabelText("Valor").closest("form")!);
+    expect(await screen.findByText("O valor da consulta nao pode ser negativo.")).toBeVisible();
+    expect(appointmentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("edits an appointment to zero amount", async () => {
+    appointmentsUpdate.mockResolvedValueOnce({});
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{
+      id: "appointment-1", patientId: "patient-1", doctorId: "doctor-1",
+      startAt: "2026-05-07T11:00:00Z", endAt: "2026-05-07T11:30:00Z",
+      status: "Scheduled", appointmentTypeId: "type-return", type: "Retorno", amount: 180,
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Editar consulta: Marina Souza/ }));
+    const amount = screen.getByLabelText("Valor");
+    fireEvent.change(amount, { target: { value: "0" } });
+    expect(amount).toBeValid();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await waitFor(() => expect(appointmentsUpdate).toHaveBeenCalledWith("appointment-1", expect.objectContaining({ amount: 0 })));
+  });
+
   it("expands and restores the appointment board", () => {
     renderWithProviders(<AppointmentBoard {...baseProps} appointments={[]} />);
     fireEvent.click(screen.getByRole("button", { name: "Ampliar quadro" }));
