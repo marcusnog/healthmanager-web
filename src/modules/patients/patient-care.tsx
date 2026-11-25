@@ -11,7 +11,7 @@ const sources: Record<string, string> = {
   interrupcoes: "Interrupções de tratamento", insumos: "Consumo de insumos",
 };
 const labels: Record<string, string> = {
-  consulta: "Consulta", medico: "Médico responsável", pagamento: "Pagamento de consulta recebido",
+  consulta: "Consulta", medico: "Médico responsável", pagamento: "Pagamento recebido",
   titulo: "Conta a receber", aplicacao: "Aplicação realizada", programa: "Contrato de acompanhamento",
   saida: "Saída da fila", chegada: "Hora de chegada", inicio: "Início", tratamento: "Tratamento indicado",
   contratacao: "Contratação confirmada em", modalidade: "Modalidade", vencimento: "Vencimento", renovacao: "Renovação",
@@ -64,6 +64,11 @@ function CareEditor({ patientId, source, data }: { patientId: string; source: st
   function change(key: string, value: string, group: "links" | "fields") {
     const entries = { ...draft[group] };
     if (value) entries[key] = value; else delete entries[key];
+    if (source === "reservas" && group === "links" && key === "pagamento") {
+      const origin = data.links.find(l => l.key === "pagamento")?.options.find(o => o.id === value)?.appointmentId;
+      if (origin) entries.consulta = origin;
+      else delete entries.consulta;
+    }
     const next = { ...draft, [group]: entries };
     if (group === "links" && value && ((source === "indicacoes" && key === "programa") || (source === "servicos" && key === "consulta"))) {
       next.fields = { ...next.fields };
@@ -72,6 +77,7 @@ function CareEditor({ patientId, source, data }: { patientId: string; source: st
     }
     setDraft(next); setNotice(""); save.reset();
   }
+  const deposit = source === "reservas" ? data.links.find(l => l.key === "pagamento")?.options.find(o => o.id === draft.links.pagamento) : undefined;
   function summary(row: CareItem) {
     const links = data.links.map(link => link.options.find(o => o.id === row.links[link.key])?.label).filter(Boolean);
     const details = data.fields.filter(f => row.fields[f.key]).map(f =>
@@ -84,12 +90,18 @@ function CareEditor({ patientId, source, data }: { patientId: string; source: st
         <legend className="mb-3 font-semibold">{draft.revision ? "Editar registro" : "Novo registro"}</legend>
         {dates[source] && <label className="field-label">{dates[source]}<input className="field-input" type="date" required
           value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></label>}
-        {data.links.map(link => <label className="field-label" key={link.key}>{labels[link.key]}{!link.required && " (opcional)"}
-          <select className="field-input" required={link.required} value={draft.links[link.key] ?? ""} onChange={e => change(link.key, e.target.value, "links")}>
+        {data.links.map(link => {
+          const depositVisit = source === "reservas" && link.key === "consulta";
+          const required = link.required || (depositVisit && !!deposit && !deposit.appointmentId);
+          return <label className="field-label" key={link.key}>{labels[link.key]}{!required && !depositVisit && " (opcional)"}
+          <select className="field-input" required={required} disabled={depositVisit && (!deposit || !!deposit.appointmentId)}
+            value={(depositVisit ? deposit?.appointmentId : undefined) ?? draft.links[link.key] ?? ""} onChange={e => change(link.key, e.target.value, "links")}>
             <option value="">{link.options.length ? "Selecione" : "Nenhum registro disponível"}</option>
             {link.options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
-        </label>)}
+        </label>;
+        })}
+        {source === "reservas" && deposit && !deposit.appointmentId && <p className="text-sm sm:col-span-2">Selecione a consulta que este pagamento avulso reservou.</p>}
         {source === "servicos" && draft.links.consulta && <p className="text-sm sm:col-span-2">Use a categoria Consulta e uma unidade. A conclusão na agenda registra a entrega.</p>}
         {source === "indicacoes" && draft.links.programa && <p className="text-sm sm:col-span-2">O contrato selecionado fornece a data de contratação.</p>}
         {data.fields.map(field => {

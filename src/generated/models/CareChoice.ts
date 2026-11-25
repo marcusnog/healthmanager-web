@@ -6,5 +6,6 @@ export type CareChoice = {
     id: string;
     label: string;
     date?: string | null;
+    appointmentId?: string | null;
 };
 
