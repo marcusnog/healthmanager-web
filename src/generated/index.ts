@@ -45,6 +45,9 @@ export type { CreatePaymentIntentRequest } from './models/CreatePaymentIntentReq
 export { CreatePaymentRequest } from './models/CreatePaymentRequest';
 export type { DashboardSummaryResponse } from './models/DashboardSummaryResponse';
 export type { DoctorResponse } from './models/DoctorResponse';
+export type { EvidenceHit } from './models/EvidenceHit';
+export type { EvidencePage } from './models/EvidencePage';
+export type { EvidenceRequest } from './models/EvidenceRequest';
 export type { GrantApplicationBalanceRequest } from './models/GrantApplicationBalanceRequest';
 export type { LoginRequest } from './models/LoginRequest';
 export { ManagedUserResponse } from './models/ManagedUserResponse';

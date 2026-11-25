@@ -2,6 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { EvidencePage } from '../models/EvidencePage';
+import type { EvidenceRequest } from '../models/EvidenceRequest';
 import type { ReportCsv } from '../models/ReportCsv';
 import type { ReportDirectory } from '../models/ReportDirectory';
 import type { ReportResult } from '../models/ReportResult';
@@ -10,6 +12,25 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ReportsService {
+    /**
+     * @param requestBody
+     * @returns EvidencePage Evidence batch
+     * @throws ApiError
+     */
+    public static reportsSearchEvidence(
+        requestBody: EvidenceRequest,
+    ): CancelablePromise<EvidencePage> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/reports/evidence/search',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Invalid search`,
+                403: `Clinic administrator required`,
+            },
+        });
+    }
     /**
      * @returns ReportDirectory OK
      * @throws ApiError

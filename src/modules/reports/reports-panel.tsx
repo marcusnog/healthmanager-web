@@ -6,6 +6,7 @@ import { ReportsService, type ReportDirectory, type ReportMetric, type SourceDef
 import { apiErrorMessage } from "@/lib/api-error";
 import { readAuthSession } from "@/lib/auth-session";
 import "@/services/api";
+import { EvidenceSearch } from "./evidence-search";
 
 const sourceDates: Record<string, string> = {
   reservas: "pagamento da reserva", espera: "entrada na fila", horarios: "atendimento",
@@ -136,5 +137,5 @@ export function ReportsPanel() {
   const directory = useQuery({ queryKey: ["report-directory", clinic], queryFn: () => ReportsService.reportsDirectory() });
   if (directory.isPending) return <p role="status">Carregando relatórios…</p>;
   if (directory.isError) return <p role="alert">Não foi possível abrir os relatórios. <button className="btn btn-ghost" onClick={() => directory.refetch()}>Tentar novamente</button></p>;
-  return <ReportBrowser directory={directory.data} clinic={clinic} />;
+  return <div className="grid gap-5"><ReportBrowser directory={directory.data} clinic={clinic} /><EvidenceSearch key={clinic} /></div>;
 }
