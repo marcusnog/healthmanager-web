@@ -124,6 +124,7 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
       </>}
     </section>
     {source && valid && <section className="panel min-w-0 p-5 text-sm">
+      {source.id !== "vendas" && <p className="mb-2">Origem no CRM: Pacientes → Acompanhamento. Os registros do paciente entram neste cálculo junto com o histórico importado.</p>}
       <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(!editing)}>{editing ? "Fechar fonte" : "Consultar ou importar dados"} · {source.title}</button>
       {editing && <SourceEditor key={[source.id, from, to].join("/")} source={source} from={from} to={to} clinic={clinic} />}
     </section>}

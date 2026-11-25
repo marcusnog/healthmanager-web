@@ -13,6 +13,8 @@ import { formatFileSize, triggerBrowserDownload, applyCpfMask, applyPhoneMask } 
 import { cn } from "@/lib/cn";
 import { apiErrorMessage } from "@/lib/api-error";
 import { PatientApplicationsModal } from "./patient-applications";
+import { PatientCareModal } from "./patient-care";
+import { readStoredSessionState } from "@/lib/auth-session";
 
 function isValidCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "");
@@ -269,6 +271,9 @@ export function PatientList({
   const [activePatient, setActivePatient] = useState<PatientResponse | null>(null);
   const [clinicalRecordsPatient, setClinicalRecordsPatient] = useState<PatientResponse | null>(null);
   const [applicationsPatient, setApplicationsPatient] = useState<PatientResponse | null>(null);
+  const [carePatient, setCarePatient] = useState<PatientResponse | null>(null);
+  const role = readStoredSessionState()?.role;
+  const canManageCare = role === "Admin" || role === "Secretary";
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -342,6 +347,9 @@ export function PatientList({
           onClose={() => setClinicalRecordsPatient(null)}
         />
       ) : null}
+
+      {carePatient?.id && <PatientCareModal patientId={carePatient.id} name={carePatient.name ?? "Paciente"}
+        secretary={role === "Secretary"} onClose={() => setCarePatient(null)} />}
 
       {applicationsPatient ? (
         <PatientApplicationsModal
@@ -522,6 +530,7 @@ export function PatientList({
                     >
                       Aplicacoes
                     </button>
+                    {canManageCare && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCarePatient(patient)}>Acompanhamento</button>}
                     {canDeletePatient ? <button
                       className="btn btn-danger btn-sm"
                       disabled={deletingPatientId === patient.id}
