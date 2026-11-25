@@ -12,7 +12,7 @@ let checkpoint: { owner: string; result: Progress } | undefined;
 export function clearEvidenceSearch() { checkpoint = undefined; }
 
 export function EvidenceSearch({ owner }: { owner: string }) {
-  const [progress, setProgress] = useState<Progress>(() => checkpoint?.owner === owner ? checkpoint.result : undefined);
+  const [progress, setProgress] = useState<Progress | undefined>(() => checkpoint?.owner === owner ? checkpoint.result : undefined);
   const [terms, setTerms] = useState(progress?.terms ?? "PLUS, NEXT");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
