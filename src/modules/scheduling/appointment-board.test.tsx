@@ -3,7 +3,7 @@ import { beforeEach, vi } from "vitest";
 import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { renderWithProviders } from "@/test/render";
 
-const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsCreateGroup, appointmentsDelete, appointmentsUpdateStatus, appointmentsUpdate, paymentsCreate, patientsCreate, healthInsurancesList } =
+const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointmentsCreateGroup, appointmentsDelete, appointmentsUpdateStatus, appointmentsUpdate, paymentsCreate, patientsCreate, patientsGetRegistration, healthInsurancesList } =
   vi.hoisted(() => ({
     appointmentsCancel: vi.fn(),
     appointmentsConfirm: vi.fn(),
@@ -14,6 +14,7 @@ const { appointmentsCancel, appointmentsConfirm, appointmentsCreate, appointment
     appointmentsUpdate: vi.fn(),
     paymentsCreate: vi.fn(),
     patientsCreate: vi.fn(),
+    patientsGetRegistration: vi.fn(),
     healthInsurancesList: vi.fn(),
   }));
 
@@ -28,6 +29,7 @@ vi.mock("@/services/api", () => ({
     appointmentsUpdate,
     paymentsCreate,
     patientsCreate,
+    patientsGetRegistration,
   },
   healthInsurancesList,
 }));
@@ -83,9 +85,23 @@ describe("AppointmentBoard", () => {
     appointmentsUpdate.mockReset();
     paymentsCreate.mockReset();
     patientsCreate.mockReset();
+    patientsGetRegistration.mockReset();
     healthInsurancesList.mockReset();
     healthInsurancesList.mockResolvedValue({ items: [] });
     baseProps.onAppointmentDateChange.mockReset();
+  });
+
+  it("abre a ficha pelo ID da consulta mesmo quando só um homônimo está no catálogo inicial", async () => {
+    patientsGetRegistration.mockResolvedValue({ id: "patient-101", name: "Marina Souza", cpf: "", phone: "", email: "fora-do-catalogo@example.test" });
+    renderWithProviders(<AppointmentBoard {...baseProps} appointments={[{
+      id: "appointment-101", patientId: "patient-101", patientName: "Marina Souza", doctorId: "doctor-1",
+      startAt: "2026-05-07T11:00:00Z", status: "Scheduled",
+    }]} />);
+    fireEvent.contextMenu(screen.getByRole("button", { name: /Editar consulta: Marina Souza/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir ficha cadastral" }));
+    expect(await screen.findByText("fora-do-catalogo@example.test")).toBeVisible();
+    expect(patientsGetRegistration).toHaveBeenCalledWith("patient-101");
+    expect(within(screen.getByRole("dialog")).queryByText("marina@email.com")).not.toBeInTheDocument();
   });
 
   it("requires confirmation before deleting and allows keeping the appointment", async () => {

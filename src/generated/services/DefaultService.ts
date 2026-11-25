@@ -56,6 +56,7 @@ import type { PatientPortalAuthResponse } from '../models/PatientPortalAuthRespo
 import type { PatientPortalLoginRequest } from '../models/PatientPortalLoginRequest';
 import type { PatientPortalProfileResponse } from '../models/PatientPortalProfileResponse';
 import type { PatientPortalReceivableResponse } from '../models/PatientPortalReceivableResponse';
+import type { PatientRegistrationResponse } from '../models/PatientRegistrationResponse';
 import type { PatientResponse } from '../models/PatientResponse';
 import type { PaymentGatewayConfigRequest } from '../models/PaymentGatewayConfigRequest';
 import type { PaymentGatewayConfigResponse } from '../models/PaymentGatewayConfigResponse';
@@ -254,6 +255,26 @@ export class DefaultService {
             url: '/patients',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * Read the current clinic patient's registration details
+     * @param id
+     * @returns PatientRegistrationResponse OK
+     * @throws ApiError
+     */
+    public static patientsGetRegistration(
+        id: string,
+    ): CancelablePromise<PatientRegistrationResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/patients/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                404: `Patient not found in the current clinic`,
+            },
         });
     }
     /**

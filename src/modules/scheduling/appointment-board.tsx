@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -180,7 +180,7 @@ export function AppointmentBoard({
   const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
   const [contextAppointment, setContextAppointment] = useState<AppointmentResponse | null>(null);
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
-  const [viewingPatient, setViewingPatient] = useState<PatientResponse | null>(null);
+  const [viewingPatientId, setViewingPatientId] = useState<string>();
   const [clinicalRecordAppointment, setClinicalRecordAppointment] = useState<AppointmentResponse | null>(null);
   const [paymentReceivable, setPaymentReceivable] = useState<ReceivableResponse | null>(null);
   const [deletingAppointment, setDeletingAppointment] = useState<AppointmentResponse | null>(null);
@@ -422,10 +422,13 @@ export function AppointmentBoard({
           <button className="btn btn-ghost justify-start" onClick={() => { setEditingAppointment(contextAppointment); setContextAppointment(null); }}>Mudar status</button>
           <button className="btn btn-ghost justify-start" onClick={() => { setEditingAppointment(contextAppointment); setContextAppointment(null); }}>Editar agendamento</button>
           <button className="btn btn-primary justify-start" onClick={() => { setClinicalRecordAppointment(contextAppointment); setContextAppointment(null); }}>Abrir prontuário</button>
-          <button className="btn btn-ghost justify-start" disabled={!patientMap[contextAppointment.patientId ?? ""]} onClick={() => { setViewingPatient(patientMap[contextAppointment.patientId ?? ""]); setContextAppointment(null); }}>Abrir ficha cadastral</button>
+          <button className="btn btn-ghost justify-start" disabled={!contextAppointment.patientId} onClick={() => {
+            setViewingPatientId(contextAppointment.patientId);
+            setContextAppointment(null);
+          }}>Abrir ficha cadastral</button>
         </div>
       </AppointmentContextMenu>}
-      {viewingPatient && <Modal title="Ficha cadastral" onClose={() => setViewingPatient(null)}><dl className="space-y-3">{[["Nome", viewingPatient.name], ["CPF", viewingPatient.cpf], ["Telefone", viewingPatient.phone], ["E-mail", viewingPatient.email]].map(([label, value]) => <div key={label}><dt className="text-sm text-[var(--muted)]">{label}</dt><dd>{value || "Não informado"}</dd></div>)}</dl></Modal>}
+      {viewingPatientId && <PatientRegistrationModal patientId={viewingPatientId} onClose={() => setViewingPatientId(undefined)} />}
       {deletingAppointment ? (
         <Modal title="Excluir agendamento" onClose={() => { if (!deleteAppointment.isPending) setDeletingAppointment(null); }}>
           <p className="text-sm">
@@ -1254,6 +1257,25 @@ function AppointmentSkeleton() {
   );
 }
 
+
+function PatientRegistrationModal({ patientId, onClose }: { patientId: string; onClose: () => void }) {
+  const { data, isError, error } = useQuery({
+    queryKey: ["patients-list", "registration", patientId],
+    queryFn: () => DefaultService.patientsGetRegistration(patientId),
+  });
+  return (
+    <Modal title="Ficha cadastral" onClose={onClose}>
+      {isError ? <p role="alert">{apiErrorMessage(error, "Não foi possível carregar a ficha cadastral.")}</p>
+        : data ? (
+          <dl className="space-y-3">
+            {[["Nome", data.name], ["CPF", data.cpf], ["Telefone", data.phone], ["E-mail", data.email]].map(([label, value]) => (
+              <div key={label}><dt className="text-sm text-[var(--muted)]">{label}</dt><dd>{value || "Não informado"}</dd></div>
+            ))}
+          </dl>
+        ) : <p role="status">Carregando ficha cadastral…</p>}
+    </Modal>
+  );
+}
 
 function AppointmentContextMenu({ position, onClose, children }: { position: { x: number; y: number }; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);

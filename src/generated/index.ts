@@ -75,6 +75,7 @@ export type { PatientPortalAuthResponse } from './models/PatientPortalAuthRespon
 export type { PatientPortalLoginRequest } from './models/PatientPortalLoginRequest';
 export type { PatientPortalProfileResponse } from './models/PatientPortalProfileResponse';
 export type { PatientPortalReceivableResponse } from './models/PatientPortalReceivableResponse';
+export type { PatientRegistrationResponse } from './models/PatientRegistrationResponse';
 export type { PatientResponse } from './models/PatientResponse';
 export { PaymentGatewayConfigRequest } from './models/PaymentGatewayConfigRequest';
 export { PaymentGatewayConfigResponse } from './models/PaymentGatewayConfigResponse';
