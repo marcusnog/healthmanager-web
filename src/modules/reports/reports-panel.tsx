@@ -133,9 +133,11 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
 }
 
 export function ReportsPanel() {
-  const clinic = readAuthSession()?.clinicId ?? "";
+  const session = readAuthSession();
+  const clinic = session?.clinicId ?? "";
+  const owner = JSON.stringify([clinic, session?.email]);
   const directory = useQuery({ queryKey: ["report-directory", clinic], queryFn: () => ReportsService.reportsDirectory() });
   if (directory.isPending) return <p role="status">Carregando relatórios…</p>;
   if (directory.isError) return <p role="alert">Não foi possível abrir os relatórios. <button className="btn btn-ghost" onClick={() => directory.refetch()}>Tentar novamente</button></p>;
-  return <div className="grid gap-5"><ReportBrowser directory={directory.data} clinic={clinic} /><EvidenceSearch key={clinic} /></div>;
+  return <div className="grid gap-5"><ReportBrowser directory={directory.data} clinic={clinic} /><EvidenceSearch key={owner} owner={owner} /></div>;
 }

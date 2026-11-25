@@ -7,9 +7,13 @@ type Progress = {
   manual: number; hits: EvidenceHit[]; done: boolean;
 };
 
-export function EvidenceSearch() {
-  const [terms, setTerms] = useState("PLUS, NEXT");
-  const [progress, setProgress] = useState<Progress>();
+// Keep the last completed batch in this tab when reauthentication unmounts Reports.
+let checkpoint: { owner: string; result: Progress } | undefined;
+export function clearEvidenceSearch() { checkpoint = undefined; }
+
+export function EvidenceSearch({ owner }: { owner: string }) {
+  const [progress, setProgress] = useState<Progress>(() => checkpoint?.owner === owner ? checkpoint.result : undefined);
+  const [terms, setTerms] = useState(progress?.terms ?? "PLUS, NEXT");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
@@ -19,6 +23,7 @@ export function EvidenceSearch() {
   async function run(initial: Progress) {
     const id = ++active.current;
     let result = initial;
+    checkpoint = { owner, result };
     setProgress(result); setRunning(true); setError("");
     try {
       while (!result.done && active.current === id) {
@@ -29,6 +34,7 @@ export function EvidenceSearch() {
           documents: result.documents + (files ? part.inspected : 0), manual: result.manual + part.manual,
           hits: result.hits.concat(part.hits), done: files && !part.next,
           source: !files && !part.next ? "documentos" : result.source, after: part.next ?? undefined };
+        checkpoint = { owner, result };
         setProgress(result);
       }
     } catch (err) {

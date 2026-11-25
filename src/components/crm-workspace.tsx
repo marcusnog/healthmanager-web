@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { clearAuthSession, getValidAccessToken, logoutAuthSession, readStoredSessionState } from "@/lib/auth-session";
+import { clearEvidenceSearch } from "@/modules/reports/evidence-search";
 import { LoginPanel } from "@/modules/auth/login-panel";
 import { SummaryCards } from "@/modules/dashboard/summary-cards";
 import { DashboardRightRail } from "@/modules/dashboard/dashboard-right-rail";
@@ -450,6 +451,7 @@ export function CrmWorkspace() {
     await queryClient.invalidateQueries();
   }
   function handleLogout() {
+    clearEvidenceSearch();
     setSession(null);
     queryClient.clear();
     void logoutAuthSession();
