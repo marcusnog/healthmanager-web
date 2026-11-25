@@ -47,15 +47,18 @@ export function PatientApplicationsModal({
     ]);
 
   const [grantSource, setGrantSource] = useState<"package" | "individual">("package");
+  const [classified, setClassified] = useState(false);
   const grant = useMutation({
     mutationFn: () =>
       PatientApplicationsService.patientApplicationBalanceGrant(patientId, {
         source: grantSource,
+        ...(classified ? { treatmentClass: grantSource === "package" ? "Protocolo" as const : "Injetavel" as const } : {}),
         packageId: grantSource === "package" ? grantPackageId ?? packages[0]?.id ?? "" : null,
         productId: grantSource === "individual" ? grantProductId ?? products[0]?.id ?? "" : null,
       }),
     onSuccess: async () => {
       setFeedback("Saldo concedido com sucesso.");
+      setClassified(false);
       await refresh();
     },
     onError: (error) => setFeedback(apiErrorMessage(error, "Não foi possível conceder o saldo.")),
@@ -207,10 +210,14 @@ export function PatientApplicationsModal({
               <h3 className="text-base font-semibold">Conceder saldo</h3>
               <label>
                 <span className="label">Origem</span>
-                <select className="input-field" value={grantSource} onChange={(e) => setGrantSource(e.target.value as "package" | "individual")}>
+                <select className="input-field" value={grantSource} onChange={(e) => { setGrantSource(e.target.value as "package" | "individual"); setClassified(false); }}>
                   <option value="package">Pacote</option>
                   <option value="individual">Venda individual</option>
                 </select>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={classified} onChange={e => setClassified(e.target.checked)} />
+                {grantSource === "package" ? "Classificar venda como protocolo" : "Classificar venda como injetável"}
               </label>
               {grantSource === "package" ? (
                 <label>

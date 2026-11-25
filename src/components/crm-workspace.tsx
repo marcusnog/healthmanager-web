@@ -12,6 +12,7 @@ import { AppointmentBoard } from "@/modules/scheduling/appointment-board";
 import { AppointmentTypeList } from "@/modules/scheduling/appointment-type-list";
 import { FinancialOverview } from "@/modules/financial/financial-overview";
 import { ExpenseCategoryList } from "@/modules/financial/expense-category-list";
+import { ReportsPanel } from "@/modules/reports/reports-panel";
 import { SettingsPanel } from "@/modules/settings/settings-panel";
 import { HealthInsuranceList } from "@/modules/health-insurances/health-insurance-list";
 import { SpecialtyList } from "@/modules/specialties/specialty-list";
@@ -30,6 +31,7 @@ import { Permissions } from "@/lib/permissions";
 
 type Section =
   | "dashboard"
+  | "relatorios"
   | "atendimento"
   | "agenda"
   | "tipos-consulta"
@@ -162,6 +164,7 @@ const NAV: { group: typeof NAV_GROUPS[number]; section: Section; icon: React.Rea
   { group: "Cadastros", section: "convenios",     icon: <HealthIcon />,     label: "Convênios" },
   { group: "Cadastros", section: "especialidades",icon: <TagIcon />,        label: "Especialidades" },
   { group: "Cadastros", section: "prescription-documents", icon: <TagIcon />, label: "Cadastro de receituários" },
+  { group: "Administração", section: "relatorios", icon: <DashboardIcon />, label: "Relatórios" },
   { group: "Administração", section: "clinical-settings", icon: <HealthIcon />, label: "Config. clínicas" },
   { group: "Administração", section: "usuarios", icon: <MedicosIcon />, label: "Usuários" },
   { group: "Administração", section: "configuracoes", icon: <ConfigIcon />,     label: "Configurações" },
@@ -169,7 +172,11 @@ const NAV: { group: typeof NAV_GROUPS[number]; section: Section; icon: React.Rea
 
 const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
   if (permissions?.some(p => p.startsWith("screen."))) {
-    return NAV.filter(n => permissions.includes(`screen.${n.section === "prescription-documents" ? "clinical-settings" : n.section}`) && (n.section !== "usuarios" || role === "Admin"));
+    return NAV.filter(n => {
+      if (n.section === "relatorios") return role === "Admin";
+      const screen = n.section === "prescription-documents" ? "clinical-settings" : n.section;
+      return permissions.includes(`screen.${screen}`) && (n.section !== "usuarios" || role === "Admin");
+    });
   }
   const hasGranular = (permissions?.length ?? 0) > 0;
   const base = role === "Doctor"
@@ -183,13 +190,14 @@ const NAV_FOR_ROLE = (role: ClinicRole, permissions?: string[]) => {
       // finance items when the role has the granular permission for them
       return n.permission !== undefined && hasGranular && (permissions ?? []).includes(n.permission);
     }
-    if (n.section === "usuarios") return role === "Admin";
+    if (n.section === "usuarios" || n.section === "relatorios") return role === "Admin";
     if (!n.permission) return true;
     return !hasGranular || (permissions ?? []).includes(n.permission);
   });
 };
 
 const SECTION_TITLE: Record<Section, { title: string; subtitle: string }> = {
+  relatorios: { title: "Relatórios", subtitle: "Agenda, programas de acompanhamento e tratamentos" },
   "prescription-documents": { title: "Cadastro de receituários", subtitle: "Modelos organizados em pastas para usar nos atendimentos" },
   "clinical-settings": { title: "Configurações clínicas", subtitle: "Exames, alimentos e formulários" },
   dashboard:      { title: "Dashboard",        subtitle: "Resumo da operação de hoje" },
@@ -626,6 +634,8 @@ export function CrmWorkspace() {
   function renderSection() {
     if (!currentNav.length) return <p role="status">Nenhuma tela liberada. Solicite acesso ao administrador da clínica.</p>;
     switch (resolvedActiveSection) {
+      case "relatorios":
+        return <ReportsPanel />;
       case "dashboard":
         return (
           <div className="dashboard-layout">

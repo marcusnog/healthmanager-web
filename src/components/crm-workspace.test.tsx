@@ -425,6 +425,14 @@ describe("CrmWorkspace", () => {
     expect(appointmentsList).toHaveBeenCalledWith(1, 10, "2026-05-08", undefined, undefined);
   });
 
+  it("shows reports for an administrator whose session predates the reports screen", async () => {
+    seedSession({ role: "Admin", permissions: ["screen.pacientes"] });
+    patientsList.mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 });
+
+    renderWithProviders(<CrmWorkspace />);
+    expect(await screen.findByRole("button", { name: "Relatórios" })).toBeVisible();
+  });
+
   it("renders the finance sub-navigation only for granted permissions", async () => {
     seedSession({
       role: "Admin",

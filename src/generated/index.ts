@@ -105,3 +105,13 @@ export { WhatsAppMessageResponse } from './models/WhatsAppMessageResponse';
 
 export { DefaultService } from './services/DefaultService';
 export { PatientApplicationsService } from './services/PatientApplicationsService';
+export type { ReportCsv } from './models/ReportCsv';
+export type { ReportDefinition } from './models/ReportDefinition';
+export type { ReportDirectory } from './models/ReportDirectory';
+export type { ReportMetric } from './models/ReportMetric';
+export type { ReportResult } from './models/ReportResult';
+export type { ReportRow } from './models/ReportRow';
+export type { SourceDefinition } from './models/SourceDefinition';
+export type { SourceField } from './models/SourceField';
+export type { SourcePage } from './models/SourcePage';
+export { ReportsService } from './services/ReportsService';
