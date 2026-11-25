@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/render";
 import { FinancialOverview } from "./financial-overview";
 import { DefaultService, professionalSettlementsList } from "@/services/api";
@@ -12,25 +12,54 @@ vi.mock("@/services/api", async (importOriginal) => ({
 
 beforeEach(() => vi.mocked(professionalSettlementsList).mockResolvedValue([]));
 
-it("registra um pagamento para paciente sem recebível ou consulta", async () => {
+const initialPatients = Array.from({ length: 100 }, (_, index) => ({
+  id: `patient-${index + 1}`, name: `Paciente ${String(index + 1).padStart(3, "0")}`,
+}));
+const lastPatient = { id: "patient-101", name: "Zélia Teste" };
+
+afterEach(() => vi.restoreAllMocks());
+
+it("busca a 101ª paciente pelo nome e registra o pagamento avulso no cadastro dela", async () => {
+  const clinicPatients = [...initialPatients, lastPatient];
+  const searchTerm = "Zélia";
+  const patientsList = vi.spyOn(DefaultService, "patientsList").mockResolvedValue({
+    items: clinicPatients.filter(patient => patient.name.includes(searchTerm)), total: 1,
+  });
   const manual = vi.spyOn(DefaultService, "receivablesManual").mockResolvedValue({});
   const linked = vi.spyOn(DefaultService, "paymentsCreate");
   renderOverview();
   fireEvent.click(screen.getByRole("button", { name: "+ Registrar pagamento" }));
-  fireEvent.change(screen.getByLabelText("Selecione o paciente"), { target: { value: "patient-1" } });
+  const input = screen.getByRole("combobox", { name: "Paciente" });
+  fireEvent.change(input, { target: { value: searchTerm } });
+  expect(await screen.findByRole("option", { name: /Zélia Teste/ })).toBeVisible();
+  expect(patientsList).toHaveBeenCalledWith(1, 20, searchTerm, "name", "asc");
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(input).toHaveValue(lastPatient.name);
   expect(screen.getByText("Pagamento sem consulta")).toBeVisible();
   fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "75" } });
   fireEvent.click(screen.getByRole("button", { name: "Confirmar pagamento" }));
-  await waitFor(() => expect(manual).toHaveBeenCalledWith(expect.objectContaining({ patientId: "patient-1", amount: 75, paymentMethod: "Pix" })));
+  await waitFor(() => expect(manual).toHaveBeenCalledWith(expect.objectContaining({ patientId: lastPatient.id, amount: 75, paymentMethod: "Pix" })));
   expect(linked).not.toHaveBeenCalled();
   await waitFor(() => expect(screen.getByText("Pagamento registrado com sucesso.")).toBeVisible());
-  vi.restoreAllMocks();
 });
 
-function renderOverview(payments: import("@/generated").PaymentResponse[] = [], permissions: Permission[] = [Permissions.FinanceReceivablesView, Permissions.FinanceReceivablesManage]) {
+it("identifica a paciente fora do catálogo ao abrir pela cobrança e limpa o vínculo ao trocar o nome", () => {
+  renderOverview([], undefined, [{ id: "receivable-1", patientId: lastPatient.id, patientName: lastPatient.name, status: "Pending", outstandingAmount: 75 }]);
+  fireEvent.click(screen.getByRole("button", { name: "Registrar pagamento" }));
+  const input = screen.getByRole("combobox", { name: "Paciente" });
+  expect(input).toHaveValue(lastPatient.name);
+  expect(screen.getByText(/Pagamento: Zélia Teste/)).toBeVisible();
+  fireEvent.change(input, { target: { value: "Paciente 001" } });
+  expect(screen.queryByRole("button", { name: "Confirmar pagamento" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Paciente 001/ }));
+  expect(screen.getByText("Pagamento sem consulta")).toBeVisible();
+});
+
+function renderOverview(payments: import("@/generated").PaymentResponse[] = [], permissions: Permission[] = [Permissions.FinanceReceivablesView, Permissions.FinanceReceivablesManage], receivables: import("@/generated").ReceivableResponse[] = []) {
   const noop = () => {};
   renderWithProviders(<FinancialOverview
-    receivables={[]} patients={[{ id: "patient-1", name: "Paciente avulso" }]} payments={payments}
+    receivables={receivables} patients={initialPatients} payments={payments}
     page={1} pageSize={20} total={0} status={undefined} dateFrom={undefined} dateTo={undefined}
     paymentPage={1} paymentDateFrom={undefined} paymentDateTo={undefined} paymentReceivableId={undefined} paymentDestinationBank={undefined}
     onPageChange={noop} onStatusChange={noop} onDateFromChange={noop} onDateToChange={noop}

@@ -58,6 +58,22 @@ describe("PatientSearch", () => {
     expect(onChange).toHaveBeenCalledWith(patients[1]);
   });
 
+  it("loads the next page of a name search and distinguishes homonyms by record number", async () => {
+    const patients = Array.from({ length: 21 }, (_, index) => ({
+      id: String(index + 1), name: "Ana Silva", details: { medicalRecordNumber: `PR-${index + 1}` },
+    }));
+    patientsList.mockImplementation((page, size) => Promise.resolve({
+      items: patients.slice((page - 1) * size, page * size), total: patients.length,
+    }));
+    const onChange = vi.fn();
+    renderWithProviders(<Picker patients={[]} value="" onChange={onChange} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "Ana Silva" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Carregar mais pacientes" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ana Silva PR-21" }));
+    expect(patientsList).toHaveBeenCalledWith(2, 20, "Ana Silva", "name", "asc");
+    expect(onChange).toHaveBeenLastCalledWith(patients[20]);
+  });
+
   it("does not show results from the previous search while a new search is pending", async () => {
     patientsList.mockResolvedValue({ items: [{ id: "1", name: "Ana Silva" }] });
     renderWithProviders(<Picker patients={[]} value="" onChange={vi.fn()} />);

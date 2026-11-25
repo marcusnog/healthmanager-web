@@ -19,6 +19,7 @@ import {
   resolveExpenseStatus,
 } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/modal";
+import { PatientSearch } from "@/modules/scheduling/patient-search";
 import { cn } from "@/lib/cn";
 import { Permissions } from "@/lib/permissions";
 
@@ -226,7 +227,8 @@ export function FinancialOverview({
   const [showIntentForm, setShowIntentForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseResponse | null>(null);
   const [registerMode, setRegisterMode] = useState<"patient" | "expense">("patient");
-  const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
+  const [selectedPatient, setSelectedPatient] = useState<PatientResponse | null>(null);
+  const selectedPatientId = selectedPatient?.id;
   const [selectedPatientReceivable, setSelectedPatientReceivable] = useState<ReceivableResponse | undefined>(undefined);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -321,7 +323,7 @@ export function FinancialOverview({
       setFeedback("Pagamento registrado com sucesso.");
       setShowReceivableRegister(false);
       setSelectedPatientReceivable(undefined);
-      setSelectedPatientId(undefined);
+      setSelectedPatient(null);
       resetPayment({ amount: 50, paymentMethod: "Pix", paidAt: new Date().toISOString().slice(0, 16), destinationBank: "", fundsRecipient: "Clinic", notes: "" });
       await invalidateFinancial();
     },
@@ -419,7 +421,7 @@ export function FinancialOverview({
   const startQuickPayment = (receivable: ReceivableResponse) => {
     setFeedback(null);
     setRegisterMode("patient");
-    setSelectedPatientId(receivable.patientId ?? undefined);
+    setSelectedPatient({ id: receivable.patientId, name: receivable.patientName });
     setSelectedPatientReceivable(receivable);
     setShowReceivableRegister(true);
   };
@@ -600,7 +602,7 @@ export function FinancialOverview({
 
       {/* Receivable register modal */}
       {showReceivableRegister ? (
-        <Modal title="Registrar pagamento" onClose={() => { setShowReceivableRegister(false); setSelectedPatientId(undefined); setSelectedPatientReceivable(undefined); }}>
+        <Modal title="Registrar pagamento" onClose={() => { setShowReceivableRegister(false); setSelectedPatient(null); setSelectedPatientReceivable(undefined); }}>
           {feedback ? <p role="status" className="mb-3 text-sm text-[var(--muted)]">{feedback}</p> : null}
           <div className="toolbar-inline mb-4">
             <button className={cn("btn btn-sm", registerMode === "patient" ? "btn-brand-outline" : "btn-ghost")} onClick={() => { setRegisterMode("patient"); setSelectedPatientReceivable(undefined); }} type="button">Paciente</button>
@@ -608,11 +610,17 @@ export function FinancialOverview({
           </div>
           {registerMode === "patient" ? (
             <div className="grid gap-4">
-              <Field label="Selecione o paciente">
-                <select className="input-field" value={selectedPatientId ?? ""} onChange={(e) => { setSelectedPatientId(e.target.value || undefined); setSelectedPatientReceivable(undefined); }}>
-                  <option value="">Selecione...</option>
-                  {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+              <Field label="Paciente">
+                <PatientSearch
+                  patients={patients}
+                  value={selectedPatientId ?? ""}
+                  selectedName={selectedPatient?.name}
+                  inlineResults
+                  onChange={patient => {
+                    setSelectedPatient(patient);
+                    setSelectedPatientReceivable(undefined);
+                  }}
+                />
               </Field>
               {selectedPatientId ? <button className="btn btn-ghost btn-sm justify-self-start" type="button" onClick={() => setSelectedPatientReceivable(undefined)}>Registrar sem consulta</button> : null}
               {selectedPatientId && patientReceivables.length === 0 ? (
