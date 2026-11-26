@@ -97,6 +97,37 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
   const result = useQuery({ queryKey: ["report-result", clinic, id, start, end],
     queryFn: () => ReportsService.reportsRun(id, start, end), enabled: currentBalance || valid });
   const rows = result.data?.rows;
+  const [exportError, setExportError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  async function exportReport(format: "pdf" | "excel") {
+    if (!rows?.length) return;
+    setExporting(true);
+    setExportError("");
+    try {
+      const headers = [id === "novos-agendamentos" ? "Paciente / data do sinal" : "Grupo", ...rows[0].metrics.map(m => m.label)];
+      const period = `${start.split("-").reverse().join("/")} a ${end.split("-").reverse().join("/")}`;
+      if (format === "pdf") {
+        const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+        const pdf = new jsPDF();
+        pdf.setFontSize(16); pdf.text(report.title, 14, 18);
+        pdf.setFontSize(10); pdf.text(`Período: ${period}`, 14, 25);
+        autoTable(pdf, { startY: 30, head: [headers], body: rows.map(row => [row.label, ...row.metrics.map(metricText)]) });
+        pdf.save(`${id}-${start}-${end}.pdf`);
+      } else {
+        const { Workbook } = await import("exceljs");
+        const workbook = new Workbook();
+        const sheet = workbook.addWorksheet("Relatório");
+        sheet.addRow([report.title]); sheet.addRow([`Período: ${period}`]); sheet.addRow(headers);
+        rows.forEach(row => sheet.addRow([row.label, ...row.metrics.map(m => m.value ?? "Indefinido")]));
+        sheet.columns.forEach((column, index) => { column.width = index === 0 ? 45 : 22; });
+        rows[0].metrics.forEach((metric, index) => { if (metric.unit === "brl") sheet.getColumn(index + 2).numFmt = '"R$" #,##0.00'; });
+        const bytes = await workbook.xlsx.writeBuffer();
+        const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+        const link = document.createElement("a"); link.href = url; link.download = `${id}-${start}-${end}.xlsx`; link.click(); URL.revokeObjectURL(url);
+      }
+    } catch { setExportError("Não foi possível exportar o relatório. Tente novamente."); }
+    finally { setExporting(false); }
+  }
   function select(next: string) { setId(next); setEditing(false); }
   return <div className="grid min-w-0 gap-6">
     <div className="panel grid items-end gap-4 p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1.4fr_10rem_10rem]">
@@ -109,7 +140,14 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
     </div>
     {!currentBalance && !valid && <p role="alert" className="field-error">Selecione um período válido de até 366 dias.</p>}
     <section className="panel min-w-0 p-5" aria-labelledby="report-title">
-      <h2 id="report-title" className="text-xl font-semibold">{report.title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="report-title" className="text-xl font-semibold">{report.title}</h2>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!rows?.length || exporting || result.isFetching} onClick={() => exportReport("pdf")}>Exportar PDF</button>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!rows?.length || exporting || result.isFetching} onClick={() => exportReport("excel")}>Exportar Excel</button>
+        </div>
+      </div>
+      {exportError && <p role="alert" className="field-error">{exportError}</p>}
       <p className="mt-1 text-slate-600">{report.purpose}</p>
       <p className="my-4 max-w-4xl text-sm text-slate-600">{report.calculation}</p>
       {(valid || currentBalance) && <>
@@ -118,7 +156,7 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
         {rows?.length === 0 && <p role="status">Nenhum registro encontrado para este cálculo.</p>}
         {!!rows?.length && <div className="overflow-x-auto" tabIndex={0} aria-label="Resultados do relatório">
           <table className="w-full text-left text-sm"><caption className="sr-only">{report.title}</caption>
-            <thead className="border-y border-slate-200 bg-slate-50"><tr><th scope="col" className="p-3">Grupo</th>{rows[0].metrics.map(m => <th scope="col" key={m.label} className="p-3 text-right">{m.label}</th>)}</tr></thead>
+            <thead className="border-y border-slate-200 bg-slate-50"><tr><th scope="col" className="p-3">{id === "novos-agendamentos" ? "Paciente / data do sinal" : "Grupo"}</th>{rows[0].metrics.map(m => <th scope="col" key={m.label} className="p-3 text-right">{m.label}</th>)}</tr></thead>
             <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-slate-200"><th scope="row" className="p-3 font-medium">{row.label}</th>{row.metrics.map(m => <td key={m.label} className="whitespace-nowrap p-3 text-right tabular-nums">{metricText(m)}</td>)}</tr>)}</tbody>
           </table>
         </div>}
