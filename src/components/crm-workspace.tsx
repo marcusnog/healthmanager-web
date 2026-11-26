@@ -263,6 +263,7 @@ export function CrmWorkspace() {
   const [doctorSearch, setDoctorSearch] = useState("");
   const [doctorPage, setDoctorPage] = useState(1);
   const [receivablePage, setReceivablePage] = useState(1);
+  const [receivablePatientName, setReceivablePatientName] = useState("");
   const [receivableStatus, setReceivableStatus] = useState<"Pending" | "Partial" | "Paid" | undefined>(undefined);
   const [receivableDateFrom, setReceivableDateFrom] = useState<string | undefined>(undefined);
   const [receivableDateTo, setReceivableDateTo] = useState<string | undefined>(undefined);
@@ -372,8 +373,8 @@ export function CrmWorkspace() {
     enabled: canLoad("agenda", "dashboard"),
   });
   const receivablesQuery = useQuery({
-    queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo],
-    queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo), { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 }),
+    queryKey: ["receivables", receivablePage, receivableStatus, receivableDateFrom, receivableDateTo, receivablePatientName],
+    queryFn: () => guardedQuery(() => DefaultService.receivablesList(receivablePage, RECEIVABLES_PAGE_SIZE, receivableStatus, receivableDateFrom, receivableDateTo, receivablePatientName || undefined), { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 }),
     placeholderData: { items: [], page: 1, pageSize: RECEIVABLES_PAGE_SIZE, total: 0 },
     enabled: canLoad("financeiro"),
   });
@@ -525,6 +526,8 @@ export function CrmWorkspace() {
     total: appointmentsQuery.data?.total ?? 0,
   };
   const financialOverviewProps = {
+    patientName: receivablePatientName,
+    onPatientNameChange: (value: string) => { setReceivablePatientName(value); setReceivablePage(1); },
     dateFrom: receivableDateFrom,
     dateTo: receivableDateTo,
     onDateFromChange: handleReceivableDateFromChange,

@@ -118,6 +118,8 @@ const EXPENSE_STATUS_FILTERS = [
 
 export function FinancialOverview({
   receivables,
+  patientName = "",
+  onPatientNameChange,
   page,
   pageSize,
   total,
@@ -165,6 +167,8 @@ export function FinancialOverview({
   initialTab = "receivables",
 }: {
   receivables: ReceivableResponse[];
+  patientName?: string;
+  onPatientNameChange?: (value: string) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -843,6 +847,10 @@ export function FinancialOverview({
               ))}
             </div>
             <div className="toolbar-inline flex-wrap gap-3">
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-sm font-semibold">Nome do paciente</span>
+                <input className="input-field" type="search" value={patientName} onChange={(e) => onPatientNameChange?.(e.target.value)} placeholder="Pesquisar paciente" />
+              </label>
               <label className="min-w-0 flex-1">
                 <span className="mb-2 block text-sm font-semibold">Vencimento de</span>
                 <input className="input-field" type="date" value={dateFrom ?? ""} onChange={(e) => onDateFromChange(e.target.value || undefined)} />

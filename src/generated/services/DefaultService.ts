@@ -760,6 +760,7 @@ export class DefaultService {
      * @param status
      * @param dateFrom
      * @param dateTo
+     * @param patientName
      * @returns PagedReceivableResponse OK
      * @throws ApiError
      */
@@ -769,6 +770,7 @@ export class DefaultService {
         status?: 'Pending' | 'Partial' | 'Paid',
         dateFrom?: string,
         dateTo?: string,
+        patientName?: string,
     ): CancelablePromise<PagedReceivableResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -779,6 +781,7 @@ export class DefaultService {
                 'status': status,
                 'dateFrom': dateFrom,
                 'dateTo': dateTo,
+                'patientName': patientName,
             },
         });
     }
