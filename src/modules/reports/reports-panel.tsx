@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ReportsService, type ReportDirectory, type ReportMetric, type SourceDefinition } from "@/generated";
+import { ReportsService, type ReportDirectory, type ReportMetric, type ReportRow, type SourceDefinition } from "@/generated";
 import { apiErrorMessage } from "@/lib/api-error";
 import { readAuthSession } from "@/lib/auth-session";
 import "@/services/api";
@@ -97,6 +97,9 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
   const result = useQuery({ queryKey: ["report-result", clinic, id, start, end],
     queryFn: () => ReportsService.reportsRun(id, start, end), enabled: currentBalance || valid });
   const rows = result.data?.rows;
+  const showDoctor = id === "novos-agendamentos";
+  const labelHeader = showDoctor ? "Paciente / data do sinal" : "Grupo";
+  const doctorCell = (row: ReportRow) => row.label === "Total" ? "" : row.doctorName?.trim() || "Não informado";
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
   async function exportReport(format: "pdf" | "excel") {
@@ -104,23 +107,23 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
     setExporting(true);
     setExportError("");
     try {
-      const headers = [id === "novos-agendamentos" ? "Paciente / data do sinal" : "Grupo", ...rows[0].metrics.map(m => m.label)];
+      const headers = [labelHeader, ...(showDoctor ? ["Médico"] : []), ...rows[0].metrics.map(m => m.label)];
       const period = `${start.split("-").reverse().join("/")} a ${end.split("-").reverse().join("/")}`;
       if (format === "pdf") {
         const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
         const pdf = new jsPDF();
         pdf.setFontSize(16); pdf.text(report.title, 14, 18);
         pdf.setFontSize(10); pdf.text(`Período: ${period}`, 14, 25);
-        autoTable(pdf, { startY: 30, head: [headers], body: rows.map(row => [row.label, ...row.metrics.map(metricText)]) });
+        autoTable(pdf, { startY: 30, head: [headers], body: rows.map(row => [row.label, ...(showDoctor ? [doctorCell(row)] : []), ...row.metrics.map(metricText)]) });
         pdf.save(`${id}-${start}-${end}.pdf`);
       } else {
         const { Workbook } = await import("exceljs");
         const workbook = new Workbook();
         const sheet = workbook.addWorksheet("Relatório");
         sheet.addRow([report.title]); sheet.addRow([`Período: ${period}`]); sheet.addRow(headers);
-        rows.forEach(row => sheet.addRow([row.label, ...row.metrics.map(m => m.value ?? "Indefinido")]));
+        rows.forEach(row => sheet.addRow([row.label, ...(showDoctor ? [doctorCell(row)] : []), ...row.metrics.map(m => m.value ?? "Indefinido")]));
         sheet.columns.forEach((column, index) => { column.width = index === 0 ? 45 : 22; });
-        rows[0].metrics.forEach((metric, index) => { if (metric.unit === "brl") sheet.getColumn(index + 2).numFmt = '"R$" #,##0.00'; });
+        rows[0].metrics.forEach((metric, index) => { if (metric.unit === "brl") sheet.getColumn(index + (showDoctor ? 3 : 2)).numFmt = '"R$" #,##0.00'; });
         const bytes = await workbook.xlsx.writeBuffer();
         const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
         const link = document.createElement("a"); link.href = url; link.download = `${id}-${start}-${end}.xlsx`; link.click(); URL.revokeObjectURL(url);
@@ -156,8 +159,8 @@ function ReportBrowser({ directory, clinic }: { directory: ReportDirectory; clin
         {rows?.length === 0 && <p role="status">Nenhum registro encontrado para este cálculo.</p>}
         {!!rows?.length && <div className="overflow-x-auto" tabIndex={0} aria-label="Resultados do relatório">
           <table className="w-full text-left text-sm"><caption className="sr-only">{report.title}</caption>
-            <thead className="border-y border-slate-200 bg-slate-50"><tr><th scope="col" className="p-3">{id === "novos-agendamentos" ? "Paciente / data do sinal" : "Grupo"}</th>{rows[0].metrics.map(m => <th scope="col" key={m.label} className="p-3 text-right">{m.label}</th>)}</tr></thead>
-            <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-slate-200"><th scope="row" className="p-3 font-medium">{row.label}</th>{row.metrics.map(m => <td key={m.label} className="whitespace-nowrap p-3 text-right tabular-nums">{metricText(m)}</td>)}</tr>)}</tbody>
+            <thead className="border-y border-slate-200 bg-slate-50"><tr><th scope="col" className="p-3">{labelHeader}</th>{showDoctor && <th scope="col" className="p-3">Médico</th>}{rows[0].metrics.map(m => <th scope="col" key={m.label} className="p-3 text-right">{m.label}</th>)}</tr></thead>
+            <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-slate-200"><th scope="row" className="p-3 font-medium">{row.label}</th>{showDoctor && <td className="p-3">{doctorCell(row)}</td>}{row.metrics.map(m => <td key={m.label} className="whitespace-nowrap p-3 text-right tabular-nums">{metricText(m)}</td>)}</tr>)}</tbody>
           </table>
         </div>}
       </>}

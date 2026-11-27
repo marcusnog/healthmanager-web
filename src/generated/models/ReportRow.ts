@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ReportMetric } from './ReportMetric';
 export type ReportRow = {
+    doctorName?: string | null;
     label: string;
     metrics: Array<ReportMetric>;
 };
