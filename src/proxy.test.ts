@@ -30,3 +30,37 @@ describe("login URL protection", () => {
     expect(response.headers.get("location")).toBe("https://example.test/");
   });
 });
+
+describe("public backend proxy", () => {
+  it.each([
+    ["GET", "/backend/health"],
+    ["POST", "/backend/internal/clinics"],
+    ["GET", "/backend/swagger/index.html"],
+    ["GET", "/backend/metrics"],
+    ["PUT", "/backend/patients"],
+    ["GET", "/backend/patients/id%2Fdocuments"],
+    ["GET", "/backend/whatsapp/conversations/id%252Fmessages"],
+    ["GET", "/backend/webhooks/payments/Stripe"],
+    ["POST", "/backend/webhooks/payments/unknown"],
+  ])("blocks %s %s before forwarding", (method, path) => {
+    const response = proxy(new NextRequest("https://example.test" + path, { method }));
+    expect(response.status).toBe(404);
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it.each([
+    ["POST", "/auth/login"],
+    ["GET", "/patients?page=2"],
+    ["POST", "/patients/id/documents/upload"],
+    ["GET", "/whatsapp/conversations/%2B5511999998888/messages"],
+    ["GET", "/whatsapp/webhook?hub.mode=subscribe&hub.challenge=123"],
+    ["POST", "/whatsapp/webhook"],
+    ["POST", "/webhooks/payments/stripe"],
+    ["POST", "/webhooks/payments/Asaas"],
+    ["POST", "/webhooks/payments/MercadoPago"],
+  ])("forwards %s %s with its original path and query", (method, path) => {
+    const response = proxy(new NextRequest("https://example.test/backend" + path, { method }));
+    const target = process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080";
+    expect(response.headers.get("x-middleware-rewrite")).toBe(new URL(path, target).href);
+  });
+});

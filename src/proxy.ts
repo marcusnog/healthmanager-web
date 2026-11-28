@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isPublicBackendRoute } from "@/lib/backend-proxy-routes";
 
 export function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  if (pathname === "/backend" || pathname.startsWith("/backend/")) {
+    const backendPath = pathname.slice("/backend".length);
+    if (!isPublicBackendRoute(request.method, backendPath)) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    const destination = new URL(process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080");
+    destination.pathname = backendPath;
+    destination.search = request.nextUrl.search;
+    return NextResponse.rewrite(destination);
+  }
+
   const url = request.nextUrl.clone();
   const credentials = new Set(["email", "password", "cpf", "accesstoken", "refreshtoken"]);
   let cleaned = false;
@@ -22,4 +36,4 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/", "/portal"] };
+export const config = { matcher: ["/", "/portal", "/backend/:path*"] };

@@ -78,7 +78,7 @@ tests/
 - OpenAPI client in `src/generated/` — never edit by hand. Regenerate via `npm run generate:api`.
 - Hand-written API wrappers in `src/services/api.ts` extend the generated client for custom endpoints (expenses, financial summary)
 - `src/lib/api-error.ts` normalizes generated-client and HTTP errors for UI messages.
-- Backend proxy: `/backend/*` rewrites to `API_PROXY_TARGET` (default `http://127.0.0.1:8080`) — see `next.config.ts`
+- Backend proxy: `/backend/*` forwards only explicitly allowed methods and paths to `API_PROXY_TARGET` (default `http://127.0.0.1:8080`) — see `src/proxy.ts` and `src/lib/backend-proxy-routes.ts`. The API validates provider callbacks. Health checks and internal API routes are cluster-only.
 - Vitest: jsdom environment, `vitest.setup.ts` adds `@testing-library/jest-dom` + `<dialog>` polyfill; coverage excludes `src/generated/` and `src/app/`
 - Two Playwright configs: `playwright.config.ts` (mocked) and `playwright.real.config.ts` (real backend — starts .NET API in-memory automatically)
 - Tailwind v4 with `@tailwindcss/postcss` (no `tailwind.config.js`)
@@ -97,7 +97,7 @@ tests/
 | Variable | Required? | Default | Purpose |
 |----------|-----------|---------|---------|
 | `NEXT_PUBLIC_API_BASE_URL` | No | `/backend` | API base URL (overrides dev proxy) |
-| `API_PROXY_TARGET` | No | `http://127.0.0.1:8080` | Backend dev server for `next.config.ts` rewrites |
+| `API_PROXY_TARGET` | No | `http://127.0.0.1:8080` | Backend origin for the server-side proxy |
 
 ## Visual design rules
 
